@@ -1,5 +1,5 @@
 {
-  "name": "@levelcode/.agents",
+  "name": "@levelcode/agents-internal",
   "version": "0.0.0",
   "private": true,
   "type": "module",
