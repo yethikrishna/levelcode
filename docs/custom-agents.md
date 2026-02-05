@@ -325,4 +325,4 @@ await client.run({
 
 ---
 
-*See more examples in the [agents directory](https://github.com/YEthikrishna/levelcode/tree/main/agents)*
+*See more examples in the [agents directory](https://github.com/yethikrishna/levelcode/tree/main/agents)*

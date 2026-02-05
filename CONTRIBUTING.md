@@ -16,7 +16,7 @@ Before you begin, you'll need to install a few tools:
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/YEthikrishna/levelcode.git
+   git clone https://github.com/yethikrishna/levelcode.git
    cd levelcode
    ```
 
@@ -254,4 +254,4 @@ Improve `web/`: agent management, project templates, analytics.
 
 - **Documentation**: [levelcode.com/docs](https://levelcode.com/docs)
 - **Community Discord**: [levelcode.com/discord](https://levelcode.com/discord)
-- **Report issues**: [GitHub Issues](https://github.com/YEthikrishna/levelcode/issues)
+- **Report issues**: [GitHub Issues](https://github.com/yethikrishna/levelcode/issues)

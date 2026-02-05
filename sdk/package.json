@@ -50,12 +50,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YEthikrishna/levelcode.git",
+    "url": "git+https://github.com/yethikrishna/levelcode.git",
     "directory": "sdk"
   },
-  "homepage": "https://github.com/YEthikrishna/levelcode",
+  "homepage": "https://github.com/yethikrishna/levelcode",
   "bugs": {
-    "url": "https://github.com/YEthikrishna/levelcode/issues"
+    "url": "https://github.com/yethikrishna/levelcode/issues"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "2.0.50",
@@ -78,7 +78,7 @@
     "node-fetch": "^3.3.2"
   },
   "author": {
-    "name": "YEthikrishna R",
+    "name": "Yethikrishna R",
     "email": "yethikrishnarcvn7a@gmail.com"
   }
 }

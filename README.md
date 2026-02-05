@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YEthikrishna/levelcode/actions"><img src="https://github.com/YEthikrishna/levelcode/workflows/CI/badge.svg" alt="CI Status"></a>
-  <a href="https://github.com/YEthikrishna/levelcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
+  <a href="https://github.com/yethikrishna/levelcode/actions"><img src="https://github.com/yethikrishna/levelcode/workflows/CI/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/yethikrishna/levelcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://www.npmjs.com/package/levelcode"><img src="https://img.shields.io/npm/v/levelcode.svg" alt="npm version"></a>
-  <a href="https://github.com/YEthikrishna/levelcode/stargazers"><img src="https://img.shields.io/github/stars/YEthikrishna/levelcode" alt="GitHub stars"></a>
-  <a href="https://github.com/YEthikrishna/levelcode/network/members"><img src="https://img.shields.io/github/forks/YEthikrishna/levelcode" alt="GitHub forks"></a>
+  <a href="https://github.com/yethikrishna/levelcode/stargazers"><img src="https://img.shields.io/github/stars/Yethikrishna/levelcode" alt="GitHub stars"></a>
+  <a href="https://github.com/yethikrishna/levelcode/network/members"><img src="https://img.shields.io/github/forks/Yethikrishna/levelcode" alt="GitHub forks"></a>
 </p>
 
 <p align="center">
@@ -152,7 +152,7 @@ bun add @levelcode/sdk
 
 ```bash
 # Clone the repository
-git clone https://github.com/YEthikrishna/levelcode.git
+git clone https://github.com/yethikrishna/levelcode.git
 cd levelcode
 
 # Install dependencies
@@ -410,7 +410,7 @@ We love contributions from the community! Whether you're fixing bugs, creating a
 
 ```bash
 # Clone the repo
-git clone https://github.com/YEthikrishna/levelcode.git
+git clone https://github.com/yethikrishna/levelcode.git
 cd levelcode
 
 # Install dependencies
@@ -452,8 +452,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/YEthikrishna/levelcode/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YEthikrishna/levelcode/discussions)
+- **Issues**: [GitHub Issues](https://github.com/yethikrishna/levelcode/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yethikrishna/levelcode/discussions)
 - **Email**: yethikrishnarcvn7a@gmail.com
 
 ---
@@ -473,7 +473,7 @@ LevelCode is open-source software licensed under the [Apache License 2.0](LICENS
 ---
 
 <p align="center">
-  <strong>Created by <a href="https://github.com/YEthikrishna">YEthikrishna R</a></strong>
+  <strong>Created by <a href="https://github.com/Yethikrishna">Yethikrishna R</a></strong>
 </p>
 
 <p align="center">
@@ -481,7 +481,7 @@ LevelCode is open-source software licensed under the [Apache License 2.0](LICENS
 </p>
 
 <p align="center">
-  <a href="https://github.com/YEthikrishna/levelcode/stargazers">
-    <img src="https://img.shields.io/github/stars/YEthikrishna/levelcode?style=social" alt="Star on GitHub">
+  <a href="https://github.com/yethikrishna/levelcode/stargazers">
+    <img src="https://img.shields.io/github/stars/Yethikrishna/levelcode?style=social" alt="Star on GitHub">
   </a>
 </p>
