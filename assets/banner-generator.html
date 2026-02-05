@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LevelCode Banner Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0f0f23;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      gap: 40px;
+    }
+
+    h2 {
+      color: white;
+      font-size: 14px;
+      opacity: 0.7;
+      margin-bottom: 10px;
+    }
+
+    /* GitHub Banner - 1280x640 */
+    .github-banner {
+      width: 1280px;
+      height: 640px;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+      border-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .github-banner::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+    }
+
+    .github-banner::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.1) 0%, transparent 70%);
+    }
+
+    .github-content {
+      display: flex;
+      align-items: center;
+      gap: 80px;
+      z-index: 1;
+    }
+
+    .logo-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .logo {
+      width: 180px;
+      height: 180px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(99, 102, 241, 0.4);
+    }
+
+    .logo-inner {
+      width: 140px;
+      height: 140px;
+      background: #1e1b4b;
+      border-radius: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .code-bracket {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 48px;
+      font-weight: 500;
+      background: linear-gradient(90deg, #06b6d4, #22d3ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+
+    .level-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .level-bar {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .level-bar:nth-child(1) { width: 50px; background: #22d3ee; }
+    .level-bar:nth-child(2) { width: 35px; background: #8b5cf6; }
+    .level-bar:nth-child(3) { width: 50px; background: #22d3ee; }
+
+    .text-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .title {
+      font-size: 96px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -2px;
+    }
+
+    .subtitle {
+      font-size: 28px;
+      color: #a5b4fc;
+      font-weight: 500;
+    }
+
+    .badges {
+      display: flex;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .badge {
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .badge-purple {
+      background: rgba(99, 102, 241, 0.3);
+      color: #c7d2fe;
+    }
+
+    .badge-cyan {
+      background: rgba(6, 182, 212, 0.3);
+      color: #a5f3fc;
+    }
+
+    .badge-violet {
+      background: rgba(139, 92, 246, 0.3);
+      color: #ddd6fe;
+    }
+
+    /* README Banner - 800x200 */
+    .readme-banner {
+      width: 800px;
+      height: 200px;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      gap: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .readme-banner .logo {
+      width: 100px;
+      height: 100px;
+      border-radius: 24px;
+      flex-shrink: 0;
+    }
+
+    .readme-banner .logo-inner {
+      width: 80px;
+      height: 80px;
+      border-radius: 18px;
+    }
+
+    .readme-banner .code-bracket {
+      font-size: 24px;
+    }
+
+    .readme-banner .level-bar {
+      height: 5px;
+    }
+
+    .readme-banner .level-bar:nth-child(1) { width: 30px; }
+    .readme-banner .level-bar:nth-child(2) { width: 20px; }
+    .readme-banner .level-bar:nth-child(3) { width: 30px; }
+
+    .readme-banner .text-section {
+      gap: 8px;
+    }
+
+    .readme-banner .title {
+      font-size: 48px;
+    }
+
+    .readme-banner .subtitle {
+      font-size: 18px;
+    }
+
+    .readme-banner .badges {
+      margin-top: 10px;
+      gap: 10px;
+    }
+
+    .readme-banner .badge {
+      padding: 6px 14px;
+      font-size: 12px;
+      border-radius: 14px;
+    }
+
+    .terminal {
+      position: absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 220px;
+      height: 150px;
+      background: #0f172a;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      overflow: hidden;
+    }
+
+    .terminal-header {
+      height: 28px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+    }
+
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot.red { background: #ef4444; }
+    .terminal-dot.yellow { background: #fbbf24; }
+    .terminal-dot.green { background: #22c55e; }
+
+    .terminal-content {
+      padding: 10px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .terminal-line {
+      display: block;
+    }
+
+    .terminal-prompt { color: #22d3ee; }
+    .terminal-command { color: #e2e8f0; }
+    .terminal-comment { color: #a5b4fc; }
+    .terminal-output { color: #94a3b8; }
+    .terminal-success { color: #22c55e; }
+    .terminal-warning { color: #fbbf24; }
+
+    .instructions {
+      color: white;
+      text-align: center;
+      max-width: 600px;
+      line-height: 1.8;
+      opacity: 0.8;
+    }
+
+    .instructions code {
+      background: rgba(99, 102, 241, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+  <h2>GitHub Social Preview (1280x640) - Right-click > Save Image As</h2>
+  <div class="github-banner">
+    <div class="github-content">
+      <div class="logo-section">
+        <div class="logo">
+          <div class="logo-inner">
+            <span class="code-bracket">&lt;/&gt;</span>
+            <div class="level-bars">
+              <div class="level-bar"></div>
+              <div class="level-bar"></div>
+              <div class="level-bar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="text-section">
+        <div class="title">LevelCode</div>
+        <div class="subtitle">The Open-Source AI Coding Agent</div>
+        <div class="badges">
+          <span class="badge badge-purple">Multi-Agent</span>
+          <span class="badge badge-cyan">200+ Models</span>
+          <span class="badge badge-violet">TypeScript SDK</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>README Banner (800x200)</h2>
+  <div class="readme-banner">
+    <div class="logo">
+      <div class="logo-inner">
+        <span class="code-bracket">&lt;/&gt;</span>
+        <div class="level-bars">
+          <div class="level-bar"></div>
+          <div class="level-bar"></div>
+          <div class="level-bar"></div>
+        </div>
+      </div>
+    </div>
+    <div class="text-section">
+      <div class="title">LevelCode</div>
+      <div class="subtitle">The Open-Source AI Coding Agent</div>
+      <div class="badges">
+        <span class="badge badge-purple">Multi-Agent</span>
+        <span class="badge badge-cyan">200+ Models</span>
+        <span class="badge badge-violet">TypeScript</span>
+      </div>
+    </div>
+    <div class="terminal">
+      <div class="terminal-header">
+        <div class="terminal-dot red"></div>
+        <div class="terminal-dot yellow"></div>
+        <div class="terminal-dot green"></div>
+      </div>
+      <div class="terminal-content">
+        <span class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-command">levelcode</span></span>
+        <span class="terminal-line"><span class="terminal-comment"># Welcome!</span></span>
+        <span class="terminal-line"><span class="terminal-output">> Add error handling</span></span>
+        <span class="terminal-line"><span class="terminal-success">  Analyzing...</span></span>
+        <span class="terminal-line"><span class="terminal-success">  Editing src/api.ts</span></span>
+        <span class="terminal-line"><span class="terminal-warning">  Done!</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <p><strong>To save as PNG:</strong></p>
+    <p>1. Open this file in Chrome/Edge</p>
+    <p>2. Right-click on the banner you want</p>
+    <p>3. Select "Inspect" > Right-click the element > "Capture node screenshot"</p>
+    <p>Or use <code>Ctrl+Shift+P</code> > "Capture node screenshot"</p>
+  </div>
+</body>
+</html>

@@ -1,24 +1,91 @@
 # @levelcode/cli
 
-A Terminal User Interface (TUI) package built with OpenTUI and React.
+The official CLI for **LevelCode** - an open-source AI coding agent that outperforms Claude Code.
+
+[![npm version](https://img.shields.io/npm/v/@levelcode/cli.svg)](https://www.npmjs.com/package/@levelcode/cli)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/yethikrishna/levelcode/blob/master/LICENSE)
+
+## Features
+
+- **Multi-Agent Architecture**: Specialized agents work together for precise codebase editing
+- **200+ Model Support**: Use any model via OpenRouter (Claude, GPT, DeepSeek, Qwen, etc.)
+- **Terminal-First**: Beautiful, responsive UI with real-time streaming
+- **Custom Workflows**: Create specialized agents with TypeScript
 
 ## Installation
 
 ```bash
-bun install
+# Using npm
+npm install -g @levelcode/cli
+
+# Using bun (recommended)
+bun install -g @levelcode/cli
+
+# Using yarn
+yarn global add @levelcode/cli
+```
+
+## Quick Start
+
+1. **Set your API key:**
+
+```bash
+export OPENROUTER_API_KEY="sk-or-v1-..."
+```
+
+Get your key from [OpenRouter](https://openrouter.ai/keys).
+
+2. **Run LevelCode:**
+
+```bash
+cd your-project
+levelcode
+```
+
+3. **Start coding with AI:**
+
+Just tell LevelCode what you want:
+- "Fix the SQL injection vulnerability"
+- "Add rate limiting to all API endpoints"
+- "Refactor the database connection code"
+- "Add unit tests for the auth module"
+
+## CLI Options
+
+```bash
+# Use a specific model
+levelcode --model anthropic/claude-3.5-sonnet
+
+# Set working directory
+levelcode --cwd /path/to/project
+
+# Non-interactive mode
+levelcode "Add error handling to all API calls"
+
+# Show help
+levelcode --help
+```
+
+## Configuration
+
+Create a `levelcode.config.ts` in your project:
+
+```typescript
+export default {
+  model: 'anthropic/claude-3.5-sonnet',
+  ignore: ['node_modules/**', 'dist/**'],
+};
 ```
 
 ## Development
 
-Run the TUI in development mode:
+### Running in Development Mode
 
 ```bash
 bun run dev
 ```
 
-## Testing
-
-Run the test suite:
+### Testing
 
 ```bash
 bun test
@@ -36,49 +103,22 @@ brew install tmux
 sudo apt-get install tmux
 
 # Windows (via WSL)
-wsl --install
-sudo apt-get install tmux
+wsl --install && sudo apt-get install tmux
 ```
 
-Then run the proof-of-concept:
+Run the proof-of-concept:
 
 ```bash
 bun run test:tmux-poc
 ```
 
-**Note:** When sending input to the CLI via tmux, you must use bracketed paste mode. Standard `send-keys` drops characters.
+## Documentation
 
-```bash
-# ❌ Broken: tmux send-keys -t session "hello"
-# ✅ Works:  tmux send-keys -t session $'\e[200~hello\e[201~'
-```
+- [Full Documentation](https://github.com/yethikrishna/levelcode#readme)
+- [SDK Reference](https://github.com/yethikrishna/levelcode/tree/master/sdk)
+- [Custom Agents Guide](https://github.com/yethikrishna/levelcode/blob/master/docs/custom-agents.md)
+- [Configuration Options](https://github.com/yethikrishna/levelcode/blob/master/docs/configuration.md)
 
-See [tmux.knowledge.md](tmux.knowledge.md) for comprehensive tmux documentation and [src/__tests__/README.md](src/__tests__/README.md) for testing documentation.
+## License
 
-## Build
-
-Build the package:
-
-```bash
-bun run build
-```
-
-## Run
-
-Run the built TUI:
-
-```bash
-bun run start
-```
-
-Or use the binary directly:
-
-```bash
-levelcode-tui
-```
-
-## Features
-
-- Built with OpenTUI for modern terminal interfaces
-- Uses React for declarative component-based UI
-- TypeScript support out of the box
+Apache-2.0 - Created by [Yethikrishna R](https://github.com/yethikrishna)

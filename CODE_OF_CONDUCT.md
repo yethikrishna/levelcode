@@ -42,7 +42,7 @@ We agree to restrict the following behaviors in our community. Instances, threat
 
 Tensions can occur between community members even when they are trying their best to collaborate. Not every conflict represents a code of conduct violation, and this Code of Conduct reinforces encouraged behaviors and norms that can help avoid conflicts and minimize harm.
 
-When an incident does occur, it is important to report it promptly. To report a possible violation, contact the project team at support@levelcode.com.
+When an incident does occur, it is important to report it promptly. To report a possible violation, contact the project team at yethikrishnarcvn7a@gmail.com.
 
 Community Maintainers take reports of violations seriously and will make every effort to respond in a timely manner. They will investigate all reports of code of conduct violations. Community Maintainers will keep investigation and enforcement actions as transparent as possible while prioritizing safety and confidentiality.
 

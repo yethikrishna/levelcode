@@ -1,16 +1,41 @@
 {
   "name": "@levelcode/cli",
-  "version": "1.0.0",
-  "description": "LevelCode CLI - Terminal-based AI coding agent",
+  "version": "0.0.1",
+  "description": "LevelCode CLI - Terminal-based AI coding agent that outperforms Claude Code",
   "author": {
     "name": "Yethikrishna R",
     "email": "yethikrishnarcvn7a@gmail.com"
   },
-  "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yethikrishna/levelcode.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/yethikrishna/levelcode/issues"
+  },
+  "homepage": "https://github.com/yethikrishna/levelcode/tree/master/cli",
+  "keywords": [
+    "levelcode",
+    "ai",
+    "coding-agent",
+    "cli",
+    "terminal",
+    "llm",
+    "openrouter"
+  ],
+  "private": false,
   "type": "module",
   "bin": {
+    "levelcode": "./dist/cli.js",
     "levelcode-tui": "./bin/codecane"
   },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "bun": "./src/index.tsx",
