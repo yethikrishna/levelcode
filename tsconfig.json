@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true, // don't place JS everywhere while hacking
+    "baseUrl": ".", // Bun & editors see the aliases
+    "paths": {
+      "@levelcode/common/*": ["./common/src/*"],
+      "@levelcode/web/*": ["./web/src/*"],
+      "@levelcode/evals/*": ["./evals/*"],
+      "@levelcode/sdk": ["./sdk/src/index.ts"],
+      "@levelcode/sdk/*": ["./sdk/*"],
+      "@levelcode/agent-runtime/*": ["./packages/agent-runtime/src/*"],
+      "@levelcode/billing/*": ["./packages/billing/src/*"],
+      "@levelcode/bigquery/*": ["./packages/bigquery/src/*"],
+      "@levelcode/internal/*": ["./packages/internal/src/*"],
+      "@levelcode/code-map/*": ["./packages/code-map/*"]
+    }
+  },
+  "files": [],
+  "references": [
+    { "path": "./common" },
+    { "path": "./web" },
+    { "path": "./evals" },
+    { "path": "./sdk" },
+    { "path": "./packages/billing" },
+    { "path": "./packages/bigquery" },
+    { "path": "./packages/internal" },
+    { "path": "./packages/code-map" },
+    { "path": "./scripts" }
+  ]
+}

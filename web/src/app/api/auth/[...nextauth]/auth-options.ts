@@ -1,0 +1,246 @@
+import { DrizzleAdapter } from '@auth/drizzle-adapter'
+import { processAndGrantCredit } from '@levelcode/billing'
+import { trackEvent } from '@levelcode/common/analytics'
+import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
+import {
+  DEFAULT_FREE_CREDITS_GRANT,
+  SESSION_MAX_AGE_SECONDS,
+} from '@levelcode/common/old-constants'
+import { getNextQuotaReset } from '@levelcode/common/util/dates'
+import { generateCompactId } from '@levelcode/common/util/string'
+import { loops } from '@levelcode/internal'
+import db from '@levelcode/internal/db'
+import * as schema from '@levelcode/internal/db/schema'
+import { env } from '@levelcode/internal/env'
+import { stripeServer } from '@levelcode/internal/util/stripe'
+import { logSyncFailure } from '@levelcode/internal/util/sync-failure'
+import { eq } from 'drizzle-orm'
+import GitHubProvider from 'next-auth/providers/github'
+
+import type { Logger } from '@levelcode/common/types/contracts/logger'
+import type { NextAuthOptions } from 'next-auth'
+import type { Adapter } from 'next-auth/adapters'
+
+import { logger } from '@/util/logger'
+
+async function createAndLinkStripeCustomer(params: {
+  userId: string
+  email: string | null
+  name: string | null
+}): Promise<string | null> {
+  const { userId, email, name } = params
+
+  if (!email || !name) {
+    logger.warn(
+      { userId },
+      'User email or name missing, cannot create Stripe customer.',
+    )
+    return null
+  }
+  try {
+    const customer = await stripeServer.customers.create({
+      email,
+      name,
+      metadata: {
+        user_id: userId,
+      },
+    })
+
+    // Create subscription with the usage price
+    await stripeServer.subscriptions.create({
+      customer: customer.id,
+      items: [{ price: env.STRIPE_USAGE_PRICE_ID }],
+    })
+
+    await db
+      .update(schema.user)
+      .set({
+        stripe_customer_id: customer.id,
+        stripe_price_id: env.STRIPE_USAGE_PRICE_ID,
+      })
+      .where(eq(schema.user.id, userId))
+
+    logger.info(
+      { userId, customerId: customer.id },
+      'Stripe customer created with usage subscription and linked to user.',
+    )
+    return customer.id
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : 'Unknown error creating Stripe customer'
+    logger.error(
+      { userId, error },
+      'Failed to create Stripe customer or update user record.',
+    )
+    await logSyncFailure({
+      id: userId,
+      errorMessage,
+      provider: 'stripe',
+      logger,
+    })
+    return null
+  }
+}
+
+async function createInitialCreditGrant(params: {
+  userId: string
+  expiresAt: Date | null
+  logger: Logger
+}): Promise<void> {
+  const { userId, expiresAt, logger } = params
+
+  try {
+    const operationId = `free-${userId}-${generateCompactId()}`
+    const nextQuotaReset = getNextQuotaReset(expiresAt)
+
+    await processAndGrantCredit({
+      ...params,
+      amount: DEFAULT_FREE_CREDITS_GRANT,
+      type: 'free',
+      description: 'Initial free credits',
+      expiresAt: nextQuotaReset,
+      operationId,
+    })
+
+    logger.info(
+      {
+        userId,
+        operationId,
+        creditsGranted: DEFAULT_FREE_CREDITS_GRANT,
+        expiresAt: nextQuotaReset,
+      },
+      'Initial free credit grant created.',
+    )
+  } catch (grantError) {
+    const errorMessage =
+      grantError instanceof Error
+        ? grantError.message
+        : 'Unknown error creating initial credit grant'
+    logger.error(
+      { userId, error: grantError },
+      'Failed to create initial credit grant.',
+    )
+    await logSyncFailure({
+      id: userId,
+      errorMessage,
+      provider: 'stripe',
+      logger,
+    })
+  }
+}
+
+export const authOptions: NextAuthOptions = {
+  adapter: DrizzleAdapter(db, {
+    usersTable: schema.user,
+    accountsTable: schema.account,
+    sessionsTable: schema.session,
+    verificationTokensTable: schema.verificationToken,
+  }) as Adapter,
+  providers: [
+    GitHubProvider({
+      clientId: env.LEVELCODE_GITHUB_ID,
+      clientSecret: env.LEVELCODE_GITHUB_SECRET,
+    }),
+  ],
+  session: {
+    strategy: 'database',
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  },
+  callbacks: {
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id
+        session.user.image = user.image
+        session.user.name = user.name
+        session.user.email = user.email
+        session.user.stripe_customer_id = user.stripe_customer_id
+        session.user.stripe_price_id = user.stripe_price_id
+      }
+      return session
+    },
+    async redirect({ url, baseUrl }) {
+      const potentialRedirectUrl = new URL(url, baseUrl)
+      const authCode = potentialRedirectUrl.searchParams.get('auth_code')
+
+      if (authCode) {
+        const onboardUrl = new URL(`${baseUrl}/onboard`)
+        potentialRedirectUrl.searchParams.forEach((value, key) => {
+          onboardUrl.searchParams.set(key, value)
+        })
+        logger.debug(
+          { url, authCode, redirectTarget: onboardUrl.toString() },
+          'Redirecting CLI flow to /onboard',
+        )
+        return onboardUrl.toString()
+      }
+
+      if (url.startsWith('/') || potentialRedirectUrl.origin === baseUrl) {
+        logger.debug(
+          { url, redirectTarget: potentialRedirectUrl.toString() },
+          'Redirecting web flow to callbackUrl',
+        )
+        return potentialRedirectUrl.toString()
+      }
+
+      logger.debug(
+        { url, baseUrl, redirectTarget: baseUrl },
+        'Callback URL is external or invalid, redirecting to baseUrl',
+      )
+      return baseUrl
+    },
+  },
+  events: {
+    createUser: async ({ user }) => {
+      logger.info(
+        { userId: user.id, email: user.email },
+        'createUser event triggered',
+      )
+
+      // Get all user data we need upfront
+      const userData = await db.query.user.findFirst({
+        where: eq(schema.user.id, user.id),
+        columns: {
+          id: true,
+          email: true,
+          name: true,
+          next_quota_reset: true,
+        },
+      })
+
+      if (!userData) {
+        logger.error({ userId: user.id }, 'User data not found after creation')
+        return
+      }
+
+      const customerId = await createAndLinkStripeCustomer({
+        ...userData,
+        userId: userData.id,
+      })
+
+      if (customerId) {
+        await createInitialCreditGrant({
+          userId: userData.id,
+          expiresAt: userData.next_quota_reset,
+          logger,
+        })
+      }
+
+      // Call the imported function
+      await loops.sendSignupEventToLoops({
+        ...userData,
+        userId: userData.id,
+        logger,
+      })
+
+      trackEvent({
+        event: AnalyticsEvent.SIGNUP,
+        userId: userData.id,
+        logger,
+      })
+
+      logger.info({ user }, 'createUser event processing finished.')
+    },
+  },
+}

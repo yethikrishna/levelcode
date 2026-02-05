@@ -1,0 +1,158 @@
+import { searchWeb } from '@levelcode/agent-runtime/llm-api/linkup-api'
+import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
+import { sleep } from '@levelcode/common/util/promise'
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+import {
+  checkCreditsAndCharge,
+  parseJsonBody,
+  requireUserFromApiKey,
+} from '../_helpers'
+
+import type { LinkupEnv } from '@levelcode/agent-runtime/llm-api/linkup-api'
+import type { TrackEventFn } from '@levelcode/common/types/contracts/analytics'
+import type {
+  GetUserUsageDataFn,
+  ConsumeCreditsWithFallbackFn,
+} from '@levelcode/common/types/contracts/billing'
+import type { GetUserInfoFromApiKeyFn } from '@levelcode/common/types/contracts/database'
+import type {
+  Logger,
+  LoggerWithContextFn,
+} from '@levelcode/common/types/contracts/logger'
+import type { NextRequest } from 'next/server'
+
+
+
+
+const bodySchema = z.object({
+  query: z.string().min(1, 'query is required'),
+  depth: z.enum(['standard', 'deep']).optional().default('standard'),
+  repoUrl: z.string().url().optional(),
+})
+
+export async function postWebSearch(params: {
+  req: NextRequest
+  getUserInfoFromApiKey: GetUserInfoFromApiKeyFn
+  logger: Logger
+  loggerWithContext: LoggerWithContextFn
+  trackEvent: TrackEventFn
+  getUserUsageData: GetUserUsageDataFn
+  consumeCreditsWithFallback: ConsumeCreditsWithFallbackFn
+  fetch: typeof globalThis.fetch
+  serverEnv: LinkupEnv
+}) {
+  const {
+    req,
+    getUserInfoFromApiKey,
+    loggerWithContext,
+    trackEvent,
+    getUserUsageData,
+    consumeCreditsWithFallback,
+    fetch,
+    serverEnv,
+  } = params
+  const baseLogger = params.logger
+
+  const parsedBody = await parseJsonBody({
+    req,
+    schema: bodySchema,
+    logger: baseLogger,
+    trackEvent,
+    validationErrorEvent: AnalyticsEvent.WEB_SEARCH_VALIDATION_ERROR,
+  })
+  if (!parsedBody.ok) return parsedBody.response
+
+  const { query, depth, repoUrl } = parsedBody.data
+
+  const authed = await requireUserFromApiKey({
+    req,
+    getUserInfoFromApiKey,
+    logger: baseLogger,
+    loggerWithContext,
+    trackEvent,
+    authErrorEvent: AnalyticsEvent.WEB_SEARCH_AUTH_ERROR,
+  })
+  if (!authed.ok) return authed.response
+
+  const { userId, logger } = authed.data
+
+  // Track request
+  trackEvent({
+    event: AnalyticsEvent.WEB_SEARCH_REQUEST,
+    userId,
+    properties: { depth, hasRepoUrl: !!repoUrl },
+    logger,
+  })
+
+  // Temporarily free - charge 0 credits
+  const creditsToCharge = 0
+
+  // Retry credits charge up to 3 times (flaky)
+  let credits: Awaited<ReturnType<typeof checkCreditsAndCharge>> | undefined
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    credits = await checkCreditsAndCharge({
+      userId,
+      creditsToCharge,
+      repoUrl,
+      context: 'web search',
+      logger,
+      trackEvent,
+      insufficientCreditsEvent: AnalyticsEvent.WEB_SEARCH_INSUFFICIENT_CREDITS,
+      getUserUsageData,
+      consumeCreditsWithFallback,
+    })
+    if (credits.ok) break
+    if (attempt < 3) {
+      await sleep(1000 * attempt)
+      logger.warn({ attempt }, 'Credits charge failed, retrying')
+    }
+  }
+  if (!credits!.ok) return credits!.response
+
+  // Perform search
+  try {
+    const result = await searchWeb({ query, depth, logger, fetch, serverEnv })
+
+    if (!result) {
+      trackEvent({
+        event: AnalyticsEvent.WEB_SEARCH_ERROR,
+        userId,
+        properties: { reason: 'No results' },
+        logger,
+      })
+      return NextResponse.json(
+        { error: `No search results found for "${query}"` },
+        { status: 200 },
+      )
+    }
+
+    return NextResponse.json({
+      result,
+      creditsUsed: credits!.data.creditsUsed,
+    })
+  } catch (error) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message, stack: error.stack }
+            : error,
+      },
+      'Web search failed',
+    )
+    trackEvent({
+      event: AnalyticsEvent.WEB_SEARCH_ERROR,
+      userId,
+      properties: {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      logger,
+    })
+    return NextResponse.json(
+      { error: 'Error performing web search' },
+      { status: 500 },
+    )
+  }
+}

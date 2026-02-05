@@ -1,0 +1,25 @@
+import { trackEvent } from '@levelcode/common/analytics'
+import db from '@levelcode/internal/db'
+
+import { postAgentRunsSteps } from './_post'
+
+import type { NextRequest } from 'next/server'
+
+import { getUserInfoFromApiKey } from '@/db/user'
+import { logger, loggerWithContext } from '@/util/logger'
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ runId: string }> },
+) {
+  const { runId } = await params
+  return postAgentRunsSteps({
+    req,
+    runId,
+    getUserInfoFromApiKey,
+    logger,
+    loggerWithContext,
+    trackEvent,
+    db,
+  })
+}

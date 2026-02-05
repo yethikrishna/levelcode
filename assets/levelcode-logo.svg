@@ -1,0 +1,30 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="url(#gradient1)" />
+
+  <!-- Inner circle -->
+  <circle cx="100" cy="100" r="75" fill="#1e1b4b" />
+
+  <!-- Code brackets -->
+  <path d="M65 70 L40 100 L65 130" stroke="url(#gradient2)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M135 70 L160 100 L135 130" stroke="url(#gradient2)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Level indicator bars -->
+  <rect x="80" y="85" width="40" height="6" rx="3" fill="#22d3ee"/>
+  <rect x="85" y="97" width="30" height="6" rx="3" fill="#8b5cf6"/>
+  <rect x="80" y="109" width="40" height="6" rx="3" fill="#22d3ee"/>
+
+  <!-- Upward arrow indicating "level up" -->
+  <path d="M100 55 L110 68 L103 68 L103 78 L97 78 L97 68 L90 68 Z" fill="#22d3ee"/>
+</svg>

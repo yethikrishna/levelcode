@@ -1,0 +1,9 @@
+LICENSE
+README.md
+pyproject.toml
+src/levelcode/__init__.py
+src/levelcode.egg-info/PKG-INFO
+src/levelcode.egg-info/SOURCES.txt
+src/levelcode.egg-info/dependency_links.txt
+src/levelcode.egg-info/entry_points.txt
+src/levelcode.egg-info/top_level.txt
