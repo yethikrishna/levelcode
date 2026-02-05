@@ -1,0 +1,21 @@
+import { processAndGrantCredit } from '@levelcode/billing/grant-credits'
+import { trackEvent } from '@levelcode/common/analytics'
+
+import { postAdImpression } from './_post'
+
+import type { NextRequest } from 'next/server'
+
+import { getUserInfoFromApiKey } from '@/db/user'
+import { logger, loggerWithContext } from '@/util/logger'
+
+export async function POST(req: NextRequest) {
+  return postAdImpression({
+    req,
+    getUserInfoFromApiKey,
+    logger,
+    loggerWithContext,
+    trackEvent,
+    processAndGrantCredit,
+    fetch,
+  })
+}

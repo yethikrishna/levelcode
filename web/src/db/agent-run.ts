@@ -1,0 +1,29 @@
+import db from '@levelcode/internal/db'
+import * as schema from '@levelcode/internal/db/schema'
+import { eq, and } from 'drizzle-orm'
+
+import type {
+  AgentRunColumn,
+  GetAgentRunFromIdInput,
+  GetAgentRunFromIdOutput,
+} from '@levelcode/common/types/contracts/database'
+
+export async function getAgentRunFromId<T extends AgentRunColumn>(
+  params: GetAgentRunFromIdInput<T>,
+): GetAgentRunFromIdOutput<T> {
+  const { runId, userId, fields } = params
+
+  const selection = Object.fromEntries(
+    fields.map((field) => [field, schema.agentRun[field]]),
+  ) as { [K in T]: (typeof schema.agentRun)[K] }
+
+  const rows = await db
+    .select({ selection })
+    .from(schema.agentRun)
+    .where(
+      and(eq(schema.agentRun.id, runId), eq(schema.agentRun.user_id, userId)),
+    )
+    .limit(1)
+
+  return rows[0]?.selection ?? null
+}

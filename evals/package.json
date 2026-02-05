@@ -1,0 +1,48 @@
+{
+  "name": "@levelcode/evals",
+  "version": "1.0.0",
+  "description": "Evaluation scripts for LevelCode",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "bun test",
+    "test:manifold": "bun test manifold.test.ts",
+    "test:pglite": "bun test pglite-demo.test.ts",
+    "test:swe-bench": "bun test swe-bench.test.ts",
+    "test:e2e-cat-app": "bun run e2e-cat-app-script.ts",
+    "gen-repo-eval": "bun run git-evals/gen-repo-eval.ts",
+    "run-single-eval": "bun run git-evals/run-single-eval.ts --eval-file git-evals/eval-manifold.json --commit-sha ebabf7796a92ce8ece8e2452b0f3f896a513ba0e",
+    "run-git-evals": "bun run git-evals/run-git-evals.ts",
+    "run-eval-set": "bun run git-evals/run-eval-set.ts",
+    "run-buffbench": "bun run buffbench/main.ts",
+    "run-buffbench-nightly": "bun run buffbench/main-nightly.ts",
+    "setup-levelcode-repo": "bun run setup-levelcode-repo.ts"
+  },
+  "sideEffects": false,
+  "engines": {
+    "bun": "^1.3.5"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^2.0.56",
+    "@levelcode/code-map": "workspace:*",
+    "@levelcode/common": "workspace:*",
+    "@levelcode/internal": "workspace:*",
+    "@levelcode/sdk": "workspace:*",
+    "@oclif/core": "^4.4.0",
+    "@oclif/parser": "^3.8.17",
+    "async": "^3.2.6",
+    "diff": "^8.0.2",
+    "p-limit": "^6.2.0",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/async": "^3.2.24"
+  }
+}

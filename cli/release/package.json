@@ -1,0 +1,42 @@
+{
+  "name": "levelcode",
+  "version": "1.0.609",
+  "description": "AI coding agent",
+  "license": "MIT",
+  "bin": {
+    "levelcode": "index.js",
+    "cb": "index.js"
+  },
+  "scripts": {
+    "postinstall": "node postinstall.js",
+    "preuninstall": "node -e \"const fs = require('fs'); const path = require('path'); const os = require('os'); const binaryPath = path.join(os.homedir(), '.config', 'manicode', process.platform === 'win32' ? 'levelcode.exe' : 'levelcode'); try { fs.unlinkSync(binaryPath) } catch (e) { /* ignore if file doesn't exist */ }\""
+  },
+  "files": [
+    "index.js",
+    "postinstall.js",
+    "README.md"
+  ],
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "tar": "^7.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LevelCodeAI/levelcode.git"
+  },
+  "homepage": "https://levelcode.com",
+  "publishConfig": {
+    "access": "public"
+  }
+}
