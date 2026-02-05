@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="assets/levelcode-banner.svg" alt="LevelCode" width="700"/>
+  <img src="assets/levelcode-readme-banner.png" alt="LevelCode - The Open-Source AI Coding Agent" width="800"/>
 </p>
-
-<h1 align="center">LevelCode</h1>
 
 <p align="center">
   <strong>The Open-Source AI Coding Agent That Outperforms Claude Code</strong>
