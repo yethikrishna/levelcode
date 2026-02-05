@@ -6,17 +6,17 @@
   "license": "Apache-2.0",
   "type": "module",
   "author": {
-    "name": "YEthikrishna R",
+    "name": "Yethikrishna R",
     "email": "yethikrishnarcvn7a@gmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YEthikrishna/levelcode.git"
+    "url": "git+https://github.com/yethikrishna/levelcode.git"
   },
   "bugs": {
-    "url": "https://github.com/YEthikrishna/levelcode/issues"
+    "url": "https://github.com/yethikrishna/levelcode/issues"
   },
-  "homepage": "https://github.com/YEthikrishna/levelcode#readme",
+  "homepage": "https://github.com/yethikrishna/levelcode#readme",
   "keywords": [
     "ai",
     "coding-agent",

@@ -34,7 +34,7 @@ yarn global add levelcode
 
 ```bash
 # Clone the repository
-git clone https://github.com/YEthikrishna/levelcode.git
+git clone https://github.com/yethikrishna/levelcode.git
 cd levelcode
 
 # Install dependencies
@@ -175,4 +175,4 @@ export PATH="$PATH:$HOME/.npm-global/bin"
 
 ---
 
-*Need help? Open an issue on [GitHub](https://github.com/YEthikrishna/levelcode/issues)*
+*Need help? Open an issue on [GitHub](https://github.com/yethikrishna/levelcode/issues)*

@@ -294,4 +294,4 @@ import type {
 
 ---
 
-*For more examples, see the [examples directory](https://github.com/YEthikrishna/levelcode/tree/main/sdk/examples)*
+*For more examples, see the [examples directory](https://github.com/yethikrishna/levelcode/tree/main/sdk/examples)*
