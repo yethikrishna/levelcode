@@ -111,7 +111,7 @@ export default function AboutClient() {
         </div>
       </Section>
 
-      {/* Team Section */}
+      {/* Founder Section */}
       <Section background={BlockColor.Black}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -121,21 +121,77 @@ export default function AboutClient() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="feature-heading text-white text-center mb-4">
-              The Team
+              The Founder
             </h2>
             <p className="text-white/60 text-center mb-12 max-w-xl mx-auto font-paragraph">
-              A small, passionate team building the future of AI-assisted
-              development.
+              Built with passion for open-source and the developer community.
             </p>
 
-            <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            <div className="max-w-sm mx-auto">
               <TeamMember
                 name="Yethikrishna R"
                 role="Founder & Lead Developer"
                 github="yethikrishna"
               />
-              <TeamMember name="Indu R" role="Core Contributor" />
-              <TeamMember name="Jith S Krishna" role="Core Contributor" />
+            </div>
+          </motion.div>
+        </div>
+      </Section>
+
+      {/* Endorsed By Section */}
+      <Section background={BlockColor.DarkForestGreen}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="feature-heading text-white text-center mb-4">
+              Vouched By Real People
+            </h2>
+            <p className="text-white/60 text-center mb-12 max-w-xl mx-auto font-paragraph">
+              People who have seen LevelCode in action and can vouch for its
+              legitimacy and quality.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">IR</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Indu R</h3>
+                    <p className="text-sm text-white/50">Verified Endorser</p>
+                  </div>
+                </div>
+                <p className="text-sm text-white/70 leading-relaxed italic">
+                  &ldquo;I&apos;ve personally witnessed the development of LevelCode from
+                  the ground up. It&apos;s a legitimate, powerful AI coding tool
+                  that delivers on its promises. The multi-agent approach is
+                  genuinely innovative.&rdquo;
+                </p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">JK</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">
+                      Jith S Krishna
+                    </h3>
+                    <p className="text-sm text-white/50">Verified Endorser</p>
+                  </div>
+                </div>
+                <p className="text-sm text-white/70 leading-relaxed italic">
+                  &ldquo;LevelCode is the real deal. I&apos;ve seen it outperform
+                  other AI coding tools first-hand. Yethikrishna has built
+                  something truly remarkable with this open-source project.&rdquo;
+                </p>
+              </div>
             </div>
           </motion.div>
         </div>
