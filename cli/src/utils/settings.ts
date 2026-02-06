@@ -9,6 +9,7 @@ import type { AgentMode } from './constants'
 
 const DEFAULT_SETTINGS: Settings = {
   mode: 'DEFAULT' as const,
+  adsEnabled: true,
 }
 
 // Note: FREE mode is now a valid AgentMode (was previously LITE)
@@ -18,6 +19,7 @@ const DEFAULT_SETTINGS: Settings = {
  */
 export interface Settings {
   mode?: AgentMode
+  adsEnabled?: boolean
 }
 
 /**
@@ -83,6 +85,11 @@ const validateSettings = (parsed: unknown): Settings => {
     AGENT_MODES.includes(obj.mode as AgentMode)
   ) {
     settings.mode = obj.mode as AgentMode
+  }
+
+  // Validate adsEnabled
+  if (typeof obj.adsEnabled === 'boolean') {
+    settings.adsEnabled = obj.adsEnabled
   }
 
   return settings
