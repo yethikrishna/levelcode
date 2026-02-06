@@ -134,7 +134,8 @@ export function TestimonialsSection() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      {/* YC and Product Hunt badges - hidden from public view */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 hidden">
         <div className="flex flex-col md:flex-row items-center justify-center md:space-x-12 space-y-8 md:space-y-0">
           <div className="flex flex-col items-center">
             <p className={SECTION_THEMES.testimonials.textColor}>Backed by</p>
