@@ -7,23 +7,23 @@ order: 2
 
 # FAQ
 
-## What can Codebuff be used for?
+## What can LevelCode be used for?
 
 Software development: Writing features, tests, and scripts across common languages and frameworks. It can also run CLI commands, adjust build configs, review code, and answer questions about your repo.
 
-## What model does Codebuff use?
+## What model does LevelCode use?
 
 Multiple. The orchestrator ("Buffy") uses Claude Opus 4.5 in Default and Max modes, or Grok 4.1 Fast in Lite mode. Subagents are matched to their tasks: GPT-5.1 and Claude Opus 4.5 for code editing, Gemini 2.5 Pro for deep reasoning, Grok 4 Fast for terminal commands and research, and Relace AI for fast file rewrites. See [What models do you use?](/docs/advanced/what-models) for the full breakdown.
 
-## Can I use my Claude Pro or Max subscription with Codebuff?
+## Can I use my Claude Pro or Max subscription with LevelCode?
 
-Yes! If you have a Claude Pro or Max subscription, you can connect it to Codebuff with the command `/connect:claude`. Codebuff will use your subscription for Claude model requests, saving you credits.
+Yes! If you have a Claude Pro or Max subscription, you can connect it to LevelCode with the command `/connect:claude`. LevelCode will use your subscription for Claude model requests, saving you credits.
 
-Note: Using your Claude Pro/Max subscription in Codebuff is not officially supported by Anthropic.
+Note: Using your Claude Pro/Max subscription in LevelCode is not officially supported by Anthropic.
 
-## Is Codebuff open source?
+## Is LevelCode open source?
 
-Yes. It's Apache 2.0 at [github.com/CodebuffAI/codebuff](https://github.com/CodebuffAI/codebuff).
+Yes. It's Apache 2.0 at [github.com/LevelCodeAI/levelcode](https://github.com/LevelCodeAI/levelcode).
 
 ## Do you store my data?
 
@@ -33,29 +33,29 @@ We don't store your codebase. The server forwards requests to model providers. W
 
 No, we don't choose providers that will train on your data in our standard modes.
 
-## Can I trust Codebuff with full access to my terminal?
+## Can I trust LevelCode with full access to my terminal?
 
-If you want isolation, use the [Dockerfile](https://github.com/CodebuffAI/codebuff-community/tree/main/utils/docker) to run Codebuff against a scoped copy of your codebase.
+If you want isolation, use the [Dockerfile](https://github.com/LevelCodeAI/levelcode-community/tree/main/utils/docker) to run LevelCode against a scoped copy of your codebase.
 
-## Can I specify custom instructions for Codebuff?
+## Can I specify custom instructions for LevelCode?
 
-Yes. Add `knowledge.md` files to describe patterns, constraints, and commands. Codebuff also reads `AGENTS.md` and `CLAUDE.md` if present. Per directory, it picks one: `knowledge.md` first, then `AGENTS.md`, then `CLAUDE.md`. Codebuff updates existing knowledge files but won't create them unless you ask.
+Yes. Add `knowledge.md` files to describe patterns, constraints, and commands. LevelCode also reads `AGENTS.md` and `CLAUDE.md` if present. Per directory, it picks one: `knowledge.md` first, then `AGENTS.md`, then `CLAUDE.md`. LevelCode updates existing knowledge files but won't create them unless you ask.
 
 You can also create a **home directory knowledge file** (`~/.knowledge.md`, `~/.AGENTS.md`, or `~/.CLAUDE.md`) for preferences that apply across all projects. File name matching is case-insensitive. See [Knowledge Files](/docs/tips/knowledge-files#home-directory-knowledge-files) for details.
 
-## Can I tell Codebuff to ignore certain files?
+## Can I tell LevelCode to ignore certain files?
 
-Codebuff by default will not read files that are specified in your `.gitignore`. You can also create a `.codebuffignore` file to specify additional files or folders to ignore.
+LevelCode by default will not read files that are specified in your `.gitignore`. You can also create a `.levelcodeignore` file to specify additional files or folders to ignore.
 
-### What if I want Codebuff to not ignore some files in the `.gitignore`?
+### What if I want LevelCode to not ignore some files in the `.gitignore`?
 
-The `.codebuffignore` follows standard `.gitignore` negation rules as well! So to ignore a file from git but not from Codebuff:
+The `.levelcodeignore` follows standard `.gitignore` negation rules as well! So to ignore a file from git but not from LevelCode:
 
 ```.gitignore
 path/to/file
 ```
 
-```.codebuffignore
+```.levelcodeignore
 !path/to/file
 ```
 
@@ -66,24 +66,24 @@ Take note that if you want to negate something in a nested subdirectory, you nee
 **
 ```
 
-```.codebuffignore
+```.levelcodeignore
 # negate: path/to/file
 !path/to/
 !path/to/file
 ```
 
-The final set of files ignored by Codebuff are determined by the contents of `.gitignore`, followed by the contents of `.codebuffignore`.
+The final set of files ignored by LevelCode are determined by the contents of `.gitignore`, followed by the contents of `.levelcodeignore`.
 
-## How does Codebuff work?
+## How does LevelCode work?
 
-Codebuff runs specialized models in parallel: one finds files, another reasons through the problem, another writes code, another reviews. A selector picks the best output. In Max mode, multiple implementations compete. [Benchmark comparison](https://x.com/jahooma/status/1894224663817195599).
+LevelCode runs specialized models in parallel: one finds files, another reasons through the problem, another writes code, another reviews. A selector picks the best output. In Max mode, multiple implementations compete. [Benchmark comparison](https://x.com/jahooma/status/1894224663817195599).
 
-## How does Codebuff compare to Claude Code?
+## How does LevelCode compare to Claude Code?
 
-See [Codebuff vs Claude Code](/docs/advanced/claude-code-comparison) for a detailed comparison. Short version: Codebuff is faster, cheaper, and handles large codebases better.
+See [LevelCode vs Claude Code](/docs/advanced/claude-code-comparison) for a detailed comparison. Short version: LevelCode is faster, cheaper, and handles large codebases better.
 
 ## I have more questions!
 
-Contact [support@codebuff.com](mailto:support@codebuff.com) or [join our Discord](https://codebuff.com/discord).
+Contact [support@levelcode.com](mailto:support@levelcode.com) or [join our Discord](https://levelcode.com/discord).
 
 [Troubleshooting](/docs/advanced/troubleshooting)

@@ -5,14 +5,14 @@ tags: ['introduction', 'setup']
 order: 1
 ---
 
-# Get started with Codebuff
+# Get started with LevelCode
 
-## 1. Install Codebuff
+## 1. Install LevelCode
 
 Enter the following in your terminal, which could be inside your favorite IDE (VSCode, Cursor, etc.).
 
 ```bash
-npm install -g codebuff
+npm install -g levelcode
 ```
 
 ## 2. Navigate to your project directory
@@ -21,17 +21,17 @@ npm install -g codebuff
 cd /path/to/your-repo
 ```
 
-## 3. Run Codebuff
+## 3. Run LevelCode
 
 ```bash
-codebuff
+levelcode
 ```
 
-Codebuff has multiple [modes](/docs/tips/modes): `plan` for planning without file changes, `max` for better results at higher cost and time. You can invoke them in the slash menu with `/mode`.
+LevelCode has multiple [modes](/docs/tips/modes): `plan` for planning without file changes, `max` for better results at higher cost and time. You can invoke them in the slash menu with `/mode`.
 
 ## 4. Initialize Your Project (Optional)
 
-Run the `/init` command inside Codebuff to set up project-specific files:
+Run the `/init` command inside LevelCode to set up project-specific files:
 
 ```
 /init
@@ -39,22 +39,22 @@ Run the `/init` command inside Codebuff to set up project-specific files:
 
 ### What `/init` Creates
 
-- `knowledge.md` — A starter file for documenting your project's setup commands, architecture, and coding conventions. Codebuff reads this to understand your project better.
+- `knowledge.md` — A starter file for documenting your project's setup commands, architecture, and coding conventions. LevelCode reads this to understand your project better.
 - `.agents/types/` — TypeScript type definitions for creating custom agents.
 
 ### When to Use `/init`
 
-- **New projects** — if you don't already have an AGENTS.md or CLAUDE.md (Codebuff will also read these files).
+- **New projects** — if you don't already have an AGENTS.md or CLAUDE.md (LevelCode will also read these files).
 - **Building custom agents** — running /init is the first step to [creating your own agents](/docs/walkthroughs/creating-your-first-agent)!
 
 ## Troubleshooting
 
 If you run into issues during installation:
 
-1. **Permission issues** — The best fix is to install Node.js using [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), which avoids permission problems entirely. Then run `npm install -g codebuff` again.
+1. **Permission issues** — The best fix is to install Node.js using [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), which avoids permission problems entirely. Then run `npm install -g levelcode` again.
 
 2. **Still Having Problems?**
    - On Mac/Linux, you can fix permissions with: `sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}`
    - On Windows, run your terminal as administrator
 
-[Troubleshooting](/docs/advanced/troubleshooting) | [Discord](https://codebuff.com/discord)
+[Troubleshooting](/docs/advanced/troubleshooting) | [Discord](https://levelcode.com/discord)

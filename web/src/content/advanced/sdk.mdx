@@ -7,32 +7,32 @@ order: 7
 
 # SDK & Programmatic Access
 
-Run Codebuff agents from your own code with `@codebuff/sdk`.
+Run LevelCode agents from your own code with `@levelcode/sdk`.
 
 ## Installation
 
 ```bash
-npm install @codebuff/sdk
+npm install @levelcode/sdk
 ```
 
 ## Prerequisites
 
-API key: [codebuff.com/api-keys](https://www.codebuff.com/api-keys)
+API key: [levelcode.com/api-keys](https://www.levelcode.com/api-keys)
 
 ## Quick Start
 
-Use the [`base`](/publishers/codebuff/agents/base) agent (or any agent from the [Agent Store](/store)) to run tasks:
+Use the [`base`](/publishers/levelcode/agents/base) agent (or any agent from the [Agent Store](/store)) to run tasks:
 
 ```typescript
-import { CodebuffClient } from '@codebuff/sdk'
+import { LevelCodeClient } from '@levelcode/sdk'
 
-const client = new CodebuffClient({
-  apiKey: process.env.CODEBUFF_API_KEY,
+const client = new LevelCodeClient({
+  apiKey: process.env.LEVELCODE_API_KEY,
   cwd: process.cwd(),
 })
 
 const result = await client.run({
-  agent: 'codebuff/base@0.0.16',
+  agent: 'levelcode/base@0.0.16',
   prompt: 'Create a simple calculator class',
   handleEvent: (event) => {
     console.log('Event:', event.type)
@@ -47,13 +47,13 @@ Pass the previous run state to keep context:
 ```typescript
 // First run
 const run1 = await client.run({
-  agent: 'codebuff/base@0.0.16',
+  agent: 'levelcode/base@0.0.16',
   prompt: 'Create a calculator class',
 })
 
 // Continue the conversation
 const run2 = await client.run({
-  agent: 'codebuff/base@0.0.16',
+  agent: 'levelcode/base@0.0.16',
   prompt: 'Add unit tests for the calculator',
   previousRun: run1, // Maintains conversation context
 })
@@ -62,7 +62,7 @@ const run2 = await client.run({
 ## Custom Agents
 
 ```typescript
-import type { AgentDefinition } from '@codebuff/sdk'
+import type { AgentDefinition } from '@levelcode/sdk'
 
 const myAgent: AgentDefinition = {
   id: 'my-custom-agent',
@@ -83,7 +83,7 @@ await client.run({
 
 ```typescript
 import { z } from 'zod/v4'
-import { getCustomToolDefinition } from '@codebuff/sdk'
+import { getCustomToolDefinition } from '@levelcode/sdk'
 
 const fetchTool = getCustomToolDefinition({
   toolName: 'fetch_api_data',
@@ -109,11 +109,11 @@ await client.run({
 ## Loading Local Agents
 
 ```typescript
-import { loadLocalAgents, CodebuffClient } from '@codebuff/sdk'
+import { loadLocalAgents, LevelCodeClient } from '@levelcode/sdk'
 
 const agents = await loadLocalAgents({ verbose: true })
 
-const client = new CodebuffClient({ apiKey: process.env.CODEBUFF_API_KEY })
+const client = new LevelCodeClient({ apiKey: process.env.LEVELCODE_API_KEY })
 await client.run({
   agent: 'my-local-agent',
   agentDefinitions: Object.values(agents),
@@ -123,11 +123,11 @@ await client.run({
 
 ## API Reference
 
-### `CodebuffClient`
+### `LevelCodeClient`
 
 ```typescript
-const client = new CodebuffClient({
-  apiKey: string,        // Required: Your Codebuff API key
+const client = new LevelCodeClient({
+  apiKey: string,        // Required: Your LevelCode API key
   cwd?: string,          // Working directory for file operations
 })
 ```
@@ -175,7 +175,7 @@ const client = new CodebuffClient({
 ### Test Generation
 
 ```typescript
-import { CodebuffClient } from '@codebuff/sdk'
+import { LevelCodeClient } from '@levelcode/sdk'
 
 const CODE_TO_TEST = `
 function add(a: number, b: number): number {
@@ -189,12 +189,12 @@ function divide(a: number, b: number): number {
 `
 
 async function generateTests(code: string) {
-  const client = new CodebuffClient({
-    apiKey: process.env.CODEBUFF_API_KEY,
+  const client = new LevelCodeClient({
+    apiKey: process.env.LEVELCODE_API_KEY,
   })
 
   const { output } = await client.run({
-    agent: 'codebuff/base@latest',
+    agent: 'levelcode/base@latest',
     prompt: `Generate unit tests for these functions using Jest:\n\n${code}`,
   })
 
@@ -204,18 +204,18 @@ async function generateTests(code: string) {
 
 ### Code Review in CI
 
-Use the [`reviewer`](/publishers/codebuff/agents/reviewer) agent for automated code review:
+Use the [`reviewer`](/publishers/levelcode/agents/reviewer) agent for automated code review:
 
 ```typescript
-import { CodebuffClient } from '@codebuff/sdk'
+import { LevelCodeClient } from '@levelcode/sdk'
 
 async function reviewPullRequest(diff: string) {
-  const client = new CodebuffClient({
-    apiKey: process.env.CODEBUFF_API_KEY,
+  const client = new LevelCodeClient({
+    apiKey: process.env.LEVELCODE_API_KEY,
   })
 
   const { output } = await client.run({
-    agent: 'codebuff/reviewer@latest',
+    agent: 'levelcode/reviewer@latest',
     prompt: `Review this code change for bugs, security issues, and best practices:\n\n${diff}`,
   })
 
@@ -226,13 +226,13 @@ async function reviewPullRequest(diff: string) {
 ### Batch Processing
 
 ```typescript
-import { CodebuffClient } from '@codebuff/sdk'
+import { LevelCodeClient } from '@levelcode/sdk'
 import * as fs from 'fs'
 import * as path from 'path'
 
 async function addDocstringsToFiles(filePaths: string[]) {
-  const client = new CodebuffClient({
-    apiKey: process.env.CODEBUFF_API_KEY,
+  const client = new LevelCodeClient({
+    apiKey: process.env.LEVELCODE_API_KEY,
   })
 
   const results = []
@@ -241,7 +241,7 @@ async function addDocstringsToFiles(filePaths: string[]) {
     const code = fs.readFileSync(filePath, 'utf-8')
 
     const { output } = await client.run({
-      agent: 'codebuff/base@latest',
+      agent: 'levelcode/base@latest',
       prompt: `Add JSDoc comments to all functions in this file:\n\n${code}`,
     })
 
@@ -259,7 +259,7 @@ await addDocstringsToFiles(files)
 ### Code Refactoring
 
 ```typescript
-import { CodebuffClient } from '@codebuff/sdk'
+import { LevelCodeClient } from '@levelcode/sdk'
 
 const LEGACY_CODE = `
 function processData(data) {
@@ -277,12 +277,12 @@ function processData(data) {
 `
 
 async function refactorCode(code: string) {
-  const client = new CodebuffClient({
-    apiKey: process.env.CODEBUFF_API_KEY,
+  const client = new LevelCodeClient({
+    apiKey: process.env.LEVELCODE_API_KEY,
   })
 
   const { output } = await client.run({
-    agent: 'codebuff/base@latest',
+    agent: 'levelcode/base@latest',
     prompt: `Refactor this code to use modern JavaScript (arrow functions, 
              destructuring, array methods like filter/map):\n\n${code}`,
   })
@@ -294,12 +294,12 @@ async function refactorCode(code: string) {
 ### Providing Project Context
 
 ```typescript
-import { CodebuffClient } from '@codebuff/sdk'
+import { LevelCodeClient } from '@levelcode/sdk'
 import * as fs from 'fs'
 
 async function generateComponentWithContext() {
-  const client = new CodebuffClient({
-    apiKey: process.env.CODEBUFF_API_KEY,
+  const client = new LevelCodeClient({
+    apiKey: process.env.LEVELCODE_API_KEY,
   })
 
   // Provide existing files as context
@@ -309,7 +309,7 @@ async function generateComponentWithContext() {
   }
 
   const { output } = await client.run({
-    agent: 'codebuff/base@latest',
+    agent: 'levelcode/base@latest',
     prompt: 'Create a new Card component that follows the same patterns as Button',
     projectFiles,
   })
@@ -342,11 +342,11 @@ jobs:
         run: |
           npx ts-node scripts/ai-review.ts "${{ steps.diff.outputs.diff }}"
         env:
-          CODEBUFF_API_KEY: ${{ secrets.CODEBUFF_API_KEY }}
+          LEVELCODE_API_KEY: ${{ secrets.LEVELCODE_API_KEY }}
 ```
 
 ## Resources
 
-- [GitHub](https://github.com/CodebuffAI/codebuff)
-- [Agent Store](https://codebuff.com/store)
-- [API Keys](https://codebuff.com/api-keys)
+- [GitHub](https://github.com/LevelCodeAI/levelcode)
+- [Agent Store](https://levelcode.com/store)
+- [API Keys](https://levelcode.com/api-keys)

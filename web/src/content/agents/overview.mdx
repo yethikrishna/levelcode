@@ -9,7 +9,7 @@ order: 0
 
 ## Why Multiple Agents?
 
-Codebuff agents spawn other agents, share tools, and pass context between tasks:
+LevelCode agents spawn other agents, share tools, and pass context between tasks:
 
 - **Code Generation** - writes code
 - **Review** - catches bugs and style issues
@@ -23,20 +23,20 @@ Control agents with TypeScript generator functions. Orchestrate workflows, branc
 
 ## Built-in Agents
 
-- [`codebuff/base`](/publishers/codebuff/agents/base) - Main coding assistant (orchestrates other agents)
-- [`codebuff/editor`](/publishers/codebuff/agents/editor) - Code editing and file modifications
-- [`codebuff/reviewer`](/publishers/codebuff/agents/reviewer) - Code review and feedback
-- [`codebuff/thinker`](/publishers/codebuff/agents/thinker) - Deep thinking and problem analysis
-- [`codebuff/researcher`](/publishers/codebuff/agents/researcher) - Web search and documentation lookup
-- [`codebuff/file-picker`](/publishers/codebuff/agents/file-picker) - File discovery in your codebase
-- [`codebuff/commander`](/publishers/codebuff/agents/commander) - Terminal command execution
-- [`codebuff/code-searcher`](/publishers/codebuff/agents/code-searcher) - Search patterns in code files
+- [`levelcode/base`](/publishers/levelcode/agents/base) - Main coding assistant (orchestrates other agents)
+- [`levelcode/editor`](/publishers/levelcode/agents/editor) - Code editing and file modifications
+- [`levelcode/reviewer`](/publishers/levelcode/agents/reviewer) - Code review and feedback
+- [`levelcode/thinker`](/publishers/levelcode/agents/thinker) - Deep thinking and problem analysis
+- [`levelcode/researcher`](/publishers/levelcode/agents/researcher) - Web search and documentation lookup
+- [`levelcode/file-picker`](/publishers/levelcode/agents/file-picker) - File discovery in your codebase
+- [`levelcode/commander`](/publishers/levelcode/agents/commander) - Terminal command execution
+- [`levelcode/code-searcher`](/publishers/levelcode/agents/code-searcher) - Search patterns in code files
 
-Browse all available agents at the [Agent Store](https://codebuff.com/store).
+Browse all available agents at the [Agent Store](https://levelcode.com/store).
 
 ## Agent Workflow
 
-A typical call to Codebuff may result in the following flow:
+A typical call to LevelCode may result in the following flow:
 
 ```mermaid
 flowchart TD
@@ -65,7 +65,7 @@ flowchart TD
 
 ### Example: Authentication System Refactoring
 
-If you ask "refactor this authentication system", Codebuff might:
+If you ask "refactor this authentication system", LevelCode might:
 
 1. **File Picker** finds auth-related files
 2. **Research** looks up best practices
@@ -79,10 +79,10 @@ Agents coordinate through the `spawnerPrompt` field, which tells others when to 
 
 ## Quick Start
 
-Start Codebuff and run the `/init` command to set up your project:
+Start LevelCode and run the `/init` command to set up your project:
 
 ```bash
-codebuff
+levelcode
 ```
 
 Then inside the CLI:

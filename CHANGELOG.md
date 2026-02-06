@@ -60,4 +60,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute to this project.
 
 Created by [Yethikrishna R](https://github.com/yethikrishna)
 
-Based on [Codebuff](https://github.com/CodebuffAI/codebuff) (Apache 2.0 License)
+Based on [LevelCode](https://github.com/LevelCodeAI/levelcode) (Apache 2.0 License)

@@ -44,7 +44,7 @@ const definition = {
 
 ## Example: Security Coordinator Agent
 
-This example uses [`reviewer`](/publishers/codebuff/agents/reviewer), [`researcher`](/publishers/codebuff/agents/researcher), and [`file-picker`](/publishers/codebuff/agents/file-picker) as spawnable subagents:
+This example uses [`reviewer`](/publishers/levelcode/agents/reviewer), [`researcher`](/publishers/levelcode/agents/researcher), and [`file-picker`](/publishers/levelcode/agents/file-picker) as spawnable subagents:
 
 **.agents/security-coordinator.ts**
 
@@ -64,9 +64,9 @@ const definition: AgentDefinition = {
 
   toolNames: ['read_files', 'spawn_agents', 'code_search', 'end_turn'],
   spawnableAgents: [
-    'codebuff/reviewer@0.0.1',
-    'codebuff/researcher@0.0.1',
-    'codebuff/file-picker@0.0.1',
+    'levelcode/reviewer@0.0.1',
+    'levelcode/researcher@0.0.1',
+    'levelcode/file-picker@0.0.1',
   ],
 
   inputSchema: {
@@ -176,5 +176,5 @@ With `handleSteps`, your agent can:
 **Running specific agents:**
 
 1. Check TypeScript: `bun run typecheck` in `.agents/` directory
-2. Restart Codebuff to see errors
+2. Restart LevelCode to see errors
 3. Test with `--agent <agent-id>` to debug specific agents

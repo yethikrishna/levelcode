@@ -7,14 +7,14 @@ order: 4
 
 # Knowledge Files
 
-`knowledge.md` files give Codebuff context about your project: conventions, architecture decisions, commands to run.
+`knowledge.md` files give LevelCode context about your project: conventions, architecture decisions, commands to run.
 
 ## Getting Started
 
-The easiest way to create a knowledge file is to run the `/init` command inside Codebuff:
+The easiest way to create a knowledge file is to run the `/init` command inside LevelCode:
 
 ```bash
-codebuff
+levelcode
 ```
 
 Then inside the CLI:
@@ -33,10 +33,10 @@ You can also create knowledge files manually:
 touch knowledge.md
 ```
 
-Or ask Codebuff to create one for you:
+Or ask LevelCode to create one for you:
 
 ```bash
-codebuff "Please create a knowledge.md file with initial project information"
+levelcode "Please create a knowledge.md file with initial project information"
 ```
 
 For larger projects, you can optionally create additional knowledge files in subdirectories:
@@ -69,7 +69,7 @@ In addition to project-specific knowledge files, you can create a **global knowl
 
 ### Supported File Names
 
-Codebuff looks for these files in your home directory (in priority order):
+LevelCode looks for these files in your home directory (in priority order):
 
 1. `~/.knowledge.md` (highest priority)
 2. `~/.AGENTS.md`
@@ -118,7 +118,7 @@ Both files are loaded—project knowledge files add to (and can override) your h
 
 ## Post-Change Verification
 
-Add commands for Codebuff to run after edits:
+Add commands for LevelCode to run after edits:
 
 ```markdown
 ## Verifying Changes
@@ -129,4 +129,4 @@ After any code changes, run these commands to verify correctness:
 - Run `npm test` to ensure tests pass
 ```
 
-Codebuff runs these after making changes.
+LevelCode runs these after making changes.

@@ -1,36 +1,36 @@
 ---
-title: 'How does Codebuff actually work?'
+title: 'How does LevelCode actually work?'
 section: 'advanced'
 tags: ['introduction', 'faq']
 order: 2
 ---
 
-# How does Codebuff actually work?
+# How does LevelCode actually work?
 
-Codebuff runs multiple agents, each tuned for a specific task.
+LevelCode runs multiple agents, each tuned for a specific task.
 
 ## The Orchestrator
 
 The main agent ("Buffy") runs on Claude Opus 4.5. It reads your prompt, gathers context, and spawns subagents. The orchestrator is available in several variants:
 
-- [`base2`](/publishers/codebuff/agents/base2) - Default mode orchestrator
-- [`base2-free`](/publishers/codebuff/agents/base2-free) - Free mode (faster, no credit cost)
-- [`base2-max`](/publishers/codebuff/agents/base2-max) - Max mode (best-of-N selection)
-- [`base2-plan`](/publishers/codebuff/agents/base2-plan) - Plan mode (no file writes)
+- [`base2`](/publishers/levelcode/agents/base2) - Default mode orchestrator
+- [`base2-free`](/publishers/levelcode/agents/base2-free) - Free mode (faster, no credit cost)
+- [`base2-max`](/publishers/levelcode/agents/base2-max) - Max mode (best-of-N selection)
+- [`base2-plan`](/publishers/levelcode/agents/base2-plan) - Plan mode (no file writes)
 
 ## Subagents
 
-- [**File Picker**](/publishers/codebuff/agents/file-picker) (Gemini 2.0 Flash) - finds relevant files
-- [**Code Searcher**](/publishers/codebuff/agents/code-searcher) - grep-style pattern matching
-- [**Researcher**](/publishers/codebuff/agents/researcher) (Grok 4 Fast) - web and docs lookup
-- [**Thinker**](/publishers/codebuff/agents/thinker) (GPT-5.1, Gemini 2.5 Pro) - works through hard problems
-- [**Editor**](/publishers/codebuff/agents/editor) (GPT-5.1, Claude Opus 4.5) - writes and modifies code
-- [**Reviewer**](/publishers/codebuff/agents/reviewer) (Claude Sonnet 4.5) - catches bugs and style issues
-- [**Commander**](/publishers/codebuff/agents/commander) (Grok 4 Fast or Claude Sonnet 4.5) - runs terminal commands
+- [**File Picker**](/publishers/levelcode/agents/file-picker) (Gemini 2.0 Flash) - finds relevant files
+- [**Code Searcher**](/publishers/levelcode/agents/code-searcher) - grep-style pattern matching
+- [**Researcher**](/publishers/levelcode/agents/researcher) (Grok 4 Fast) - web and docs lookup
+- [**Thinker**](/publishers/levelcode/agents/thinker) (GPT-5.1, Gemini 2.5 Pro) - works through hard problems
+- [**Editor**](/publishers/levelcode/agents/editor) (GPT-5.1, Claude Opus 4.5) - writes and modifies code
+- [**Reviewer**](/publishers/levelcode/agents/reviewer) (Claude Sonnet 4.5) - catches bugs and style issues
+- [**Commander**](/publishers/levelcode/agents/commander) (Grok 4 Fast or Claude Sonnet 4.5) - runs terminal commands
 
 ## Best-of-N Selection (Max Mode)
 
-In Max mode, Codebuff spawns multiple editors with different strategies. A selector compares the outputs and picks the best one.
+In Max mode, LevelCode spawns multiple editors with different strategies. A selector compares the outputs and picks the best one.
 
 ## The Pipeline
 
