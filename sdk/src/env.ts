@@ -49,3 +49,24 @@ export const getByokOpenrouterApiKeyFromEnv = (): string | undefined => {
 export const getClaudeOAuthTokenFromEnv = (): string | undefined => {
   return process.env[CLAUDE_OAUTH_TOKEN_ENV_VAR]
 }
+
+export const getOpenRouterApiKeyFromEnv = (): string | undefined => {
+  return process.env.OPENROUTER_API_KEY
+}
+
+export const getAnthropicApiKeyFromEnv = (): string | undefined => {
+  return process.env.ANTHROPIC_API_KEY
+}
+
+/**
+ * Standalone mode: bypass all backend dependencies, route LLM calls directly.
+ * Default mode when no backend URL (NEXT_PUBLIC_LEVELCODE_APP_URL) is configured.
+ * Also activates when a direct provider key (OPENROUTER_API_KEY or ANTHROPIC_API_KEY)
+ * is set AND LEVELCODE_API_KEY is NOT set.
+ */
+export const isStandaloneMode = (): boolean => {
+  const appUrl = process.env.NEXT_PUBLIC_LEVELCODE_APP_URL
+  if (!appUrl) return true
+  const hasDirectKey = !!getOpenRouterApiKeyFromEnv() || !!getAnthropicApiKeyFromEnv()
+  return hasDirectKey && !getLevelCodeApiKeyFromEnv()
+}

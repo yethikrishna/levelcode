@@ -4,6 +4,7 @@ import path from 'path'
 
 import { env } from '@levelcode/common/env'
 import { getCiEnv } from '@levelcode/common/env-ci'
+import { isStandaloneMode } from '@levelcode/sdk'
 import { z } from 'zod'
 
 
@@ -122,6 +123,9 @@ export interface AuthTokenDetails {
 
 /**
  * Resolve the auth token and track where it came from.
+ *
+ * In standalone mode, also accepts OPENROUTER_API_KEY or ANTHROPIC_API_KEY
+ * as valid auth tokens so users can authenticate with direct provider keys.
  */
 export const getAuthTokenDetails = (
   ciEnv: CiEnv = getCiEnv(),
@@ -134,6 +138,18 @@ export const getAuthTokenDetails = (
   const envToken = ciEnv.LEVELCODE_API_KEY
   if (envToken) {
     return { token: envToken, source: 'environment' }
+  }
+
+  // In standalone mode, accept direct provider API keys as valid auth
+  if (isStandaloneMode()) {
+    const openRouterKey = process.env.OPENROUTER_API_KEY
+    if (openRouterKey) {
+      return { token: openRouterKey, source: 'environment' }
+    }
+    const anthropicKey = process.env.ANTHROPIC_API_KEY
+    if (anthropicKey) {
+      return { token: anthropicKey, source: 'environment' }
+    }
   }
 
   return { source: null }

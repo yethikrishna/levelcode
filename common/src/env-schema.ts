@@ -4,7 +4,7 @@ export const CLIENT_ENV_PREFIX = 'NEXT_PUBLIC_'
 
 export const clientEnvSchema = z.object({
   NEXT_PUBLIC_CB_ENVIRONMENT: z.enum(['dev', 'test', 'prod']).default('prod'),
-  NEXT_PUBLIC_LEVELCODE_APP_URL: z.string().default('https://levelcode.ai'),
+  NEXT_PUBLIC_LEVELCODE_APP_URL: z.string().default(''),
   NEXT_PUBLIC_SUPPORT_EMAIL: z.string().default('support@levelcode.ai'),
   NEXT_PUBLIC_POSTHOG_API_KEY: z.string().default(''),
   NEXT_PUBLIC_POSTHOG_HOST_URL: z.string().default('https://app.posthog.com'),

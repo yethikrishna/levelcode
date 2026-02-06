@@ -5,9 +5,7 @@ import { useThemeStore } from '../hooks/use-theme'
 import { handleHelpCommand } from './help'
 import { handleImageCommand } from './image'
 import { handleInitializationFlowLocally } from './init'
-import { handleReferralCode } from './referral'
 import { runBashCommand } from './router'
-import { normalizeReferralCode } from './router-utils'
 import { handleUsageCommand } from './usage'
 import { WEBSITE_URL } from '../login/constants'
 import { useChatStore } from '../state/chat-store'
@@ -229,38 +227,15 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       clearInput(params)
     },
   }),
-  defineCommandWithArgs({
+  defineCommand({
     name: 'referral',
     aliases: ['redeem'],
-    handler: async (params, args) => {
-      const trimmedArgs = args.trim()
-
-      // If user provided a code directly, redeem it immediately
-      if (trimmedArgs) {
-        const code = normalizeReferralCode(trimmedArgs)
-        try {
-          const { postUserMessage } = await handleReferralCode(code)
-          params.setMessages((prev) => [
-            ...prev,
-            getUserMessage(params.inputValue.trim()),
-            ...postUserMessage([]),
-          ])
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
-          params.setMessages((prev) => [
-            ...prev,
-            getUserMessage(params.inputValue.trim()),
-            getSystemMessage(`Error redeeming referral code: ${errorMessage}`),
-          ])
-        }
-        params.saveToHistory(params.inputValue.trim())
-        clearInput(params)
-        return
-      }
-
-      // Otherwise enter referral mode
-      useChatStore.getState().setInputMode('referral')
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('The referral system is not available in open-source mode.'),
+      ])
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
     },

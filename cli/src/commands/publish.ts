@@ -1,4 +1,4 @@
-import { WEBSITE_URL } from '@levelcode/sdk'
+import { WEBSITE_URL, isStandaloneMode } from '@levelcode/sdk'
 
 import { getUserCredentials } from '../utils/auth'
 import { getApiClient, setApiClientAuthToken } from '../utils/levelcode-api'
@@ -93,6 +93,15 @@ async function publishAgentTemplates(
  * @returns PublishResult with success/error information
  */
 export async function handlePublish(agentIds: string[]): Promise<PublishResult> {
+  if (isStandaloneMode()) {
+    return {
+      success: false,
+      error:
+        'Agent publishing is not available in open-source standalone mode.',
+      hint: 'Visit levelcode.ai for the hosted version with agent publishing support.',
+    }
+  }
+
   const user = getUserCredentials()
 
   if (!user) {

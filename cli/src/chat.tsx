@@ -10,9 +10,7 @@ import {
 } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getAdsEnabled } from './commands/ads'
 import { routeUserPrompt, addBashMessageToHistory } from './commands/router'
-import { AdBanner } from './components/ad-banner'
 import { BottomStatusLine } from './components/bottom-status-line'
 import { ChatInputBar } from './components/chat-input-bar'
 import { LoadPreviousButton } from './components/load-previous-button'
@@ -37,7 +35,6 @@ import { useChatUI } from './hooks/use-chat-ui'
 import { useClaudeQuotaQuery } from './hooks/use-claude-quota-query'
 import { useClipboard } from './hooks/use-clipboard'
 import { useEvent } from './hooks/use-event'
-import { useGravityAd } from './hooks/use-gravity-ad'
 import { useInputHistory } from './hooks/use-input-history'
 import { usePublishMutation } from './hooks/use-publish-mutation'
 import { useSendMessage } from './hooks/use-send-message'
@@ -51,7 +48,6 @@ import { useReviewStore } from './state/review-store'
 import { useFeedbackStore } from './state/feedback-store'
 import { useMessageBlockStore } from './state/message-block-store'
 import { usePublishStore } from './state/publish-store'
-import { reportActivity } from './utils/activity-tracker'
 import { trackEvent } from './utils/analytics'
 import { getClaudeOAuthStatus } from './utils/claude-oauth'
 import { showClipboardMessage } from './utils/clipboard'
@@ -159,7 +155,6 @@ export const Chat = ({
   } = useChatState()
 
   const { statusMessage } = useClipboard()
-  const { ad } = useGravityAd()
 
   // Set initial mode from CLI flag on mount
   useEffect(() => {
@@ -206,17 +201,10 @@ export const Chat = ({
   // Get loaded skills for slash commands
   const loadedSkills = useMemo(() => getLoadedSkills(), [])
 
-  // Filter slash commands based on current ads state - only show the option that changes state
-  // Also merge in skill commands
+  // Merge in skill commands
   const filteredSlashCommands = useMemo(() => {
-    const adsEnabled = getAdsEnabled()
-    const allCommands = getSlashCommandsWithSkills(loadedSkills)
-    return allCommands.filter((cmd) => {
-      if (cmd.id === 'ads:enable') return !adsEnabled
-      if (cmd.id === 'ads:disable') return adsEnabled
-      return true
-    })
-  }, [inputValue, loadedSkills]) // Re-evaluate when input changes (user may have just toggled)
+    return getSlashCommandsWithSkills(loadedSkills)
+  }, [loadedSkills])
 
   const {
     slashContext,
@@ -739,16 +727,6 @@ export const Chat = ({
     inputValueRef.current = inputValue
   }, [inputValue])
 
-  // Report activity on input changes for ad rotation (debounced via separate effect)
-  const lastReportedActivityRef = useRef<number>(0)
-  useEffect(() => {
-    const now = Date.now()
-    // Throttle to max once per second to avoid excessive calls
-    if (now - lastReportedActivityRef.current > 1000) {
-      lastReportedActivityRef.current = now
-      reportActivity()
-    }
-  }, [inputValue])
   useEffect(() => {
     cursorPositionRef.current = cursorPosition
   }, [cursorPosition])
@@ -842,8 +820,6 @@ export const Chat = ({
   }, [feedbackMode, askUserState, inputRef])
 
   const handleSubmit = useCallback(async () => {
-    // Report activity for ad rotation
-    reportActivity()
     // Update terminal title with truncated user input
     if (inputValue.trim()) {
       setTerminalTitle(inputValue)
@@ -1301,20 +1277,8 @@ export const Chat = ({
   // Determine if Claude is actively streaming/waiting
   const isClaudeActive = isStreaming || isWaitingForResponse
 
-  // Track mouse movement for ad activity (throttled)
-  const lastMouseActivityRef = useRef<number>(0)
-  const handleMouseActivity = useCallback(() => {
-    const now = Date.now()
-    // Throttle to max once per second
-    if (now - lastMouseActivityRef.current > 1000) {
-      lastMouseActivityRef.current = now
-      reportActivity()
-    }
-  }, [])
-
   return (
     <box
-      onMouseMove={handleMouseActivity}
       style={{
         flexDirection: 'column',
         gap: 0,
@@ -1403,8 +1367,6 @@ export const Chat = ({
             statusIndicatorState={statusIndicatorState}
           />
         )}
-
-        {ad && getAdsEnabled() && <AdBanner ad={ad} />}
 
         {reviewMode ? (
           <ReviewScreen

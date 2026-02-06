@@ -1,9 +1,11 @@
 /**
  * Model provider abstraction for routing requests to the appropriate LLM provider.
  *
- * This module handles:
- * - Claude OAuth: Direct requests to Anthropic API using user's OAuth token
- * - Default: Requests through LevelCode backend (which routes to OpenRouter)
+ * Routing priority:
+ * 1. Claude OAuth: Direct requests to Anthropic API using user's OAuth token
+ * 2. Standalone + OPENROUTER_API_KEY: Direct requests to OpenRouter
+ * 3. Standalone + ANTHROPIC_API_KEY: Direct requests to Anthropic API
+ * 4. Non-standalone: Requests through LevelCode backend (which routes to OpenRouter)
  */
 
 import path from 'path'
@@ -21,9 +23,11 @@ import {
   VERSION,
 } from '@levelcode/internal/openai-compatible/index'
 
+import { createOpenRouter } from '@levelcode/internal/openrouter-ai-sdk'
+
 import { WEBSITE_URL } from '../constants'
 import { getValidClaudeOAuthCredentials } from '../credentials'
-import { getByokOpenrouterApiKeyFromEnv } from '../env'
+import { getAnthropicApiKeyFromEnv, getByokOpenrouterApiKeyFromEnv, getOpenRouterApiKeyFromEnv, isStandaloneMode } from '../env'
 
 import type { LanguageModel } from 'ai'
 
@@ -160,20 +164,38 @@ type OpenRouterUsageAccounting = {
 }
 
 /**
+ * Create a model that routes directly to OpenRouter (standalone mode).
+ * Uses the existing createOpenRouter() provider from @levelcode/internal.
+ */
+function createDirectOpenRouterModel(openRouterApiKey: string, model: string): LanguageModel {
+  const provider = createOpenRouter({ apiKey: openRouterApiKey, compatibility: 'strict' })
+  return provider.chat(model) as unknown as LanguageModel
+}
+
+/**
+ * Create a model that routes directly to Anthropic using an API key.
+ * Used in standalone mode when ANTHROPIC_API_KEY is set.
+ */
+function createDirectAnthropicModel(anthropicApiKey: string, model: string): LanguageModel {
+  const anthropicModelId = toAnthropicModelId(model)
+  const anthropic = createAnthropic({ apiKey: anthropicApiKey })
+  return anthropic(anthropicModelId) as unknown as LanguageModel
+}
+
+/**
  * Get the appropriate model for a request.
  *
  * If Claude OAuth credentials are available and the model is a Claude model,
  * returns an Anthropic direct model. Otherwise, returns the LevelCode backend model.
- * 
+ *
  * This function is async because it may need to refresh the OAuth token.
  */
 export async function getModelForRequest(params: ModelRequestParams): Promise<ModelResult> {
   const { apiKey, model, skipClaudeOAuth } = params
 
-  // Check if we should use Claude OAuth direct
+  // Check if we should use Claude OAuth direct (works in both standalone and non-standalone)
   // Skip if explicitly requested, if rate-limited, or if not a Claude model
   if (!skipClaudeOAuth && !isClaudeOAuthRateLimited() && isClaudeModel(model)) {
-    // Get valid credentials (will refresh if needed)
     const claudeOAuthCredentials = await getValidClaudeOAuthCredentials()
     if (claudeOAuthCredentials) {
       return {
@@ -186,7 +208,23 @@ export async function getModelForRequest(params: ModelRequestParams): Promise<Mo
     }
   }
 
-  // Default: use LevelCode backend
+  if (isStandaloneMode()) {
+    // Standalone mode: route directly to providers, bypass backend
+
+    // Try OpenRouter API key
+    const openRouterKey = getOpenRouterApiKeyFromEnv()
+    if (openRouterKey) {
+      return { model: createDirectOpenRouterModel(openRouterKey, model), isClaudeOAuth: false }
+    }
+
+    // Try Anthropic API key
+    const anthropicKey = getAnthropicApiKeyFromEnv()
+    if (anthropicKey) {
+      return { model: createDirectAnthropicModel(anthropicKey, model), isClaudeOAuth: false }
+    }
+  }
+
+  // Non-standalone (or no direct keys available): use LevelCode backend
   return {
     model: createLevelCodeBackendModel(apiKey, model),
     isClaudeOAuth: false,

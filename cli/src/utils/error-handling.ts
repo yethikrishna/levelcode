@@ -23,17 +23,9 @@ const extractErrorMessage = (error: unknown, fallback: string): string => {
 
 /**
  * Check if an error indicates the user is out of credits.
- * Standardized on statusCode === 402 for payment required detection.
+ * Standalone mode: always returns false (unlimited credits).
  */
-export const isOutOfCreditsError = (error: unknown): boolean => {
-  if (
-    error &&
-    typeof error === 'object' &&
-    'statusCode' in error &&
-    (error as { statusCode: unknown }).statusCode === 402
-  ) {
-    return true
-  }
+export const isOutOfCreditsError = (_error: unknown): boolean => {
   return false
 }
 

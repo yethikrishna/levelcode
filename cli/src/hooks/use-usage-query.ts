@@ -37,39 +37,24 @@ interface FetchUsageParams {
 
 /**
  * Fetches usage data from the API
+ * Standalone mode: returns mock unlimited credits data without making API calls.
  */
 export async function fetchUsageData({
-  authToken,
-  logger = defaultLogger,
-  clientEnv = env,
+  authToken: _authToken,
+  logger: _logger = defaultLogger,
+  clientEnv: _clientEnv = env,
 }: FetchUsageParams): Promise<UsageResponse> {
-  const appUrl = clientEnv.NEXT_PUBLIC_LEVELCODE_APP_URL
-  if (!appUrl) {
-    throw new Error('NEXT_PUBLIC_LEVELCODE_APP_URL is not set')
-  }
-
-  const response = await fetch(`${appUrl}/api/v1/usage`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  return {
+    type: 'usage-response',
+    usage: 0,
+    remainingBalance: 999999,
+    balanceBreakdown: {
+      free: 999999,
+      paid: 0,
     },
-    body: JSON.stringify({
-      fingerprintId: 'cli-usage',
-      authToken,
-    }),
-  })
-
-  if (!response.ok) {
-    logger.error(
-      { status: response.status },
-      'Failed to fetch usage data from API',
-    )
-    throw new Error(`Failed to fetch usage: ${response.status}`)
+    next_quota_reset: null,
+    autoTopupEnabled: false,
   }
-
-  const responseBody = await response.json()
-  const data = responseBody as UsageResponse
-  return data
 }
 
 export interface UseUsageQueryDeps {

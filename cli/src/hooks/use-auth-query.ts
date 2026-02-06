@@ -7,6 +7,7 @@ import {
   getErrorStatusCode,
   createAuthError,
   createServerError,
+  isStandaloneMode,
   MAX_RETRIES_PER_MESSAGE,
   RETRY_BACKOFF_BASE_DELAY_MS,
 } from '@levelcode/sdk'
@@ -132,35 +133,37 @@ export function useAuthQuery(deps: UseAuthQueryDeps = {}) {
     logger = defaultLogger,
   } = deps
 
+  const standalone = isStandaloneMode()
+
   const userCredentials = getUserCredentials()
-  const apiKey = userCredentials?.authToken || getCiEnv().LEVELCODE_API_KEY || ''
+  const apiKey = standalone
+    ? 'standalone-mode'
+    : userCredentials?.authToken || getCiEnv().LEVELCODE_API_KEY || ''
 
   return useQuery({
     queryKey: authQueryKeys.validation(apiKey),
-    queryFn: () => validateApiKey({ apiKey, getUserInfoFromApiKey, logger }),
+    queryFn: standalone
+      ? () => Promise.resolve({ id: 'standalone-user', email: 'standalone@local' } as ValidatedUserInfo)
+      : () => validateApiKey({ apiKey, getUserInfoFromApiKey, logger }),
     enabled: !!apiKey,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: standalone ? Infinity : 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000, // 10 minutes
-    // Retry only for retryable network errors (5xx, timeouts, etc.)
-    // Don't retry authentication errors (invalid credentials)
-    retry: (failureCount, error) => {
-      const statusCode = getErrorStatusCode(error)
-      // Don't retry authentication errors - user needs to update credentials
-      if (isAuthenticationError(error)) {
-        return false
-      }
-      // Retry network errors if they're retryable and we haven't exceeded max retries
-      if (statusCode !== undefined && isRetryableStatusCode(statusCode)) {
-        return failureCount < MAX_RETRIES_PER_MESSAGE
-      }
-      // Don't retry other errors
-      return false
-    },
+    retry: standalone
+      ? false
+      : (failureCount, error) => {
+          const statusCode = getErrorStatusCode(error)
+          if (isAuthenticationError(error)) {
+            return false
+          }
+          if (statusCode !== undefined && isRetryableStatusCode(statusCode)) {
+            return failureCount < MAX_RETRIES_PER_MESSAGE
+          }
+          return false
+        },
     retryDelay: (attemptIndex) => {
-      // Exponential backoff: 1s, 2s, 4s
       return Math.min(
         RETRY_BACKOFF_BASE_DELAY_MS * Math.pow(2, attemptIndex),
-        8000, // Cap at 8 seconds
+        8000,
       )
     },
   })

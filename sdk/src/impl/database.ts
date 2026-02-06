@@ -4,6 +4,7 @@ import { getErrorObject } from '@levelcode/common/util/error'
 import z from 'zod/v4'
 
 import { WEBSITE_URL } from '../constants'
+import { isStandaloneMode } from '../env'
 import {
   createAuthError,
   createNetworkError,
@@ -98,6 +99,13 @@ async function fetchWithRetry(
 export async function getUserInfoFromApiKey<T extends UserColumn>(
   params: GetUserInfoFromApiKeyInput<T>,
 ): GetUserInfoFromApiKeyOutput<T> {
+  if (isStandaloneMode()) {
+    const standaloneUser = { id: 'standalone-user', email: 'standalone@local' } as Record<string, unknown>
+    return Object.fromEntries(
+      params.fields.map((field) => [field, standaloneUser[field] ?? null]),
+    ) as Awaited<GetUserInfoFromApiKeyOutput<T>>
+  }
+
   const { apiKey, fields, logger } = params
 
   const cached = userInfoCache[apiKey]
@@ -215,6 +223,10 @@ export async function getUserInfoFromApiKey<T extends UserColumn>(
 export async function fetchAgentFromDatabase(
   params: ParamsOf<FetchAgentFromDatabaseFn>,
 ): ReturnType<FetchAgentFromDatabaseFn> {
+  if (isStandaloneMode()) {
+    return null
+  }
+
   const { apiKey, parsedAgentId, logger } = params
   const { publisherId, agentId, version } = parsedAgentId
 
@@ -302,6 +314,10 @@ export async function fetchAgentFromDatabase(
 export async function startAgentRun(
   params: ParamsOf<StartAgentRunFn>,
 ): ReturnType<StartAgentRunFn> {
+  if (isStandaloneMode()) {
+    return crypto.randomUUID()
+  }
+
   const { apiKey, agentId, ancestorRunIds, logger } = params
 
   const url = new URL(`/api/v1/agent-runs`, WEBSITE_URL)
@@ -348,6 +364,10 @@ export async function startAgentRun(
 export async function finishAgentRun(
   params: ParamsOf<FinishAgentRunFn>,
 ): ReturnType<FinishAgentRunFn> {
+  if (isStandaloneMode()) {
+    return
+  }
+
   const {
     apiKey,
     runId,
@@ -395,6 +415,10 @@ export async function finishAgentRun(
 export async function addAgentStep(
   params: ParamsOf<AddAgentStepFn>,
 ): ReturnType<AddAgentStepFn> {
+  if (isStandaloneMode()) {
+    return crypto.randomUUID()
+  }
+
   const {
     apiKey,
     agentRunId,

@@ -3,7 +3,6 @@ import React from 'react'
 import { ClaudeConnectBanner } from './claude-connect-banner'
 import { HelpBanner } from './help-banner'
 import { PendingAttachmentsBanner } from './pending-attachments-banner'
-import { ReferralBanner } from './referral-banner'
 import { UsageBanner } from './usage-banner'
 import { useChatStore } from '../state/chat-store'
 
@@ -23,7 +22,6 @@ const BANNER_REGISTRY: Record<
   default: () => <PendingAttachmentsBanner />,
   image: () => <PendingAttachmentsBanner />,
   usage: ({ showTime }) => <UsageBanner showTime={showTime} />,
-  referral: () => <ReferralBanner />,
   help: () => <HelpBanner />,
   'connect:claude': () => <ClaudeConnectBanner />,
 }

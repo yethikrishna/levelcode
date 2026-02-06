@@ -1,8 +1,3 @@
-import { getAuthToken } from './auth'
-import { getApiClient, setApiClientAuthToken } from './levelcode-api'
-import { logger } from './logger'
-import { useChatStore } from '../state/chat-store'
-
 import type { LevelCodeApiClient } from './levelcode-api'
 import type { Logger } from '@levelcode/common/types/contracts/logger'
 
@@ -19,62 +14,10 @@ export interface FetchAndUpdateUsageParams {
 
 /**
  * Fetches current usage data from the API and updates the chat store.
- * If `showBanner` is true, makes the usage banner visible after updating.
- * Returns true if successful, false otherwise.
+ * Standalone mode: no-op that always returns true (unlimited credits).
  */
 export async function fetchAndUpdateUsage(
-  params: FetchAndUpdateUsageParams = {},
+  _params: FetchAndUpdateUsageParams = {},
 ): Promise<boolean> {
-  const {
-    showBanner = false,
-    getAuthToken: getAuthTokenFn = getAuthToken,
-    getChatStore = () => useChatStore.getState(),
-    logger: loggerInstance = logger,
-    apiClient: providedApiClient,
-  } = params
-
-  const authToken = getAuthTokenFn()
-  const chatStore = getChatStore()
-
-  if (!authToken) {
-    loggerInstance.debug('Cannot fetch usage: not authenticated')
-    return false
-  }
-
-  const apiClient =
-    providedApiClient ??
-    (() => {
-      setApiClientAuthToken(authToken)
-      return getApiClient()
-    })()
-
-  try {
-    const response = await apiClient.usage()
-
-    if (!response.ok) {
-      loggerInstance.error(
-        { status: response.status, errorText: response.error },
-        'Usage request failed',
-      )
-      return false
-    }
-
-    // Note: This function is deprecated. Use useUsageQuery hook instead.
-    // We no longer update the store here since usage data is managed by TanStack Query.
-
-    if (showBanner) {
-      chatStore.setInputMode('usage')
-    }
-
-    return true
-  } catch (error) {
-    loggerInstance.error(
-      {
-        error: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-      },
-      'Error fetching usage',
-    )
-    return false
-  }
+  return true
 }

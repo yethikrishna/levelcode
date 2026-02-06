@@ -136,14 +136,9 @@ export function initAnalytics() {
   const { env, isProd, createClient, generateAnonymousId } = resolveDeps()
 
   if (!env.NEXT_PUBLIC_POSTHOG_API_KEY || !env.NEXT_PUBLIC_POSTHOG_HOST_URL) {
-    const error = new Error(
-      'NEXT_PUBLIC_POSTHOG_API_KEY or NEXT_PUBLIC_POSTHOG_HOST_URL is not set',
-    )
-    logAnalyticsError(error, {
-      stage: AnalyticsErrorStage.Init,
-      missingEnv: true,
-    })
-    throw error
+    // No PostHog keys configured - silently skip analytics initialization.
+    // This is expected in standalone / open-source mode.
+    return
   }
 
   // Generate anonymous ID for pre-login tracking
@@ -183,15 +178,7 @@ export function trackEvent(
   const distinctId = getDistinctId()
 
   if (!client) {
-    if (isProd) {
-      const error = new Error('Analytics client not initialized')
-      logAnalyticsError(error, {
-        stage: AnalyticsErrorStage.Track,
-        event,
-        properties,
-      })
-      throw error
-    }
+    // No analytics client - silently skip (expected in standalone mode)
     return
   }
 
@@ -228,12 +215,8 @@ export function trackEvent(
 
 export function identifyUser(userId: string, properties?: Record<string, any>) {
   if (!client) {
-    const error = new Error('Analytics client not initialized')
-    logAnalyticsError(error, {
-      stage: AnalyticsErrorStage.Identify,
-      properties,
-    })
-    throw error
+    // No analytics client - silently skip (expected in standalone mode)
+    return
   }
 
   const { isProd } = resolveDeps()

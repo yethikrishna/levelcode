@@ -1,7 +1,7 @@
 import { API_KEY_ENV_VAR } from '@levelcode/common/constants/paths'
 
 import { WEBSITE_URL } from './constants'
-import { getLevelCodeApiKeyFromEnv } from './env'
+import { getLevelCodeApiKeyFromEnv, isStandaloneMode } from './env'
 import { run } from './run'
 
 import type { RunOptions, LevelCodeClientOptions } from './run'
@@ -14,7 +14,7 @@ export class LevelCodeClient {
   }
 
   constructor(options: LevelCodeClientOptions) {
-    const foundApiKey = options.apiKey ?? getLevelCodeApiKeyFromEnv()
+    const foundApiKey = options.apiKey ?? getLevelCodeApiKeyFromEnv() ?? (isStandaloneMode() ? 'standalone-mode' : undefined)
     if (!foundApiKey) {
       throw new Error(
         `LevelCode API key not found. Please provide an apiKey in the constructor of LevelCodeClient or set the ${API_KEY_ENV_VAR} environment variable.`,
@@ -64,6 +64,10 @@ export class LevelCodeClient {
    * @returns Promise that resolves to true if connected, false otherwise
    */
   public async checkConnection(): Promise<boolean> {
+    if (isStandaloneMode()) {
+      return true
+    }
+
     try {
       const response = await fetch(`${WEBSITE_URL}/api/healthz`, {
         method: 'GET',

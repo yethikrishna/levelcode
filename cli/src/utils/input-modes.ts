@@ -7,7 +7,7 @@ export type InputMode =
   | 'default'
   | 'bash'
   | 'homeDir'
-  | 'referral'
+
   | 'usage'
   | 'image'
   | 'help'
@@ -65,14 +65,6 @@ export const INPUT_MODE_CONFIGS: Record<InputMode, InputModeConfig> = {
     widthAdjustment: 0,
     showAgentModeToggle: true,
     disableSlashSuggestions: false,
-  },
-  referral: {
-    icon: '◎',
-    color: 'warning',
-    placeholder: 'have a code? enter it here',
-    widthAdjustment: 2, // 1 char + 1 padding
-    showAgentModeToggle: false,
-    disableSlashSuggestions: true,
   },
   usage: {
     icon: null,

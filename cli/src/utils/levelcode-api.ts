@@ -1,4 +1,4 @@
-import { WEBSITE_URL } from '@levelcode/sdk'
+import { WEBSITE_URL, isStandaloneMode } from '@levelcode/sdk'
 
 import type {
   PublishAgentsResponse,
@@ -246,11 +246,43 @@ const isRetryableError = (error: unknown): boolean => {
 }
 
 /**
- * Create a LevelCode API client for making authenticated requests to the LevelCode API
+ * Create a no-op API client for standalone mode.
+ * All methods return successful empty responses without making network requests.
+ */
+function createStandaloneApiClient(): LevelCodeApiClient {
+  const noopOk = <T>(): Promise<ApiResponse<T>> =>
+    Promise.resolve({ ok: true, status: 200 })
+
+  return {
+    baseUrl: 'standalone',
+    authToken: undefined,
+    request: noopOk,
+    get: noopOk,
+    post: noopOk,
+    put: noopOk,
+    patch: noopOk,
+    delete: noopOk,
+    me: () => Promise.resolve({ ok: true, status: 200, data: { id: 'standalone-user', email: 'standalone@local' } as any }),
+    usage: () => Promise.resolve({ ok: true, status: 200, data: { type: 'usage-response' as const, usage: 0, remainingBalance: null, next_quota_reset: null } }),
+    loginCode: noopOk,
+    loginStatus: () => Promise.resolve({ ok: true, status: 200, data: { user: undefined } }),
+    referral: noopOk,
+    publish: () => Promise.resolve({ ok: true, status: 200, data: { published: [], deleted: [] } as any }),
+    logout: noopOk,
+  }
+}
+
+/**
+ * Create a LevelCode API client for making authenticated requests to the LevelCode API.
+ * In standalone mode, returns a no-op client that doesn't make network requests.
  */
 export function createLevelCodeApiClient(
   config: LevelCodeApiClientConfig = {},
 ): LevelCodeApiClient {
+  if (isStandaloneMode()) {
+    return createStandaloneApiClient()
+  }
+
   const {
     baseUrl = WEBSITE_URL,
     authToken,

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { isStandaloneMode } from '@levelcode/sdk'
+
 import { getLevelCodeClient } from '../utils/levelcode-client'
 import { logger } from '../utils/logger'
 
@@ -49,6 +51,16 @@ export const useConnectionStatus = (
   const previousConnectedRef = useRef<boolean | null>(null)
 
   useEffect(() => {
+    // In standalone mode, skip health polling entirely
+    if (isStandaloneMode()) {
+      setIsConnected(true)
+      previousConnectedRef.current = true
+      if (typeof onReconnect === 'function') {
+        onReconnect(true)
+      }
+      return
+    }
+
     let isMounted = true
     let timeoutId: NodeJS.Timeout | null = null
     let consecutiveSuccesses = 0

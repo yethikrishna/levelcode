@@ -24,6 +24,8 @@ import { runPlainLogin } from './login/plain-login'
 import { initializeApp } from './init/init-app'
 import { getProjectRoot, setProjectRoot } from './project-files'
 import { initAnalytics, trackEvent } from './utils/analytics'
+import { isStandaloneMode } from '@levelcode/sdk'
+
 import { getAuthTokenDetails } from './utils/auth'
 import { resetLevelCodeClient } from './utils/levelcode-client'
 import { getCliEnv } from './utils/env'
@@ -187,6 +189,16 @@ async function main(): Promise<void> {
     return
   }
 
+  // Show helpful error when no API key is available
+  if (!getAuthTokenDetails().token && !isStandaloneMode()) {
+    console.error(
+      '\n  No API key found. To use LevelCode, set your OpenRouter API key:\n\n' +
+      '    export OPENROUTER_API_KEY="sk-or-v1-your-key-here"\n\n' +
+      '  Get your API key at: https://openrouter.ai/keys\n',
+    )
+    process.exit(1)
+  }
+
   // Show project picker only when user starts at the home directory or an ancestor
   const projectRoot = getProjectRoot()
   const homeDir = os.homedir()
@@ -263,6 +275,12 @@ async function main(): Promise<void> {
       React.useState(showProjectPicker)
 
     React.useEffect(() => {
+      if (isStandaloneMode()) {
+        setRequireAuth(false)
+        setHasInvalidCredentials(false)
+        return
+      }
+
       const apiKey = getAuthTokenDetails().token ?? ''
 
       if (!apiKey) {

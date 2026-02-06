@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { isStandaloneMode } from '@levelcode/sdk'
 
 import { getAuthToken } from '../utils/auth'
 import { getApiClient, setApiClientAuthToken } from '../utils/levelcode-api'
@@ -29,7 +30,8 @@ interface FetchUserDetailsParams<T extends UserField> {
 }
 
 /**
- * Fetches specific user details from the /api/v1/me endpoint
+ * Fetches specific user details from the /api/v1/me endpoint.
+ * In standalone mode, returns mock user details without hitting the backend.
  */
 export async function fetchUserDetails<T extends UserField>({
   authToken,
@@ -37,6 +39,16 @@ export async function fetchUserDetails<T extends UserField>({
   logger = defaultLogger,
   apiClient: providedApiClient,
 }: FetchUserDetailsParams<T>): Promise<UserDetails<T> | null> {
+  if (isStandaloneMode()) {
+    const mock = {} as Record<string, string | null>
+    for (const field of fields) {
+      if (field === 'id') mock[field] = 'standalone-user'
+      else if (field === 'email') mock[field] = 'standalone@local'
+      else mock[field] = null
+    }
+    return mock as UserDetails<T>
+  }
+
   const apiClient =
     providedApiClient ??
     (() => {
@@ -72,16 +84,17 @@ export function useUserDetailsQuery<T extends UserField>({
   enabled = true,
 }: UseUserDetailsQueryDeps<T>) {
   const authToken = getAuthToken()
+  const standalone = isStandaloneMode()
 
   return useQuery({
     queryKey: userDetailsQueryKeys.fields(fields),
     queryFn: async () => {
-      if (!authToken) {
+      if (!authToken && !standalone) {
         throw new Error('No auth token available')
       }
-      return fetchUserDetails({ authToken, fields, logger })
+      return fetchUserDetails({ authToken: authToken ?? '', fields, logger })
     },
-    enabled: enabled && !!authToken,
+    enabled: enabled && (standalone || !!authToken),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
     retry: false,

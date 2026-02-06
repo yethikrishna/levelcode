@@ -1,3 +1,5 @@
+import { isStandaloneMode } from '@levelcode/sdk'
+
 import { createLevelCodeApiClient } from '../utils/levelcode-api'
 
 import type {
@@ -25,6 +27,15 @@ export async function generateLoginUrl(
 ): Promise<LoginUrlResponse> {
   const { logger, apiClient: providedApiClient } = deps
   const { baseUrl, fingerprintId } = options
+
+  // In standalone mode, skip web login entirely
+  if (isStandaloneMode()) {
+    logger.info('Using direct API key auth - web login not required')
+    throw new Error(
+      'Login is not required in standalone mode. ' +
+      'Using direct API key auth via OPENROUTER_API_KEY.',
+    )
+  }
 
   const apiClient =
     providedApiClient ??
@@ -82,6 +93,11 @@ export async function pollLoginStatus(
   deps: PollLoginStatusDeps,
   options: PollLoginStatusOptions,
 ): Promise<PollLoginStatusResult> {
+  // In standalone mode, login polling is not needed
+  if (isStandaloneMode()) {
+    return { status: 'aborted' }
+  }
+
   const { sleep, logger, apiClient: providedApiClient } = deps
   const {
     baseUrl,

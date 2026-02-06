@@ -87,60 +87,14 @@ export interface AutoShowDecision {
 
 /**
  * Determines whether the usage banner should auto-show based on credit threshold crossings.
- *
- * The banner auto-shows when:
- * - User is not in a chain (isChainInProgress = false)
- * - User is authenticated (hasAuthToken = true)
- * - User has credit data available (remainingBalance !== null)
- * - User crosses a new threshold (1000, 500, or 100) that hasn't been warned about yet
- * - User does NOT have auto top-up enabled (unless truly out of credits <= 0)
+ * Standalone mode: never auto-show the banner (unlimited credits).
  */
 export function shouldAutoShowBanner(
-  isChainInProgress: boolean,
-  hasAuthToken: boolean,
-  remainingBalance: number | null,
-  lastWarnedThreshold: number | null,
-  autoTopupEnabled: boolean = false,
+  _isChainInProgress: boolean,
+  _hasAuthToken: boolean,
+  _remainingBalance: number | null,
+  _lastWarnedThreshold: number | null,
+  _autoTopupEnabled: boolean = false,
 ): AutoShowDecision {
-  // Don't show during active chains
-  if (isChainInProgress) {
-    return { shouldShow: false, newWarningThreshold: lastWarnedThreshold }
-  }
-
-  // Don't show for unauthenticated users
-  if (!hasAuthToken) {
-    return { shouldShow: false, newWarningThreshold: lastWarnedThreshold }
-  }
-
-  // Don't show if we don't have balance data
-  if (remainingBalance === null) {
-    return { shouldShow: false, newWarningThreshold: lastWarnedThreshold }
-  }
-
-  // For users with auto top-up enabled, only show if truly out of credits (<= 0)
-  // Auto top-up users want to "set and forget" - don't bother them with threshold warnings
-  if (autoTopupEnabled && remainingBalance > 0) {
-    return { shouldShow: false, newWarningThreshold: null }
-  }
-
-  const currentThreshold = getThresholdTier(remainingBalance)
-
-  // Clear warning state if user is back above all thresholds
-  if (currentThreshold === null) {
-    return { shouldShow: false, newWarningThreshold: null }
-  }
-
-  // Show banner if we've crossed a new threshold we haven't warned about
-  // A "new" threshold means either:
-  // 1. We haven't warned about any threshold yet (lastWarnedThreshold === null)
-  // 2. The current threshold is lower than what we last warned about
-  const isNewThreshold =
-    lastWarnedThreshold === null || currentThreshold < lastWarnedThreshold
-
-  if (isNewThreshold) {
-    return { shouldShow: true, newWarningThreshold: currentThreshold }
-  }
-
-  // Already warned about this threshold
-  return { shouldShow: false, newWarningThreshold: lastWarnedThreshold }
+  return { shouldShow: false, newWarningThreshold: null }
 }

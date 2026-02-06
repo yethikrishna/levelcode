@@ -1,6 +1,6 @@
 import { API_KEY_ENV_VAR } from '@levelcode/common/old-constants'
 import { AskUserBridge } from '@levelcode/common/utils/ask-user-bridge'
-import { LevelCodeClient } from '@levelcode/sdk'
+import { LevelCodeClient, isStandaloneMode } from '@levelcode/sdk'
 
 import { getAuthTokenDetails } from './auth'
 import { getCliEnv, getSystemProcessEnv } from './env'
@@ -46,7 +46,9 @@ export function resetLevelCodeClient(): void {
 
 export async function getLevelCodeClient(): Promise<LevelCodeClient | null> {
   if (!clientInstance) {
-    const { token: apiKey } = getAuthTokenDetails()
+    const standalone = isStandaloneMode()
+    const { token: authApiKey } = getAuthTokenDetails()
+    const apiKey = standalone ? 'standalone-mode' : authApiKey
 
     if (!apiKey) {
       logger.warn(
