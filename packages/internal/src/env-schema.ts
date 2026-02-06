@@ -2,32 +2,32 @@ import { clientEnvSchema, clientProcessEnv } from '@levelcode/common/env-schema'
 import z from 'zod/v4'
 
 export const serverEnvSchema = clientEnvSchema.extend({
-  // LLM API keys
-  OPEN_ROUTER_API_KEY: z.string().min(1),
-  OPENAI_API_KEY: z.string().min(1),
-  ANTHROPIC_API_KEY: z.string().min(1),
-  LINKUP_API_KEY: z.string().min(1),
+  // LLM API keys (optional - only needed when backend proxies LLM calls)
+  OPEN_ROUTER_API_KEY: z.string().default(''),
+  OPENAI_API_KEY: z.string().default(''),
+  ANTHROPIC_API_KEY: z.string().default(''),
+  LINKUP_API_KEY: z.string().default(''),
   CONTEXT7_API_KEY: z.string().optional(),
-  GRAVITY_API_KEY: z.string().min(1),
-  PORT: z.coerce.number().min(1000),
+  GRAVITY_API_KEY: z.string().default(''),
+  PORT: z.coerce.number().default(3000),
 
-  // Web/Database variables
-  DATABASE_URL: z.string().min(1),
-  LEVELCODE_GITHUB_ID: z.string().min(1),
-  LEVELCODE_GITHUB_SECRET: z.string().min(1),
+  // Web/Database variables (optional for build, required at runtime)
+  DATABASE_URL: z.string().default(''),
+  LEVELCODE_GITHUB_ID: z.string().default(''),
+  LEVELCODE_GITHUB_SECRET: z.string().default(''),
   NEXTAUTH_URL: z.url().optional(),
-  NEXTAUTH_SECRET: z.string().min(1),
-  STRIPE_SECRET_KEY: z.string().min(1),
-  STRIPE_WEBHOOK_SECRET_KEY: z.string().min(1),
-  STRIPE_USAGE_PRICE_ID: z.string().min(1),
-  STRIPE_TEAM_FEE_PRICE_ID: z.string().min(1),
-  STRIPE_SUBSCRIPTION_100_PRICE_ID: z.string().min(1),
-  STRIPE_SUBSCRIPTION_200_PRICE_ID: z.string().min(1),
-  STRIPE_SUBSCRIPTION_500_PRICE_ID: z.string().min(1),
-  LOOPS_API_KEY: z.string().min(1),
-  DISCORD_PUBLIC_KEY: z.string().min(1),
-  DISCORD_BOT_TOKEN: z.string().min(1),
-  DISCORD_APPLICATION_ID: z.string().min(1),
+  NEXTAUTH_SECRET: z.string().default('build-placeholder'),
+  STRIPE_SECRET_KEY: z.string().default(''),
+  STRIPE_WEBHOOK_SECRET_KEY: z.string().default(''),
+  STRIPE_USAGE_PRICE_ID: z.string().default(''),
+  STRIPE_TEAM_FEE_PRICE_ID: z.string().default(''),
+  STRIPE_SUBSCRIPTION_100_PRICE_ID: z.string().default(''),
+  STRIPE_SUBSCRIPTION_200_PRICE_ID: z.string().default(''),
+  STRIPE_SUBSCRIPTION_500_PRICE_ID: z.string().default(''),
+  LOOPS_API_KEY: z.string().default(''),
+  DISCORD_PUBLIC_KEY: z.string().default(''),
+  DISCORD_BOT_TOKEN: z.string().default(''),
+  DISCORD_APPLICATION_ID: z.string().default(''),
 })
 export const serverEnvVars = serverEnvSchema.keyof().options
 export type ServerEnvVar = (typeof serverEnvVars)[number]
