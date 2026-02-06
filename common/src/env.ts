@@ -1,11 +1,21 @@
 import { clientEnvSchema, clientProcessEnv } from './env-schema'
 
 const parsedEnv = clientEnvSchema.safeParse(clientProcessEnv)
-if (!parsedEnv.success) {
-  throw parsedEnv.error
+
+// Provide fallback values for CLI usage where env vars may not be set
+const fallbackEnv = {
+  NEXT_PUBLIC_CB_ENVIRONMENT: 'prod' as const,
+  NEXT_PUBLIC_LEVELCODE_APP_URL: 'https://levelcode.ai',
+  NEXT_PUBLIC_SUPPORT_EMAIL: 'support@levelcode.ai',
+  NEXT_PUBLIC_POSTHOG_API_KEY: '',
+  NEXT_PUBLIC_POSTHOG_HOST_URL: 'https://app.posthog.com',
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: '',
+  NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL: 'https://billing.stripe.com',
+  NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION_ID: undefined,
+  NEXT_PUBLIC_WEB_PORT: 3000,
 }
 
-export const env = parsedEnv.data
+export const env = parsedEnv.success ? parsedEnv.data : fallbackEnv
 
 // Only log environment in non-production
 if (env.NEXT_PUBLIC_CB_ENVIRONMENT !== 'prod') {
