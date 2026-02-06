@@ -150,24 +150,40 @@ function AgentOrbit() {
 
 function StarsCounter() {
   const [count, setCount] = useState(0)
+  const [liveStars, setLiveStars] = useState<number | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, amount: 0.5 })
 
+  // Fetch live star count from GitHub API
   useEffect(() => {
-    if (!isInView) return
-    const target = 2847 // Fake star count for visual effect
-    const duration = 2000
+    fetch('https://api.github.com/repos/yethikrishna/levelcode')
+      .then(res => res.json())
+      .then(data => {
+        if (data.stargazers_count != null) {
+          setLiveStars(data.stargazers_count)
+        }
+      })
+      .catch(() => {
+        // Fallback if API fails - just show 0
+      })
+  }, [])
+
+  // Animate counting up to the live value
+  useEffect(() => {
+    if (!isInView || liveStars === null) return
+    const target = liveStars
+    if (target === 0) { setCount(0); return }
+    const duration = Math.min(2000, target * 20) // Scale duration with count
     const start = Date.now()
     const iv = setInterval(() => {
       const elapsed = Date.now() - start
       const progress = Math.min(elapsed / duration, 1)
-      // Ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3)
       setCount(Math.floor(eased * target))
       if (progress >= 1) clearInterval(iv)
     }, 16)
     return () => clearInterval(iv)
-  }, [isInView])
+  }, [isInView, liveStars])
 
   return (
     <div ref={ref} className="flex items-center gap-3">
