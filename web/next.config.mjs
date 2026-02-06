@@ -41,10 +41,10 @@ const nextConfig = {
     // Externalize code-map package to avoid bundling tree-sitter WASM files
     // The web app doesn't need code-map functionality (only SDK CLI tools do)
     config.externals.push(
-      '@codebuff/code-map',
-      '@codebuff/code-map/parse',
-      '@codebuff/code-map/languages',
-      /^@codebuff\/code-map/
+      '@levelcode/code-map',
+      '@levelcode/code-map/parse',
+      '@levelcode/code-map/languages',
+      /^@levelcode\/code-map/
     )
 
     // Suppress contentlayer webpack cache warnings
@@ -111,11 +111,11 @@ const nextConfig = {
         has: [
           {
             type: 'host',
-            value: 'manicode.ai',
+            value: 'levelcode.ai',
           },
         ],
         permanent: false,
-        destination: `${process.env.NEXT_PUBLIC_CODEBUFF_APP_URL}/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_LEVELCODE_APP_URL}/:path*`,
       },
       {
         source: '/api-keys',
@@ -150,12 +150,12 @@ const nextConfig = {
       {
         source: '/releases',
         destination:
-          'https://github.com/CodebuffAI/codebuff-community/releases',
+          'https://github.com/yethikrishna/levelcode/releases',
         permanent: false,
       },
       {
         source: '/b/:hash',
-        destination: 'https://go.trybeluga.ai/:hash',
+        destination: 'https://github.com/yethikrishna/levelcode/:hash',
         permanent: false,
       },
     ]

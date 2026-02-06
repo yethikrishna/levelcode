@@ -18,15 +18,15 @@ if (isBun) {
   const { test, expect } = await import('@playwright/test')
 
   test.describe('Redirect Routes', { tag: '@redirects' }, () => {
-    test.describe('/b/:hash redirect to go.trybeluga.ai', () => {
-      test('redirects to go.trybeluga.ai with the hash', async ({ request }) => {
+    test.describe('/b/:hash redirect to github.com/yethikrishna/levelcode', () => {
+      test('redirects to github.com/yethikrishna/levelcode with the hash', async ({ request }) => {
         const response = await request.get('/b/test123', {
           maxRedirects: 0,
         })
 
         expect(response.status()).toBe(307)
         expect(response.headers()['location']).toBe(
-          'https://go.trybeluga.ai/test123',
+          'https://github.com/yethikrishna/levelcode/test123',
         )
       })
 
@@ -37,7 +37,7 @@ if (isBun) {
 
         expect(response.status()).toBe(307)
         const location = response.headers()['location']
-        expect(location).toContain('https://go.trybeluga.ai/abc-xyz')
+        expect(location).toContain('https://github.com/yethikrishna/levelcode/abc-xyz')
         expect(location).toContain('foo=bar')
         expect(location).toContain('utm_source=test')
       })
@@ -49,7 +49,7 @@ if (isBun) {
 
         expect(response.status()).toBe(307)
         expect(response.headers()['location']).toBe(
-          'https://go.trybeluga.ai/hash-with-dashes-123',
+          'https://github.com/yethikrishna/levelcode/hash-with-dashes-123',
         )
       })
 
@@ -63,7 +63,7 @@ if (isBun) {
 
         expect(response.status()).toBe(307)
         const location = response.headers()['location']
-        expect(location).toContain('https://go.trybeluga.ai/multiq')
+        expect(location).toContain('https://github.com/yethikrishna/levelcode/multiq')
         expect(location).toContain('a=1')
         expect(location).toContain('b=2')
         expect(location).toContain('c=3')

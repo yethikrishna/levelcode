@@ -30,6 +30,11 @@ export type StatusIndicatorStateArgs = {
    * When true, hides the "working..." and "thinking..." indicators.
    */
   isAskUserActive?: boolean
+  /**
+   * Whether the CLI is running in standalone mode (no backend).
+   * When true, backend connection indicators (connecting, retrying) are suppressed.
+   */
+  isStandalone?: boolean
 }
 
 /**
@@ -55,6 +60,7 @@ export const getStatusIndicatorState = ({
   isRetrying = false,
   showReconnectionMessage = false,
   isAskUserActive = false,
+  isStandalone = false,
 }: StatusIndicatorStateArgs): StatusIndicatorState => {
   if (nextCtrlCWillExit) {
     return { kind: 'ctrlC' }
@@ -69,18 +75,21 @@ export const getStatusIndicatorState = ({
     return { kind: 'reconnected' }
   }
 
-  // If we're online but the auth request hit a retryable error and is auto-retrying,
-  // surface that explicitly to the user.
-  if (authStatus === 'retrying') {
-    return { kind: 'retrying' }
-  }
-  if (isRetrying) {
-    return { kind: 'retrying' }
-  }
+  // In standalone mode, skip backend connection indicators - there is no backend.
+  if (!isStandalone) {
+    // If we're online but the auth request hit a retryable error and is auto-retrying,
+    // surface that explicitly to the user.
+    if (authStatus === 'retrying') {
+      return { kind: 'retrying' }
+    }
+    if (isRetrying) {
+      return { kind: 'retrying' }
+    }
 
-  // Show connecting if service is disconnected OR auth service is unreachable
-  if (!isConnected || authStatus === 'unreachable') {
-    return { kind: 'connecting' }
+    // Show connecting if service is disconnected OR auth service is unreachable
+    if (!isConnected || authStatus === 'unreachable') {
+      return { kind: 'connecting' }
+    }
   }
 
   // Show paused state when ask_user is active (timer stays visible but frozen)

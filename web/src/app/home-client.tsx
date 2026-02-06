@@ -4,9 +4,9 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, Suspense } from 'react'
 
-import IDEDemo from '@/components/IDEDemo'
+import TerminalAnimation from '@/components/TerminalAnimation'
 import { ReferralRedirect } from '@/components/referral-redirect'
 import { BlockColor, DecorativeBlocks } from '@/components/ui/decorative-blocks'
 import { Hero } from '@/components/ui/hero'
@@ -32,15 +32,7 @@ function SearchParamsHandler() {
 }
 
 export default function HomeClient() {
-  const [demoSwitched, setDemoSwitched] = useState(false)
   const { data: session } = useSession()
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDemoSwitched(true)
-    }, 2000)
-    return () => clearTimeout(timer)
-  }, [])
 
   useEffect(() => {
     const handleReferralCode = async () => {
@@ -98,14 +90,14 @@ export default function HomeClient() {
           <div
             className={cn(
               'w-full flex-grow flex',
-              !demoSwitched ? 'items-center' : '',
+              'items-center',
             )}
           >
             <DecorativeBlocks
               colors={[BlockColor.CRTAmber, BlockColor.AcidMatrix]}
               placement="bottom-right"
             >
-              <IDEDemo />
+              <TerminalAnimation />
             </DecorativeBlocks>
           </div>
         </div>

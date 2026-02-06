@@ -1,4 +1,5 @@
 import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
+import { isStandaloneMode } from '@levelcode/sdk'
 import open from 'open'
 import {
   useCallback,
@@ -1267,6 +1268,7 @@ export const Chat = ({
     showReconnectionMessage,
     isRetrying,
     isAskUserActive: askUserState !== null,
+    isStandalone: isStandaloneMode(),
   })
   const hasStatusIndicatorContent = statusIndicatorState.kind !== 'idle'
 

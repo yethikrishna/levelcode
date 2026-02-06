@@ -5,7 +5,7 @@ export const siteConfig = {
   description:
     'Code faster with AI using LevelCode. Edit your codebase and run terminal commands via natural language instruction.',
   keywords: () => [
-    'Manicode',
+    'LevelCode',
     'LevelCode',
     'Coding Assistant',
     'Coding Assistant',

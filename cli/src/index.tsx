@@ -265,33 +265,31 @@ async function main(): Promise<void> {
   const queryClient = createQueryClient()
 
   const AppWithAsyncAuth = () => {
-    const [requireAuth, setRequireAuth] = React.useState<boolean | null>(null)
-    const [hasInvalidCredentials, setHasInvalidCredentials] =
-      React.useState(false)
+    // Compute auth state synchronously to avoid a null-state first render.
+    // In standalone mode, auth is never required.
+    const standalone = isStandaloneMode()
+    const initialAuthState = React.useMemo(() => {
+      if (standalone) {
+        return { requireAuth: false, hasInvalidCredentials: false }
+      }
+      const apiKey = getAuthTokenDetails().token ?? ''
+      if (!apiKey) {
+        return { requireAuth: true, hasInvalidCredentials: false }
+      }
+      return { requireAuth: false, hasInvalidCredentials: true }
+    }, [standalone])
+
+    const [requireAuth, setRequireAuth] = React.useState<boolean | null>(
+      initialAuthState.requireAuth,
+    )
+    const [hasInvalidCredentials, setHasInvalidCredentials] = React.useState(
+      initialAuthState.hasInvalidCredentials,
+    )
     const [fileTree, setFileTree] = React.useState<FileTreeNode[]>([])
     const [currentProjectRoot, setCurrentProjectRoot] =
       React.useState(projectRoot)
     const [showProjectPickerScreen, setShowProjectPickerScreen] =
       React.useState(showProjectPicker)
-
-    React.useEffect(() => {
-      if (isStandaloneMode()) {
-        setRequireAuth(false)
-        setHasInvalidCredentials(false)
-        return
-      }
-
-      const apiKey = getAuthTokenDetails().token ?? ''
-
-      if (!apiKey) {
-        setRequireAuth(true)
-        setHasInvalidCredentials(false)
-        return
-      }
-
-      setHasInvalidCredentials(true)
-      setRequireAuth(false)
-    }, [])
 
     const loadFileTree = React.useCallback(async (root: string) => {
       try {

@@ -37,7 +37,7 @@ const RESERVED_HANDLES = [
   'contact',
   'root',
   'levelcode',
-  'manicode',
+  'levelcode-legacy',
   'status',
   'healthz',
 ].map((h) => h.toLowerCase())
