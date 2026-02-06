@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/yethikrishna/levelcode/actions"><img src="https://github.com/yethikrishna/levelcode/workflows/CI/badge.svg" alt="CI Status"></a>
   <a href="https://github.com/yethikrishna/levelcode/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
-  <a href="https://www.npmjs.com/package/levelcode"><img src="https://img.shields.io/npm/v/levelcode.svg" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@levelcode/cli"><img src="https://img.shields.io/npm/v/@levelcode/cli.svg" alt="npm version"></a>
   <a href="https://github.com/yethikrishna/levelcode/stargazers"><img src="https://img.shields.io/github/stars/Yethikrishna/levelcode" alt="GitHub stars"></a>
   <a href="https://github.com/yethikrishna/levelcode/network/members"><img src="https://img.shields.io/github/forks/Yethikrishna/levelcode" alt="GitHub forks"></a>
 </p>
@@ -86,7 +86,7 @@ Build LevelCode into your applications with our production-ready SDK:
 import { LevelCodeClient } from '@levelcode/sdk';
 
 const client = new LevelCodeClient({
-  apiKey: 'your-openrouter-key',
+  apiKey: process.env.OPENROUTER_API_KEY, // or ANTHROPIC_API_KEY
   cwd: '/path/to/project',
 });
 
@@ -126,14 +126,14 @@ export default {
 ### CLI Installation
 
 ```bash
-# Using npm
-npm install -g levelcode
+# Using npm (recommended)
+npm install -g @levelcode/cli
 
-# Using bun (recommended, faster)
-bun install -g levelcode
+# Using npx (no install needed)
+npx @levelcode/cli
 
-# Using yarn
-yarn global add levelcode
+# Using bun
+bun install -g @levelcode/cli
 ```
 
 ### SDK Installation
@@ -170,17 +170,21 @@ bun dev
 
 ## Quick Start
 
+LevelCode works **fully standalone** — no backend server, no account, no login required. Just set your API key and start coding.
+
 ### 1. Set Your API Key
 
+Choose one of the following:
+
 ```bash
-# Set your OpenRouter API key
+# Option A: OpenRouter (200+ models including Claude, GPT, Gemini, DeepSeek, etc.)
 export OPENROUTER_API_KEY="sk-or-v1-..."
 
-# Or create a .env file
-echo "OPENROUTER_API_KEY=sk-or-v1-..." > .env
+# Option B: Anthropic (Claude models directly)
+export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-Get your API key from [OpenRouter](https://openrouter.ai/keys).
+Get your key from [OpenRouter](https://openrouter.ai/keys) or [Anthropic](https://console.anthropic.com/).
 
 ### 2. Run LevelCode
 
@@ -191,6 +195,8 @@ cd your-project
 # Start LevelCode
 levelcode
 ```
+
+That's it. No sign-up, no backend, no configuration needed.
 
 ### 3. Start Coding with AI
 
@@ -206,14 +212,17 @@ LevelCode will find the right files, make changes across your codebase, and vali
 ### CLI Options
 
 ```bash
-# Use a specific model
-levelcode --model anthropic/claude-3.5-sonnet
+# Use FREE mode (lightweight, lower cost)
+levelcode --free
+
+# Use MAX mode (most capable)
+levelcode --max
 
 # Run in a specific directory
 levelcode --cwd /path/to/project
 
-# Non-interactive mode with a prompt
-levelcode "Add input validation to all forms"
+# Continue a previous conversation
+levelcode --continue
 
 # Show all options
 levelcode --help
@@ -228,10 +237,10 @@ levelcode --help
 ```typescript
 import { LevelCodeClient } from '@levelcode/sdk';
 
+// Works standalone — just provide your API key
 const client = new LevelCodeClient({
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY, // or ANTHROPIC_API_KEY
   cwd: process.cwd(),
-  onError: (error) => console.error('Error:', error.message),
 });
 
 // Run a coding task
@@ -245,7 +254,7 @@ const result = await client.run({
   },
 });
 
-console.log('Changes:', result.changes);
+console.log('Output:', result.output);
 ```
 
 ### Custom Agents
@@ -291,7 +300,7 @@ jobs:
         uses: oven-sh/setup-bun@v1
 
       - name: Install LevelCode
-        run: bun install -g levelcode
+        run: bun install -g @levelcode/cli
 
       - name: Run AI Review
         env:
@@ -381,9 +390,14 @@ export default defineConfig({
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `OPENROUTER_API_KEY` | Your OpenRouter API key | Yes |
+| `OPENROUTER_API_KEY` | OpenRouter API key (200+ models) | One of these |
+| `ANTHROPIC_API_KEY` | Anthropic API key (Claude direct) | is required |
 | `LEVELCODE_MODEL` | Default model to use | No |
 | `LEVELCODE_DEBUG` | Enable debug logging | No |
+
+> **Standalone Mode**: LevelCode runs fully standalone by default. No backend server, database, or account is needed. Just set one API key above and you're ready to go.
+>
+> **Hosted Mode**: For team features, billing, and the agent marketplace, visit [levelcode.ai](https://levelcode.ai).
 
 ---
 
@@ -438,13 +452,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## Roadmap
 
+- [x] Standalone Mode (no backend required)
+- [x] Direct OpenRouter/Anthropic API support
 - [ ] VS Code Extension
 - [ ] JetBrains Plugin
 - [ ] Web Interface
 - [ ] Team Collaboration
-- [ ] Self-Hosted Mode
+- [ ] Self-Hosted Server Mode
 - [ ] Plugin Marketplace
-- [ ] Mobile App
 
 ---
 
