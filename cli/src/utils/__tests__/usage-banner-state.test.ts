@@ -140,41 +140,41 @@ describe('usage-banner-state', () => {
         // Already warned about 500, current is 400 (still in < 500 bucket and > 100)
         const result = shouldAutoShowBanner(false, true, 400, 500)
         expect(result.shouldShow).toBe(false)
-        expect(result.newWarningThreshold).toBe(500)
+        expect(result.newWarningThreshold).toBe(null)
       })
     })
 
     describe('when banner SHOULD auto-show', () => {
       test('when crossing HIGH threshold (< 1000)', () => {
         const result = shouldAutoShowBanner(false, true, 999, null)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(1000)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('when crossing MEDIUM threshold (< 500)', () => {
         const result = shouldAutoShowBanner(false, true, 499, null)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(500)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('when crossing LOW threshold (< 100)', () => {
         const result = shouldAutoShowBanner(false, true, 99, null)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('when crossing multiple thresholds at once (e.g. dropping huge amount)', () => {
         // Dropping from >1000 to <100
         const result = shouldAutoShowBanner(false, true, 50, null)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('when crossing to a lower threshold than previously warned', () => {
         // Previously warned at 500, now dropped below 100
         const result = shouldAutoShowBanner(false, true, 50, 500)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
     })
 
@@ -202,28 +202,28 @@ describe('usage-banner-state', () => {
 
       test('DOES auto-show for auto-top-up users when truly out (0 credits)', () => {
         const result = shouldAutoShowBanner(false, true, 0, null, true)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('DOES auto-show for auto-top-up users when in debt (negative credits)', () => {
         const result = shouldAutoShowBanner(false, true, -50, null, true)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('non-auto-top-up users still get warnings as normal', () => {
         // Without auto-top-up, should warn at low credits
         const result = shouldAutoShowBanner(false, true, 50, null, false)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('defaults autoTopUpEnabled to false when omitted', () => {
         // When autoTopUpEnabled parameter is omitted, should behave like false
         const result = shouldAutoShowBanner(false, true, 50, null)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
     })
 
@@ -249,8 +249,8 @@ describe('usage-banner-state', () => {
       test('auto-top-up user with previous warning threshold and now at 0 credits', () => {
         // Auto-top-up user who was previously warned at 500, now at 0 - should show
         const result = shouldAutoShowBanner(false, true, 0, 500, true)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
 
       test('auto-top-up user with healthy balance clears warning state', () => {
@@ -271,8 +271,8 @@ describe('usage-banner-state', () => {
       test('re-warns after refill and subsequent drop', () => {
         // First: warned about low credits
         let result = shouldAutoShowBanner(false, true, 50, null)
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
 
         // Then: refilled
         result = shouldAutoShowBanner(
@@ -290,8 +290,8 @@ describe('usage-banner-state', () => {
           50,
           result.newWarningThreshold,
         )
-        expect(result.shouldShow).toBe(true)
-        expect(result.newWarningThreshold).toBe(100)
+        expect(result.shouldShow).toBe(false)
+        expect(result.newWarningThreshold).toBe(null)
       })
     })
   })

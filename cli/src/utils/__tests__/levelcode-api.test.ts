@@ -1,5 +1,11 @@
 import { describe, test, expect, mock, beforeEach } from 'bun:test'
 
+// Mock isStandaloneMode to return false so we test the real API client
+mock.module('@levelcode/sdk', () => ({
+  isStandaloneMode: () => false,
+  WEBSITE_URL: 'https://test.levelcode.com',
+}))
+
 import { createLevelCodeApiClient } from '../levelcode-api'
 
 // Type for mocked fetch function

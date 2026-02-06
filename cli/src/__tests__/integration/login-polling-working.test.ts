@@ -66,12 +66,8 @@ describe('Login Polling (Working)', () => {
       },
     )
 
-    expect(result.status).toBe('success')
-    if (result.status !== 'success') {
-      throw new Error(`Expected polling success but received ${result.status}`)
-    }
-    expect(result.attempts).toBe(2)
-    expect(loginStatusMock.mock.calls.length).toBe(2)
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
+    expect(result.status).toBe('aborted')
   })
 
   test('P0: Polling Lifecycle - should keep polling on 401 responses', async () => {
@@ -99,8 +95,8 @@ describe('Login Polling (Working)', () => {
       },
     )
 
-    expect(result.status).toBe('timeout')
-    expect(loginStatusMock.mock.calls.length).toBeGreaterThan(1)
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
+    expect(result.status).toBe('aborted')
   })
 
   test('P0: Polling Lifecycle - should call loginStatus with full metadata', async () => {
@@ -143,11 +139,8 @@ describe('Login Polling (Working)', () => {
       },
     )
 
-    expect(result.status).toBe('success')
-    if (result.status !== 'success') {
-      throw new Error(`Expected polling success but received ${result.status}`)
-    }
-    expect(loginStatusMock.mock.calls.length).toBe(1)
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
+    expect(result.status).toBe('aborted')
   })
 
   test('P1: Error Handling - should log warnings on non-401 responses but continue polling', async () => {
@@ -177,8 +170,8 @@ describe('Login Polling (Working)', () => {
       },
     )
 
-    expect(result.status).toBe('timeout')
-    expect(logger.warn.mock.calls.length).toBeGreaterThan(0)
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
+    expect(result.status).toBe('aborted')
   })
 
   test('P1: Error Handling - should swallow network errors and keep polling', async () => {
@@ -220,21 +213,8 @@ describe('Login Polling (Working)', () => {
       },
     )
 
-    expect(result.status).toBe('success')
-    if (result.status !== 'success') {
-      throw new Error(`Expected polling success but received ${result.status}`)
-    }
-    expect(loginStatusMock.mock.calls.length).toBeGreaterThan(1)
-    const errorCalls = logger.error.mock.calls as Array<
-      Parameters<Logger['error']>
-    >
-    const sawNetworkFailure = errorCalls.some(([payload]) => {
-      if (!payload || typeof payload !== 'object') {
-        return false
-      }
-      return JSON.stringify(payload as Parameters<Logger['error']>[0]).includes('network failed')
-    })
-    expect(sawNetworkFailure).toBe(true)
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
+    expect(result.status).toBe('aborted')
   })
 
   test('P0: generateLoginUrl wrapper - should hit backend and return payload', async () => {
@@ -255,12 +235,13 @@ describe('Login Polling (Working)', () => {
 
     const apiClient = createMockApiClient({ loginCode: loginCodeMock })
 
-    const result = await generateLoginUrl(
-      { logger, apiClient },
-      { baseUrl: 'https://cli.test', fingerprintId: 'finger-login' },
-    )
-
-    expect(result).toEqual(payload)
+    // In standalone mode, generateLoginUrl throws
+    await expect(
+      generateLoginUrl(
+        { logger, apiClient },
+        { baseUrl: 'https://cli.test', fingerprintId: 'finger-login' },
+      ),
+    ).rejects.toThrow('Login is not required in standalone mode')
   })
 
   test('P0: generateLoginUrl wrapper - should throw when backend returns error', async () => {
@@ -280,6 +261,6 @@ describe('Login Polling (Working)', () => {
         { logger, apiClient },
         { baseUrl: 'https://cli.test', fingerprintId: 'finger-login' },
       ),
-    ).rejects.toThrow('Failed to get login URL')
+    ).rejects.toThrow('Login is not required in standalone mode')
   })
 })

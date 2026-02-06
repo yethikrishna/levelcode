@@ -197,22 +197,23 @@ describe('analytics with PostHog alias', () => {
       })
     })
 
-    test('should throw when tracking events before initAnalytics in prod', () => {
+    test('should silently no-op when tracking events before initAnalytics (standalone mode)', () => {
       // Don't call initAnalytics - client is not initialized
       resetAnalyticsState(createTestDeps())
 
-      // In prod mode, this should throw since client is not initialized
+      // In standalone mode, trackEvent silently no-ops when client is null
       expect(() => {
         trackEvent(AnalyticsEvent.APP_LAUNCHED)
-      }).toThrow('Analytics client not initialized')
+      }).not.toThrow()
     })
 
-    test('should throw when identifying before initAnalytics in prod', () => {
+    test('should silently no-op when identifying before initAnalytics (standalone mode)', () => {
       resetAnalyticsState(createTestDeps())
 
+      // In standalone mode, identifyUser silently no-ops when client is null
       expect(() => {
         identifyUser('user-123')
-      }).toThrow('Analytics client not initialized')
+      }).not.toThrow()
     })
   })
 

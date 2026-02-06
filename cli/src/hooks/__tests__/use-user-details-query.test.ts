@@ -5,16 +5,13 @@ import {
   mock,
   beforeEach,
   afterEach,
-  spyOn,
 } from 'bun:test'
 
-import { createMockApiClient } from '../../__tests__/helpers/mock-api-client'
-import * as LevelCodeApiModule from '../../utils/levelcode-api'
 import { fetchUserDetails } from '../use-user-details-query'
 
 import type { Logger } from '@levelcode/common/types/contracts/logger'
 
-describe('fetchUserDetails', () => {
+describe('fetchUserDetails (standalone mode)', () => {
   const mockLogger: Logger = {
     error: mock(() => {}),
     warn: mock(() => {}),
@@ -32,187 +29,76 @@ describe('fetchUserDetails', () => {
     process.env.NEXT_PUBLIC_LEVELCODE_APP_URL = originalEnv
   })
 
-  describe('API failure handling', () => {
-    test('throws error on 401 Unauthorized response', async () => {
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: false,
-          status: 401,
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
-
-      await expect(
-        fetchUserDetails({
-          authToken: 'invalid-token',
-          fields: ['email'] as const,
-          logger: mockLogger,
-          apiClient,
-        }),
-      ).rejects.toThrow('Failed to fetch user details (HTTP 401)')
-    })
-
-    test('throws error on 500 Internal Server Error response', async () => {
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
-
-      await expect(
-        fetchUserDetails({
-          authToken: 'valid-token',
-          fields: ['email'] as const,
-          logger: mockLogger,
-          apiClient,
-        }),
-      ).rejects.toThrow('Failed to fetch user details (HTTP 500)')
-    })
-
-    test('throws error on 403 Forbidden response', async () => {
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: false,
-          status: 403,
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
-
-      await expect(
-        fetchUserDetails({
-          authToken: 'valid-token',
-          fields: ['email'] as const,
-          logger: mockLogger,
-          apiClient,
-        }),
-      ).rejects.toThrow('Failed to fetch user details (HTTP 403)')
-    })
-
-    test('throws error on 404 Not Found response', async () => {
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: false,
-          status: 404,
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
-
-      await expect(
-        fetchUserDetails({
-          authToken: 'valid-token',
-          fields: ['id', 'email'] as const,
-          logger: mockLogger,
-          apiClient,
-        }),
-      ).rejects.toThrow('Failed to fetch user details (HTTP 404)')
-    })
-
-    test('logs error before throwing on API failure', async () => {
-      const errorSpy = mock(() => {})
-      const testLogger: Logger = {
-        ...mockLogger,
-        error: errorSpy,
-      }
-
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
-
-      await expect(
-        fetchUserDetails({
-          authToken: 'valid-token',
-          fields: ['email'] as const,
-          logger: testLogger,
-          apiClient,
-        }),
-      ).rejects.toThrow()
-
-      expect(errorSpy).toHaveBeenCalled()
-    })
-  })
-
-  describe('successful responses', () => {
-    test('returns user details on successful response', async () => {
-      const mockUserDetails = {
-        email: 'test@example.com',
-      }
-
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: true,
-          status: 200,
-          data: mockUserDetails,
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
-
+  describe('standalone mode behavior', () => {
+    test('returns mock email for email field', async () => {
       const result = await fetchUserDetails({
-        authToken: 'valid-token',
+        authToken: 'any-token',
         fields: ['email'] as const,
         logger: mockLogger,
-        apiClient,
       })
-
-      expect(result).toEqual(mockUserDetails)
+      expect(result).toBeDefined()
+      expect(result?.email).toBe('standalone@local')
     })
 
-    test('returns null referral_code when not set', async () => {
-      const mockUserDetails = {
-        referral_code: null,
-      }
-
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: true,
-          status: 200,
-          data: mockUserDetails,
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
-
+    test('returns mock id for id field', async () => {
       const result = await fetchUserDetails({
-        authToken: 'valid-token',
+        authToken: 'any-token',
+        fields: ['id'] as const,
+        logger: mockLogger,
+      })
+      expect(result).toBeDefined()
+      expect(result?.id).toBe('standalone-user')
+    })
+
+    test('returns mock data for multiple fields', async () => {
+      const result = await fetchUserDetails({
+        authToken: 'any-token',
+        fields: ['id', 'email'] as const,
+        logger: mockLogger,
+      })
+      expect(result).toBeDefined()
+      expect(result?.id).toBe('standalone-user')
+      expect(result?.email).toBe('standalone@local')
+    })
+
+    test('returns null for referral_code', async () => {
+      const result = await fetchUserDetails({
+        authToken: 'any-token',
         fields: ['referral_code'] as const,
         logger: mockLogger,
-        apiClient,
       })
-
+      expect(result).toBeDefined()
       expect(result?.referral_code).toBe(null)
     })
-  })
 
-  describe('environment validation', () => {
-    test('uses shared API client when apiClient is not provided', async () => {
-      const meMock = mock(() =>
-        Promise.resolve({
-          ok: true,
-          status: 200,
-          data: { email: 'test@example.com' },
-        }),
-      )
-      const apiClient = createMockApiClient({ me: meMock })
+    test('returns null for discord_id', async () => {
+      const result = await fetchUserDetails({
+        authToken: 'any-token',
+        fields: ['discord_id'] as const,
+        logger: mockLogger,
+      })
+      expect(result).toBeDefined()
+      expect(result?.discord_id).toBe(null)
+    })
 
-      const setTokenSpy = spyOn(
-        LevelCodeApiModule,
-        'setApiClientAuthToken',
-      )
-      spyOn(LevelCodeApiModule, 'getApiClient').mockReturnValue(apiClient as ReturnType<typeof LevelCodeApiModule.getApiClient>)
+    test('does not call logger error', async () => {
+      const errorSpy = mock(() => {})
+      const testLogger: Logger = { ...mockLogger, error: errorSpy }
+      await fetchUserDetails({
+        authToken: 'any-token',
+        fields: ['email'] as const,
+        logger: testLogger,
+      })
+      expect(errorSpy).not.toHaveBeenCalled()
+    })
 
-      await expect(
-        fetchUserDetails({
-          authToken: 'valid-token',
-          fields: ['email'] as const,
-          logger: mockLogger,
-        }),
-      ).resolves.toEqual({ email: 'test@example.com' })
-
-      expect(setTokenSpy).toHaveBeenCalledWith('valid-token')
+    test('works without providing apiClient', async () => {
+      const result = await fetchUserDetails({
+        authToken: 'any-token',
+        fields: ['email'] as const,
+        logger: mockLogger,
+      })
+      expect(result).toEqual({ email: 'standalone@local' })
     })
   })
 })

@@ -8,9 +8,9 @@ import {
 
 describe('error-handling', () => {
   describe('isOutOfCreditsError', () => {
-    test('returns true for error with statusCode 402', () => {
+    test('returns false for error with statusCode 402 (standalone mode)', () => {
       const error = { statusCode: 402, message: 'Payment required' }
-      expect(isOutOfCreditsError(error)).toBe(true)
+      expect(isOutOfCreditsError(error)).toBe(false)
     })
 
     test('returns false for error with statusCode 401', () => {
@@ -55,14 +55,14 @@ describe('error-handling', () => {
       expect(isOutOfCreditsError(error)).toBe(false)
     })
 
-    test('returns true for 402 errors with additional properties', () => {
+    test('returns false for 402 errors with additional properties (standalone mode)', () => {
       const error = {
         statusCode: 402,
         message: 'Payment required',
         details: { credits: 0 },
         timestamp: new Date().toISOString(),
       }
-      expect(isOutOfCreditsError(error)).toBe(true)
+      expect(isOutOfCreditsError(error)).toBe(false)
     })
   })
 

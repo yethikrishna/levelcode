@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "ESNext.Promise", "DOM"],
+    "types": ["node"],
+    "skipLibCheck": true
+  }
+}

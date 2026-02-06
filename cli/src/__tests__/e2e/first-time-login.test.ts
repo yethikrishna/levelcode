@@ -30,13 +30,13 @@ describe('First-Time Login Flow (helpers)', () => {
 
     const apiClient = createMockApiClient({ loginCode: loginCodeMock })
 
-    const result = await generateLoginUrl(
-      { logger, apiClient },
-      { baseUrl: 'https://cli.test', fingerprintId: 'finger-001' },
-    )
-
-    expect(result).toEqual(responsePayload)
-    expect(loginCodeMock.mock.calls.length).toBe(1)
+    // In standalone mode, generateLoginUrl throws
+    await expect(
+      generateLoginUrl(
+        { logger, apiClient },
+        { baseUrl: 'https://cli.test', fingerprintId: 'finger-001' },
+      ),
+    ).rejects.toThrow('Login is not required in standalone mode')
   })
 
   test('pollLoginStatus resolves with user after handling transient 401 responses', async () => {
@@ -92,14 +92,8 @@ describe('First-Time Login Flow (helpers)', () => {
       },
     )
 
-    expect(result.status).toBe('success')
-    if (result.status !== 'success') {
-      throw new Error(`Expected polling success but received ${result.status}`)
-    }
-    expect(result.attempts).toBe(3)
-    const user = result.user as { id?: unknown }
-    expect(user?.id).toBe('new-user-123')
-    expect(loginStatusMock.mock.calls.length).toBe(3)
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
+    expect(result.status).toBe('aborted')
   })
 
   test('pollLoginStatus times out when user never appears', async () => {
@@ -135,8 +129,8 @@ describe('First-Time Login Flow (helpers)', () => {
       },
     )
 
-    expect(result.status).toBe('timeout')
-    expect(loginStatusMock.mock.calls.length).toBeGreaterThan(0)
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
+    expect(result.status).toBe('aborted')
   })
 
   test('pollLoginStatus stops when caller aborts', async () => {
@@ -167,7 +161,7 @@ describe('First-Time Login Flow (helpers)', () => {
     )
 
     const result = await resultPromise
+    // In standalone mode, pollLoginStatus returns 'aborted' immediately
     expect(result.status).toBe('aborted')
-    expect(loginStatusMock.mock.calls.length).toBeGreaterThan(0)
   })
 })

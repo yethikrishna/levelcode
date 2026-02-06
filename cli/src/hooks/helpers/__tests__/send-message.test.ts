@@ -712,8 +712,9 @@ describe('handleRunError', () => {
     // Message should be marked complete
     expect(aiMessage!.isComplete).toBe(true)
 
-    // Input mode should switch to outOfCredits
-    expect(setInputModeMock).toHaveBeenCalledWith('outOfCredits')
+    // In standalone mode, isOutOfCreditsError always returns false,
+    // so the outOfCredits input mode switch does not happen
+    expect(setInputModeMock).not.toHaveBeenCalled()
 
     // Timer should still be stopped with error
     expect(timerController.stopCalls).toContain('error')
