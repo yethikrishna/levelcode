@@ -1,8 +1,8 @@
 import { serverEnvSchema, serverProcessEnv } from './env-schema'
 
-// Only provide safe defaults in CI to avoid schema failures during tests
+// Provide safe defaults in CI/build environments to avoid schema failures
 // In local dev, missing env vars should fail fast so devs know to configure them
-const isCI = process.env.CI === 'true' || process.env.CI === '1'
+const isCI = process.env.CI === 'true' || process.env.CI === '1' || process.env.VERCEL === '1'
 
 if (isCI) {
   const ensureEnvDefault = (key: string, value: string) => {
@@ -25,6 +25,9 @@ if (isCI) {
   ensureEnvDefault('STRIPE_WEBHOOK_SECRET_KEY', 'whsec_dummy')
   ensureEnvDefault('STRIPE_USAGE_PRICE_ID', 'price_test')
   ensureEnvDefault('STRIPE_TEAM_FEE_PRICE_ID', 'price_test')
+  ensureEnvDefault('STRIPE_SUBSCRIPTION_100_PRICE_ID', 'price_test_100')
+  ensureEnvDefault('STRIPE_SUBSCRIPTION_200_PRICE_ID', 'price_test_200')
+  ensureEnvDefault('STRIPE_SUBSCRIPTION_500_PRICE_ID', 'price_test_500')
   ensureEnvDefault('LOOPS_API_KEY', 'test')
   ensureEnvDefault('DISCORD_PUBLIC_KEY', 'test')
   ensureEnvDefault('DISCORD_BOT_TOKEN', 'test')
