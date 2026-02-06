@@ -6,6 +6,9 @@ import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useEffect, Suspense } from 'react'
 
+import BrandHero from '@/components/BrandHero'
+import CodeEditAnimation from '@/components/CodeEditAnimation'
+import FeatureShowcase from '@/components/FeatureShowcase'
 import TerminalAnimation from '@/components/TerminalAnimation'
 import { ReferralRedirect } from '@/components/referral-redirect'
 import { BlockColor, DecorativeBlocks } from '@/components/ui/decorative-blocks'
@@ -337,8 +340,54 @@ export default function HomeClient() {
           }
         /> */}
 
+        {/* ── Code Edit Animation ─────────────────────────────────────── */}
+        <Section background={BlockColor.Black}>
+          <div className="py-16 space-y-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                See the Diff
+              </h2>
+              <p className="text-zinc-400 max-w-lg mx-auto">
+                LevelCode shows you exactly what changes before applying them &mdash; real code diffs, not black-box edits.
+              </p>
+            </motion.div>
+            <CodeEditAnimation />
+          </div>
+        </Section>
+
+        {/* ── Feature Showcase Cards ──────────────────────────────────── */}
+        <Section background={BlockColor.BetweenGreen}>
+          <div className="py-16 space-y-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-black mb-3">
+                Why Developers Choose LevelCode
+              </h2>
+              <p className="text-zinc-600 max-w-lg mx-auto">
+                Built different. Open source, multi-agent, standalone.
+              </p>
+            </motion.div>
+            <FeatureShowcase />
+          </div>
+        </Section>
+
         {/* <CompetitionSection /> */}
         <TestimonialsSection />
+
+        {/* ── Brand Hero / CTA ────────────────────────────────────────── */}
+        <Section background={BlockColor.Black}>
+          <BrandHero />
+        </Section>
+
         <CTASection />
       </div>
     </div>
