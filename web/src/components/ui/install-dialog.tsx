@@ -58,7 +58,7 @@ export function InstallDialog() {
   }
 
   const handleInstallCommandCopy = () => {
-    navigator.clipboard.writeText('npm install -g levelcode')
+    navigator.clipboard.writeText('npm install -g @levelcode/cli')
     posthog.capture(AnalyticsEvent.INSTALL_DIALOG_INSTALL_COMMAND_COPIED)
     installCopyButtonRef.current?.click()
   }
@@ -131,17 +131,17 @@ export function InstallDialog() {
                   className="bg-zinc-800/60 border border-zinc-700/50 hover:border-acid-green/50 hover:shadow-[0_0_15px_rgba(0,255,149,0.25)] rounded-md overflow-hidden relative px-3 py-2.5 flex items-center justify-between transition-all duration-300 cursor-pointer group"
                   onClick={handleInstallCommandCopy}
                   tabIndex={0}
-                  aria-label="Copy command: npm install -g levelcode"
+                  aria-label="Copy command: npm install -g @levelcode/cli"
                   onKeyDown={(e) =>
                     e.key === 'Enter' && handleInstallCommandCopy()
                   }
                 >
                   <code className="font-mono text-white/90 select-all text-sm">
-                    npm install -g levelcode
+                    npm install -g @levelcode/cli
                   </code>
                   <div onClick={(e) => e.stopPropagation()} className="ml-2">
                     <EnhancedCopyButton
-                      value="npm install -g levelcode"
+                      value="npm install -g @levelcode/cli"
                       ref={installCopyButtonRef}
                     />
                   </div>

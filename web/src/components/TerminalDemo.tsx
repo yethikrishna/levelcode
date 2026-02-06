@@ -128,7 +128,7 @@ const getIframeContent = (
     <h1>Hello World! 👋</h1>
     <p class="success">Everything is working perfectly now!</p>
     <p>Like the demo? Pls install LevelCode so we can justify keeping this demo pls:</p>
-    <code><pre>npm install -g levelcode</pre></code>
+    <code><pre>npm install -g @levelcode/cli</pre></code>
     `
 
   return `
@@ -492,7 +492,7 @@ const TerminalDemo = () => {
                 for full capabilities:
               </p>
               <p className="font-mono bg-black/30 p-2 rounded text-white/90 mt-1">
-                npm install -g levelcode
+                npm install -g @levelcode/cli
               </p>
             </div>
           </TerminalOutput>,
@@ -941,7 +941,7 @@ const TerminalDemo = () => {
                 projects!
               </p>
               <p className="font-mono bg-black/30 p-2 rounded text-white/90 mt-2">
-                npm install -g levelcode
+                npm install -g @levelcode/cli
               </p>
             </div>
           </TerminalOutput>,

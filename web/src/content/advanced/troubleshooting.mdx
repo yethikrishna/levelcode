@@ -11,7 +11,7 @@ order: 1
 
 ## Version
 
-The latest version of the LevelCode client can be found on the [npm page](https://www.npmjs.com/package/levelcode).
+The latest version of the LevelCode client can be found on the [npm page](https://www.npmjs.com/package/@levelcode/cli).
 
 Run `levelcode --version` to make sure you're on the latest version.
 
@@ -19,11 +19,11 @@ LevelCode should auto-update. If not, try the steps below.
 
 ## LevelCode not updating
 
-If you see the npm install run but LevelCode still isn't at the latest version, this is most likely an issue with npm's cache. Try running `npm cache clean --force` and then `npm install -g levelcode`.
+If you see the npm install run but LevelCode still isn't at the latest version, this is most likely an issue with npm's cache. Try running `npm cache clean --force` and then `npm install -g @levelcode/cli`.
 
 ## Install failed
 
-If `npm install -g levelcode` gave you an error regarding permissions, try using setting the owner of that directory to your user.
+If `npm install -g @levelcode/cli` gave you an error regarding permissions, try using setting the owner of that directory to your user.
 
 Mac/Linux: `sudo chown -R $(whoami) <directory>`
 
@@ -93,7 +93,7 @@ One common cause is having conflicting Node/npm installations on your system, pa
 
 If you see "command not found" when trying to run LevelCode:
 
-1. Ensure LevelCode is installed globally: `npm install -g levelcode`
+1. Ensure LevelCode is installed globally: `npm install -g @levelcode/cli`
 2. Check that your PATH includes npm's global bin directory
 3. Try running `which levelcode` to verify the installation location
 

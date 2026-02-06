@@ -132,10 +132,10 @@ export function TerminalCopyButton({
             )}
             style={{ fontFamily: '"DM Mono", var(--font-mono), monospace' }}
           >
-            npm install -g levelcode
+            npm install -g @levelcode/cli
           </code>
         </div>
-        <EnhancedCopyButton value="npm install -g levelcode" className="ml-2" />
+        <EnhancedCopyButton value="npm install -g @levelcode/cli" className="ml-2" />
       </div>
       {pulseBorder && (
         <span

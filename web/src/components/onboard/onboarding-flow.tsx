@@ -58,7 +58,7 @@ const editors = [
   },
 ]
 
-const INSTALL_COMMAND = 'npm install -g levelcode'
+const INSTALL_COMMAND = 'npm install -g @levelcode/cli'
 
 const detectOS = (): OS => {
   if (typeof window !== 'undefined') {

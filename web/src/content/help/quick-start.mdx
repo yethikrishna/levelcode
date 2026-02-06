@@ -12,7 +12,7 @@ order: 1
 Enter the following in your terminal, which could be inside your favorite IDE (VSCode, Cursor, etc.).
 
 ```bash
-npm install -g levelcode
+npm install -g @levelcode/cli
 ```
 
 ## 2. Navigate to your project directory
@@ -51,7 +51,7 @@ Run the `/init` command inside LevelCode to set up project-specific files:
 
 If you run into issues during installation:
 
-1. **Permission issues** — The best fix is to install Node.js using [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), which avoids permission problems entirely. Then run `npm install -g levelcode` again.
+1. **Permission issues** — The best fix is to install Node.js using [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), which avoids permission problems entirely. Then run `npm install -g @levelcode/cli` again.
 
 2. **Still Having Problems?**
    - On Mac/Linux, you can fix permissions with: `sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}`
