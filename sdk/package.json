@@ -1,7 +1,7 @@
 {
   "name": "@levelcode/sdk",
   "private": false,
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Official SDK for LevelCode — AI coding agent & framework",
   "license": "Apache-2.0",
   "type": "module",
