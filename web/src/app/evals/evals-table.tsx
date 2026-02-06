@@ -256,12 +256,12 @@ export function EvalsTable({ results, isAdmin }: EvalsTableProps) {
     <div className="container mx-auto py-8 space-y-8">
       {error && <div className="text-red-500 py-4 text-center">{error}</div>}
 
-      {/* Public Buffbench Leaderboard */}
+      {/* Public LevelCode Benchmark Leaderboard */}
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Buffbench</CardTitle>
+          <CardTitle className="text-2xl font-bold">LevelCode Benchmark</CardTitle>
           <p className="text-muted-foreground">
-            Buffbench is a comprehensive SWE agent benchmark powered by
+            LevelCode Benchmark is a comprehensive SWE agent benchmark powered by
             real-world code diffs, evaluating LLMs' ability to build features
             and fix bugs autonomously across commits from diverse codebases.
           </p>

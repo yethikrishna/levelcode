@@ -42,7 +42,7 @@ const FAQ_ITEMS = [
   },
   {
     question: 'Is LevelCode open source?',
-    answer: "Yes. It's Apache 2.0 at github.com/LevelCodeAI/levelcode.",
+    answer: "Yes. It's Apache 2.0 at github.com/yethikrishna/levelcode.",
   },
   {
     question: 'Do you store my data?',

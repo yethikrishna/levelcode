@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
             marketing or promotional materials and other information that may be
             of interest to you. You may opt out of receiving any, or all, of
             these communications from us by following the unsubscribe link or by
-            emailing at support@levelcode.com.
+            emailing at yethikrishnarcvn7a@gmail.com.
           </p>
           <h2>Usage Data</h2>
           <p>
@@ -242,7 +242,7 @@ export default function PrivacyPolicyPage() {
             delete, or limit the use of your Personal Data. If you wish to be
             informed what Personal Data we hold about you and if you want it to
             be removed from our systems, please email us at
-            support@levelcode.com.
+            yethikrishnarcvn7a@gmail.com.
           </p>
           <p>
             In certain circumstances, you have the following data protection
@@ -318,7 +318,7 @@ export default function PrivacyPolicyPage() {
 
             <li>
               users are able to change their personal information by emailing us
-              at support@levelcode.com.
+              at yethikrishnarcvn7a@gmail.com.
             </li>
           </ul>
           <h2>Our Policy on “Do Not Track” Signals:</h2>
@@ -422,7 +422,7 @@ export default function PrivacyPolicyPage() {
             To exercise your California data protection rights described above,
             please send your request(s) by one of the following means:
           </p>
-          <p>By email: support@levelcode.com</p>
+          <p>By email: yethikrishnarcvn7a@gmail.com</p>
           <p>
             Your data protection rights, described above, are covered by the
             CCPA, short for the California Consumer Privacy Act. To find out
@@ -558,7 +558,7 @@ export default function PrivacyPolicyPage() {
           <h3>Contact Us</h3>
           <p>
             If you have any questions about this Privacy Policy, please contact
-            us: By email: support@levelcode.com.
+            us: By email: yethikrishnarcvn7a@gmail.com.
           </p>
         </div>
       </main>

@@ -27,7 +27,7 @@ export default function TermsOfServicePage() {
             (“Agreements”). You acknowledge that you have read and understood
             Agreements, and agree to be bound of them. If you do not agree with
             (or cannot comply with) Agreements, then you may not use the
-            Service, but please let us know by emailing at support@levelcode.com
+            Service, but please let us know by emailing at yethikrishnarcvn7a@gmail.com
             so we can try to find a solution. These Terms apply to all visitors,
             users and others who wish to access or use Service. Thank you for
             being responsible.
@@ -257,7 +257,7 @@ export default function TermsOfServicePage() {
             owner, or authorized on behalf of one, and you believe that the
             copyrighted work has been copied in a way that constitutes copyright
             infringement, please submit your claim via email to
-            support@levelcode.com, with the subject line: “Copyright
+            yethikrishnarcvn7a@gmail.com, with the subject line: “Copyright
             Infringement” and include in your claim a detailed description of
             the alleged Infringement as detailed below, under “DMCA Notice and
             Procedure for Copyright Infringement Claims” You may be held
@@ -285,12 +285,12 @@ export default function TermsOfServicePage() {
             information in your notice is accurate and that you are the
             copyright owner or authorized to act on the copyright owner&apos;s
             behalf. You can contact our Copyright Agent via email at
-            support@levelcode.com
+            yethikrishnarcvn7a@gmail.com
           </p>
 
           <h2>Error Reporting and Feedback</h2>
           <p>
-            You may provide us either directly at support@levelcode.com or via
+            You may provide us either directly at yethikrishnarcvn7a@gmail.com or via
             third party sites and tools with information and feedback concerning
             errors, suggestions for improvements, ideas, problems, complaints,
             and other matters related to our Service (“Feedback”). You
@@ -454,7 +454,7 @@ export default function TermsOfServicePage() {
           <h2>Contact Us</h2>
           <p>
             Please send your feedback, comments, requests for technical support:
-            By email: support@levelcode.com.
+            By email: yethikrishnarcvn7a@gmail.com.
           </p>
         </div>
       </main>

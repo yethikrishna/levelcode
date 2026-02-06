@@ -27,7 +27,7 @@ const legalLinks: LinkInfo[] = [
 const communityLinks: LinkInfo[] = [
   {
     text: 'GitHub',
-    href: 'https://github.com/LevelCodeAI/levelcode',
+    href: 'https://github.com/yethikrishna/levelcode',
     target: '_blank',
   },
   { text: 'Discord', href: 'https://levelcode.com/discord', target: '_blank' },

@@ -142,7 +142,7 @@ export default function HomeClient() {
                   </motion.div>
                 </div>
                 <h2 className="text-4xl md:text-5xl font-bold text-white">
-                  BuffBench Results
+                  LevelCode Benchmark Results
                 </h2>
                 <p className="text-xl text-white/70 max-w-2xl mx-auto">
                   State of the art coding agent evaluation using generated
@@ -227,7 +227,7 @@ export default function HomeClient() {
 
               <div className="mt-8">
                 <motion.a
-                  href="https://github.com/LevelCodeAI/levelcode/tree/main/evals"
+                  href="https://github.com/yethikrishna/levelcode/tree/main/evals"
                   target="_blank"
                   rel="noopener noreferrer"
                   initial={{ opacity: 0, y: 10 }}

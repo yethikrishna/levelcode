@@ -18,7 +18,7 @@ export async function GET(
   }
 
   // Current download location - can be changed in the future without affecting old clients
-  const downloadUrl = `https://github.com/LevelCodeAI/levelcode-community/releases/download/v${version}/${filename}`
+  const downloadUrl = `https://github.com/yethikrishna/levelcode-community/releases/download/v${version}/${filename}`
 
   return NextResponse.redirect(downloadUrl, 302)
 }

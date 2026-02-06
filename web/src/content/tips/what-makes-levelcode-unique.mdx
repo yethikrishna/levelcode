@@ -106,11 +106,11 @@ Spawned agents contribute only their final output, keeping the orchestrator's co
 
 ## Research-Driven Agent Development
 
-We built [BuffBench](https://github.com/LevelCodeAI/levelcode/tree/main/evals)—our custom eval suite that tests agent configurations across 175+ real implementation tasks from open source repos.
+We built [LevelCode Benchmark](https://github.com/yethikrishna/levelcode/tree/main/evals)—our custom eval suite that tests agent configurations across 175+ real implementation tasks from open source repos.
 
-{/* TODO: Add BuffBench results chart */}
+{/* TODO: Add LevelCode Benchmark results chart */}
 
-BuffBench takes a fundamentally different approach from benchmarks like SWE Bench. Instead of passing predefined tests, our evals challenge coding agents to reimplement real git commits through multi-turn conversations. An AI judge scores implementations on completion, efficiency, code quality, and overall correctness—comparing against the ground truth commit.
+LevelCode Benchmark takes a fundamentally different approach from benchmarks like SWE Bench. Instead of passing predefined tests, our evals challenge coding agents to reimplement real git commits through multi-turn conversations. An AI judge scores implementations on completion, efficiency, code quality, and overall correctness—comparing against the ground truth commit.
 
 - **Data-driven optimization**: We measure quality, speed, and cost across many agent combinations
 - **Ship what wins**: Only the highest-scoring, fastest, most cost-effective configurations go live

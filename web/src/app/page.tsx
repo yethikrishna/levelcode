@@ -74,7 +74,7 @@ function OrganizationJsonLd() {
       'LevelCode is an AI-powered coding assistant that helps developers code faster by understanding entire codebases and executing commands via natural language.',
     foundingDate: '2024',
     sameAs: [
-      'https://github.com/LevelCodeAI/levelcode',
+      'https://github.com/yethikrishna/levelcode',
       'https://twitter.com/levelcodeai',
       'https://www.linkedin.com/company/levelcode',
     ],

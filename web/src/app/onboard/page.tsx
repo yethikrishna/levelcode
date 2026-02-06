@@ -100,7 +100,7 @@ const Onboard = async ({ searchParams }: PageProps) => {
     return renderErrorCard(
       'Uh-oh, spaghettio!',
       'Invalid auth code.',
-      'Please try again and reach out to support@levelcode.com if the problem persists.',
+      'Please try again and reach out to yethikrishnarcvn7a@gmail.com if the problem persists.',
     )
   }
 
@@ -108,7 +108,7 @@ const Onboard = async ({ searchParams }: PageProps) => {
     return renderErrorCard(
       'Uh-oh, spaghettio!',
       'Auth code expired.',
-      'Please generate a new code and reach out to support@levelcode.com if the problem persists.',
+      'Please generate a new code and reach out to yethikrishnarcvn7a@gmail.com if the problem persists.',
     )
   }
 

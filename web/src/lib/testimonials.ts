@@ -47,7 +47,7 @@ export const testimonials: Testimonial[][] = [
     },
     {
       quote:
-        "One of my favorite parts of every day is hearing @brett_beatty giggle in awe at @LevelCodeAI. We've been using it daily for a couple months now and it's still incredible 🤯",
+        "One of my favorite parts of every day is hearing @brett_beatty giggle in awe at @levelcode_ai. We've been using it daily for a couple months now and it's still incredible 🤯",
       author: 'Dennis Beatty',
       title: 'Founder & CEO',
       avatar:

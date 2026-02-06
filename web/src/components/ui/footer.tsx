@@ -109,7 +109,7 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="https://github.com/LevelCodeAI/levelcode"
+                  href="https://github.com/yethikrishna/levelcode"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-zinc-400 hover:text-white transition-colors duration-300"
@@ -151,7 +151,7 @@ export function Footer() {
           </div>
           <div className="flex space-x-6">
             <Link
-              href="https://github.com/LevelCodeAI/levelcode"
+              href="https://github.com/yethikrishna/levelcode"
               target="_blank"
               rel="noopener noreferrer"
               className="text-zinc-400 hover:text-white transition-colors duration-300"

@@ -12,7 +12,7 @@ describe('playwright e2e suite', () => {
     delete env.GITHUB_ACTIONS
     env.NEXT_PUBLIC_CB_ENVIRONMENT ||= 'test'
     env.NEXT_PUBLIC_LEVELCODE_APP_URL ||= 'http://localhost:3000'
-    env.NEXT_PUBLIC_SUPPORT_EMAIL ||= 'support@levelcode.com'
+    env.NEXT_PUBLIC_SUPPORT_EMAIL ||= 'yethikrishnarcvn7a@gmail.com'
     env.NEXT_PUBLIC_POSTHOG_API_KEY ||= 'test-posthog-key'
     env.NEXT_PUBLIC_POSTHOG_HOST_URL ||= 'https://us.i.posthog.com'
     env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||= 'pk_test_placeholder'

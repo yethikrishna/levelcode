@@ -54,7 +54,7 @@ export const Navbar = () => {
             <span className="pointer-events-none absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </Link>
           <Link
-            href="https://github.com/LevelCodeAI/levelcode"
+            href="https://github.com/yethikrishna/levelcode"
             target="_blank"
             rel="noopener noreferrer"
             className="relative font-medium px-3 py-2 rounded-md transition-all duration-200 hover:bg-accent hover:text-accent-foreground flex items-center gap-2 group"
@@ -110,7 +110,7 @@ export const Navbar = () => {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  href="https://github.com/LevelCodeAI/levelcode"
+                  href="https://github.com/yethikrishna/levelcode"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center cursor-pointer transition-colors"
