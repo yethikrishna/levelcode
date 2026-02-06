@@ -3,9 +3,8 @@
 
 import { mkdir, cp, readFile, writeFile, rm } from 'fs/promises'
 import Module from 'module'
-import { delimiter, join } from 'path'
-
-import { generateDtsBundle } from 'dts-bundle-generator'
+import { delimiter, join, resolve } from 'path'
+import { spawn } from 'child_process'
 
 const workspaceNodeModules = join(import.meta.dir, '..', 'node_modules')
 const existingNodePath = process.env.NODE_PATH ?? ''
@@ -92,35 +91,10 @@ async function build() {
   })
 
   console.log('📝 Generating and bundling TypeScript declarations...')
-  try {
-    const [bundle] = generateDtsBundle(
-      [
-        {
-          filePath: 'src/index.ts',
-          output: {
-            exportReferencedTypes: false,
-          },
-          libraries: {
-            // Treat all @levelcode/* workspace packages as external imports
-            // so dts-bundle-generator doesn't fail on their internal relative imports
-            importedLibraries: [
-              '@levelcode/common',
-              '@levelcode/agent-runtime',
-              '@levelcode/code-map',
-            ],
-          },
-        },
-      ],
-      {
-        preferredConfigPath: join(import.meta.dir, '..', 'tsconfig.json'),
-      },
-    )
-
-    await writeFile('dist/index.d.ts', bundle)
-    await fixDuplicateImports()
-    console.log('  ✓ Created bundled type definitions')
-  } catch (error) {
-    console.warn('⚠ TypeScript declaration bundling failed:', error.message)
+  const dtsBundled = await generateDeclarationBundle()
+  if (!dtsBundled) {
+    console.log('  Falling back to tsc for declaration generation...')
+    await generateDeclarationsWithTsc()
   }
 
   console.log('📂 Copying WASM files for tree-sitter...')
@@ -133,6 +107,155 @@ async function build() {
   console.log('  📄 dist/index.mjs (ESM)')
   console.log('  📄 dist/index.cjs (CJS)')
   console.log('  📄 dist/index.d.ts (Types)')
+}
+
+/**
+ * Run dts-bundle-generator as a subprocess with increased memory (8 GB).
+ * This avoids OOM by isolating the heavy type-resolution work in its own
+ * V8 heap instead of sharing memory with the main Bun build process.
+ * Returns true on success, false on failure.
+ */
+async function generateDeclarationBundle(): Promise<boolean> {
+  const sdkRoot = resolve(import.meta.dir, '..')
+  const workspaceRoot = resolve(sdkRoot, '..')
+
+  // Use the dts-bundle-generator JS entry point directly with node,
+  // so that --max-old-space-size is actually respected by V8.
+  // (bunx uses Bun's runtime which ignores NODE_OPTIONS)
+  const dtsBinJs = join(workspaceRoot, 'node_modules', 'dts-bundle-generator', 'dist', 'bin', 'dts-bundle-generator.js')
+
+  // Use tsconfig.dts.json which excludes bun-types to avoid symbol
+  // resolution errors in dts-bundle-generator, and adds ESNext.Promise
+  // for Promise.withResolvers support
+  const tsconfigPath = join(sdkRoot, 'tsconfig.dts.json')
+
+  const args = [
+    '--max-old-space-size=8192',
+    dtsBinJs,
+    '--project', tsconfigPath,
+    '--no-check',
+    '--export-referenced-types=false',
+    '--external-imports=@levelcode/common',
+    '--external-imports=@levelcode/agent-runtime',
+    '--external-imports=@levelcode/code-map',
+    '-o', join(sdkRoot, 'dist', 'index.d.ts'),
+    join(sdkRoot, 'src', 'index.ts'),
+  ]
+
+  try {
+    const success = await new Promise<boolean>((resolvePromise) => {
+      const child = spawn('node', args, {
+        cwd: sdkRoot,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+        },
+        shell: process.platform === 'win32',
+      })
+
+      let stderr = ''
+      child.stderr?.on('data', (data: Buffer) => {
+        stderr += data.toString()
+      })
+      child.stdout?.on('data', (data: Buffer) => {
+        // dts-bundle-generator may print progress info on stdout
+        const msg = data.toString().trim()
+        if (msg) console.log(`  [dts-bundle-generator] ${msg}`)
+      })
+
+      // Timeout after 5 minutes to avoid hanging builds
+      const timeout = setTimeout(() => {
+        console.warn('  dts-bundle-generator timed out after 5 minutes, killing...')
+        child.kill('SIGTERM')
+      }, 5 * 60 * 1000)
+
+      child.on('close', (code) => {
+        clearTimeout(timeout)
+        if (code === 0) {
+          resolvePromise(true)
+        } else {
+          console.warn(`  dts-bundle-generator exited with code ${code}`)
+          if (stderr.trim()) {
+            // Print only the last few lines of stderr to avoid noise
+            const lines = stderr.trim().split('\n')
+            const tail = lines.slice(-10).join('\n')
+            console.warn(`  stderr (last lines):\n${tail}`)
+          }
+          resolvePromise(false)
+        }
+      })
+
+      child.on('error', (err) => {
+        clearTimeout(timeout)
+        console.warn(`  dts-bundle-generator spawn error: ${err.message}`)
+        resolvePromise(false)
+      })
+    })
+
+    if (success) {
+      await fixDuplicateImports()
+      console.log('  ✓ Created bundled type definitions')
+      return true
+    }
+    return false
+  } catch (error: any) {
+    console.warn(`  dts-bundle-generator failed: ${error.message}`)
+    return false
+  }
+}
+
+/**
+ * Fallback: use tsc to emit declaration files when dts-bundle-generator
+ * fails or runs out of memory. This produces per-file .d.ts output
+ * rather than a single bundle, but is much lighter on memory.
+ */
+async function generateDeclarationsWithTsc(): Promise<void> {
+  const sdkRoot = resolve(import.meta.dir, '..')
+  const tsconfigPath = join(sdkRoot, 'tsconfig.json')
+
+  try {
+    const success = await new Promise<boolean>((resolvePromise) => {
+      const tscBin = process.platform === 'win32' ? 'tsc.cmd' : 'tsc'
+      const child = spawn('bunx', ['tsc', '--emitDeclarationOnly', '--declaration', '--project', tsconfigPath, '--outDir', join(sdkRoot, 'dist')], {
+        cwd: sdkRoot,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          NODE_OPTIONS: '--max-old-space-size=8192',
+        },
+        shell: process.platform === 'win32',
+      })
+
+      let stderr = ''
+      child.stderr?.on('data', (data: Buffer) => { stderr += data.toString() })
+      child.stdout?.on('data', () => {})
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolvePromise(true)
+        } else {
+          if (stderr.trim()) {
+            const lines = stderr.trim().split('\n').slice(-10).join('\n')
+            console.warn(`  tsc stderr:\n${lines}`)
+          }
+          resolvePromise(false)
+        }
+      })
+
+      child.on('error', (err) => {
+        console.warn(`  tsc spawn error: ${err.message}`)
+        resolvePromise(false)
+      })
+    })
+
+    if (success) {
+      console.log('  ✓ Created type definitions via tsc (per-file, not bundled)')
+    } else {
+      console.warn('  ⚠ tsc declaration generation also failed; build continues without .d.ts')
+    }
+  } catch (error: any) {
+    console.warn(`  ⚠ tsc fallback failed: ${error.message}; build continues without .d.ts`)
+  }
 }
 
 /**

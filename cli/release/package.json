@@ -4,8 +4,8 @@
   "description": "AI coding agent",
   "license": "MIT",
   "bin": {
-    "levelcode": "index.js",
-    "cb": "index.js"
+    "levelcode": "./index.js",
+    "cb": "./index.js"
   },
   "scripts": {
     "postinstall": "node postinstall.js",

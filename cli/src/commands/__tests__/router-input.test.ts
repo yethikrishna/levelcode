@@ -6,7 +6,6 @@ import {
   normalizeInput,
   parseCommand,
   isSlashCommand,
-  isReferralCode,
   parseCommandInput,
 } from '../router-utils'
 
@@ -108,34 +107,6 @@ describe('router-utils', () => {
 
     test('handles multiple spaces between words', () => {
       expect(parseCommand('/help   me')).toBe('help')
-    })
-  })
-
-  describe('isReferralCode', () => {
-    test('recognizes referral codes with slash prefix', () => {
-      expect(isReferralCode('/ref-abc123')).toBe(true)
-      expect(isReferralCode('/ref-XYZ')).toBe(true)
-      expect(isReferralCode('/ref-')).toBe(true)
-    })
-
-    test('recognizes referral codes without slash prefix', () => {
-      expect(isReferralCode('ref-abc123')).toBe(true)
-      expect(isReferralCode('ref-XYZ')).toBe(true)
-      expect(isReferralCode('ref-')).toBe(true)
-    })
-
-    test('rejects inputs that are not referral codes', () => {
-      expect(isReferralCode('reference')).toBe(false)
-      expect(isReferralCode('refund')).toBe(false)
-      expect(isReferralCode('/reference')).toBe(false)
-      expect(isReferralCode('ref abc')).toBe(false)
-      expect(isReferralCode('')).toBe(false)
-    })
-
-    test('is case-sensitive for ref- prefix', () => {
-      expect(isReferralCode('REF-abc')).toBe(false)
-      expect(isReferralCode('Ref-abc')).toBe(false)
-      expect(isReferralCode('/REF-abc')).toBe(false)
     })
   })
 
@@ -258,41 +229,6 @@ describe('router-utils', () => {
     }
   })
 
-  describe('referral code detection with different input formats', () => {
-    const validCodes = [
-      'ref-abc123',
-      '/ref-abc123',
-      'ref-TEST',
-      '/ref-TEST',
-      'ref-12345',
-      '/ref-12345',
-    ]
-
-    const invalidCodes = [
-      'reference',
-      '/reference',
-      'refund-123',
-      '/refund-123',
-      'REF-abc',
-      '/REF-abc',
-      'ref abc',
-      '/ref abc',
-      '',
-      '/',
-    ]
-
-    for (const code of validCodes) {
-      test(`recognizes "${code}" as valid referral code`, () => {
-        expect(isReferralCode(code)).toBe(true)
-      })
-    }
-
-    for (const code of invalidCodes) {
-      test(`rejects "${code}" as referral code`, () => {
-        expect(isReferralCode(code)).toBe(false)
-      })
-    }
-  })
 })
 
 describe('command-registry', () => {

@@ -176,7 +176,6 @@ describe('command factory pattern', () => {
       const expectedWithArgs = [
         'feedback',
         'bash',
-        'referral',
         'image',
         'publish',
         'new',
