@@ -47,6 +47,18 @@ export const userFromJson = (json: string): User | null => {
 }
 
 /**
+ * Legacy config directory (manicode) for migration.
+ */
+const getLegacyConfigDir = (clientEnv: ClientEnv = env): string => {
+  const envSuffix =
+    clientEnv.NEXT_PUBLIC_CB_ENVIRONMENT &&
+    clientEnv.NEXT_PUBLIC_CB_ENVIRONMENT !== 'prod'
+      ? `-${clientEnv.NEXT_PUBLIC_CB_ENVIRONMENT}`
+      : ''
+  return path.join(os.homedir(), '.config', `manicode${envSuffix}`)
+}
+
+/**
  * Get the config directory path based on the environment.
  * Uses the clientEnv to determine the environment suffix.
  */
@@ -60,9 +72,33 @@ export const getConfigDir = (clientEnv: ClientEnv = env): string => {
 }
 
 /**
+ * Migrate credentials from legacy manicode config dir to levelcode.
+ * Copies credentials.json if it exists at the old path but not the new one.
+ */
+const migrateFromLegacyConfigDir = (clientEnv: ClientEnv = env): void => {
+  const newDir = getConfigDir(clientEnv)
+  const newCredsPath = path.join(newDir, 'credentials.json')
+  if (fs.existsSync(newCredsPath)) return
+
+  const legacyCredsPath = path.join(
+    getLegacyConfigDir(clientEnv),
+    'credentials.json',
+  )
+  if (!fs.existsSync(legacyCredsPath)) return
+
+  try {
+    ensureDirectoryExistsSync(newDir)
+    fs.copyFileSync(legacyCredsPath, newCredsPath)
+  } catch {
+    // Silently ignore migration errors
+  }
+}
+
+/**
  * Get the credentials file path based on the environment.
  */
 export const getCredentialsPath = (clientEnv: ClientEnv = env): string => {
+  migrateFromLegacyConfigDir(clientEnv)
   return path.join(getConfigDir(clientEnv), 'credentials.json')
 }
 

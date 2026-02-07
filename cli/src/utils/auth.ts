@@ -43,6 +43,18 @@ const credentialsSchema = z
   })
   .catchall(z.unknown())
 
+// Legacy config directory (manicode) for migration
+const getLegacyConfigDir = (): string => {
+  return path.join(
+    os.homedir(),
+    '.config',
+    'manicode' +
+      (env.NEXT_PUBLIC_CB_ENVIRONMENT !== 'prod'
+        ? `-${env.NEXT_PUBLIC_CB_ENVIRONMENT}`
+        : ''),
+  )
+}
+
 // Get the config directory path
 export const getConfigDir = (): string => {
   return path.join(
@@ -56,8 +68,31 @@ export const getConfigDir = (): string => {
   )
 }
 
+/**
+ * Migrate credentials from legacy manicode config dir to levelcode.
+ * Copies credentials.json if it exists at the old path but not the new one.
+ */
+const migrateFromLegacyConfigDir = (): void => {
+  const newDir = getConfigDir()
+  const newCredsPath = path.join(newDir, 'credentials.json')
+  if (fs.existsSync(newCredsPath)) return
+
+  const legacyCredsPath = path.join(getLegacyConfigDir(), 'credentials.json')
+  if (!fs.existsSync(legacyCredsPath)) return
+
+  try {
+    if (!fs.existsSync(newDir)) {
+      fs.mkdirSync(newDir, { recursive: true })
+    }
+    fs.copyFileSync(legacyCredsPath, newCredsPath)
+  } catch {
+    // Silently ignore migration errors
+  }
+}
+
 // Get the credentials file path
 export const getCredentialsPath = (): string => {
+  migrateFromLegacyConfigDir()
   return path.join(getConfigDir(), 'credentials.json')
 }
 

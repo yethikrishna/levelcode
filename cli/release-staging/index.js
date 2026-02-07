@@ -15,12 +15,14 @@ const packageName = 'levelcode-staging'
 function createConfig(packageName) {
   const homeDir = os.homedir()
   const configDir = path.join(homeDir, '.config', 'levelcode')
+  const legacyConfigDir = path.join(homeDir, '.config', 'manicode')
   const binaryName =
     process.platform === 'win32' ? `${packageName}.exe` : packageName
 
   return {
     homeDir,
     configDir,
+    legacyConfigDir,
     binaryName,
     binaryPath: path.join(configDir, binaryName),
     metadataPath: path.join(configDir, 'levelcode-staging-metadata.json'),
@@ -31,6 +33,24 @@ function createConfig(packageName) {
 }
 
 const CONFIG = createConfig(packageName)
+
+// Migrate credentials from legacy manicode config dir if needed
+function migrateFromLegacyConfig() {
+  try {
+    const newCreds = path.join(CONFIG.configDir, 'credentials.json')
+    if (fs.existsSync(newCreds)) return
+    const legacyCreds = path.join(CONFIG.legacyConfigDir, 'credentials.json')
+    if (!fs.existsSync(legacyCreds)) return
+    fs.mkdirSync(CONFIG.configDir, { recursive: true })
+    fs.copyFileSync(legacyCreds, newCreds)
+    const legacyMeta = path.join(CONFIG.legacyConfigDir, 'manicode-metadata.json')
+    if (fs.existsSync(legacyMeta)) {
+      fs.copyFileSync(legacyMeta, CONFIG.metadataPath)
+    }
+  } catch { /* silently ignore migration errors */ }
+}
+
+migrateFromLegacyConfig()
 
 function getPostHogConfig() {
   const apiKey =
