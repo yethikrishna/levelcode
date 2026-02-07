@@ -23,12 +23,13 @@ const nextConfig = {
   },
   allowedDevOrigins: DEV_ALLOWED_ORIGINS,
 
-  // Externalize packages that cause ENOENT during Vercel output tracing
-  serverExternalPackages: ['@opentelemetry/api'],
-
   // Enable experimental features for better SSG performance
   experimental: {
     optimizePackageImports: ['@/components/ui'],
+    // Exclude @opentelemetry/api from output tracing to avoid ENOENT in monorepo
+    outputFileTracingExcludes: {
+      '*': ['@opentelemetry/*'],
+    },
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false, path: false }
