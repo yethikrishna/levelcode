@@ -564,7 +564,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   }),
   defineCommandWithArgs({
     name: 'team:phase',
-    handler: (params, args) => {
+    handler: async (params, args) => {
       const phase = args.trim()
       const validPhases = PHASE_ORDER as readonly string[]
       if (!phase) {

@@ -26,6 +26,7 @@ export type {
   LevelCodeToolOutput,
 } from '@levelcode/common/tools/list'
 export * from './client'
+export * from './team'
 export * from './custom-tool'
 export * from './native/ripgrep'
 export * from './run-state'

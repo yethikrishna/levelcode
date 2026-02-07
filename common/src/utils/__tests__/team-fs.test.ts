@@ -330,8 +330,17 @@ describe('team-fs', () => {
       const config = makeTeamConfig()
       createTeam(config)
 
+      expect(updateTask('test-team', '999', { status: 'completed' })).rejects.toThrow(
+        'Task "999" not found in team "test-team"',
+      )
+    })
+
+    it('should throw on non-numeric task ID', async () => {
+      const config = makeTeamConfig()
+      createTeam(config)
+
       expect(updateTask('test-team', 'nonexistent', { status: 'completed' })).rejects.toThrow(
-        'Task "nonexistent" not found in team "test-team"',
+        'Task ID must be numeric',
       )
     })
   })
@@ -382,8 +391,17 @@ describe('team-fs', () => {
       const config = makeTeamConfig()
       createTeam(config)
 
-      const task = getTask('test-team', 'nonexistent')
+      const task = getTask('test-team', '999')
       expect(task).toBeNull()
+    })
+
+    it('should throw on non-numeric task ID', () => {
+      const config = makeTeamConfig()
+      createTeam(config)
+
+      expect(() => getTask('test-team', 'nonexistent')).toThrow(
+        'Task ID must be numeric',
+      )
     })
   })
 
@@ -512,6 +530,65 @@ describe('team-fs', () => {
       const tasksDir = getTasksDir('my-team')
       expect(tasksDir).toContain('tasks')
       expect(tasksDir).toContain('my-team')
+    })
+  })
+
+  describe('input validation and path traversal prevention', () => {
+    it('should reject team names with path traversal sequences', () => {
+      expect(() => loadTeamConfig('../../../etc')).toThrow()
+      expect(() => loadTeamConfig('..\\..\\etc')).toThrow()
+      expect(() => loadTeamConfig('team/../../../etc')).toThrow()
+    })
+
+    it('should reject team names with special characters', () => {
+      expect(() => loadTeamConfig('team name')).toThrow()
+      expect(() => loadTeamConfig('team/name')).toThrow()
+      expect(() => loadTeamConfig('team.name')).toThrow()
+      expect(() => loadTeamConfig('team@name')).toThrow()
+    })
+
+    it('should reject team names exceeding max length', () => {
+      const longName = 'a'.repeat(51)
+      expect(() => loadTeamConfig(longName)).toThrow('at most 50 characters')
+    })
+
+    it('should accept valid team names', () => {
+      // Should not throw on validation, just return null for nonexistent
+      expect(loadTeamConfig('valid-team')).toBeNull()
+      expect(loadTeamConfig('team_123')).toBeNull()
+      expect(loadTeamConfig('MyTeam')).toBeNull()
+    })
+
+    it('should reject non-numeric task IDs', () => {
+      const config = makeTeamConfig()
+      createTeam(config)
+
+      expect(() => getTask('test-team', '../config')).toThrow('Task ID must be numeric')
+      expect(() => getTask('test-team', 'abc')).toThrow('Task ID must be numeric')
+      expect(() => getTask('test-team', '1.5')).toThrow('Task ID must be numeric')
+      expect(() => getTask('test-team', '')).toThrow()
+    })
+
+    it('should reject agent names with path traversal in inbox operations', () => {
+      const config = makeTeamConfig()
+      createTeam(config)
+
+      expect(() => readInbox('test-team', '../../../etc/passwd')).toThrow()
+      expect(() => readInbox('test-team', '..\\..\\etc')).toThrow()
+    })
+
+    it('should reject agent names with special characters in inbox operations', () => {
+      const config = makeTeamConfig()
+      createTeam(config)
+
+      expect(() => readInbox('test-team', 'agent/name')).toThrow()
+      expect(() => readInbox('test-team', 'agent name')).toThrow()
+      expect(() => readInbox('test-team', 'agent.name')).toThrow()
+    })
+
+    it('should reject empty and null-like inputs', () => {
+      expect(() => loadTeamConfig('')).toThrow()
+      expect(() => getTasksDir('')).toThrow()
     })
   })
 })

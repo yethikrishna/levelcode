@@ -1,5 +1,5 @@
 import * as fs from 'fs'
-import { getTeamsDir, loadTeamConfig } from './team-fs'
+import { getTeamsDir, loadTeamConfig, validateTeamName } from './team-fs'
 import type { TeamConfig, DevPhase, TeamRole } from '../types/team-config'
 
 export interface TeamAndAgent {
@@ -104,6 +104,11 @@ export function findCurrentTeamAndAgent(agentId: string): TeamAndAgent | null {
  * Direct lookup of a team by name.
  */
 export function findTeamByName(name: string): TeamConfig | null {
+  try {
+    validateTeamName(name)
+  } catch {
+    return null
+  }
   return safeLoadTeamConfig(name)
 }
 
@@ -162,6 +167,11 @@ export function getAgentTeamContext(agentId: string): AgentTeamContext | null {
  * Checks whether an agent is a member of a specific team.
  */
 export function isAgentInTeam(agentId: string, teamName: string): boolean {
+  try {
+    validateTeamName(teamName)
+  } catch {
+    return false
+  }
   const config = safeLoadTeamConfig(teamName)
   if (!config) {
     return false

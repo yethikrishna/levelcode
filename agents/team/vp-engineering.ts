@@ -48,13 +48,13 @@ const vpEngineering: AgentDefinition = {
     'glob',
     'list_directory',
     'think_deeply',
-    'TeamCreate',
-    'TeamDelete',
-    'SendMessage',
-    'TaskCreate',
-    'TaskGet',
-    'TaskUpdate',
-    'TaskList',
+    'team_create',
+    'team_delete',
+    'send_message',
+    'task_create',
+    'task_get',
+    'task_update',
+    'task_list',
   ],
 
   spawnableAgents: [
@@ -100,9 +100,9 @@ You are the VP of Engineering responsible for:
 
 1. **Assess the situation**: Read relevant files and spawn researchers to understand the current state of engineering operations, team structure, and delivery status.
 2. **Analyze**: Spawn a thinker to reason through the organizational and process implications. Identify root causes of any issues.
-3. **Plan**: Use write_todos and TaskCreate to create an actionable plan. Define clear milestones and ownership.
-4. **Organize**: Spawn managers for work streams that need coordination. Use TeamCreate for new teams if needed.
-5. **Track and communicate**: Use TaskList and TaskGet to monitor progress. Send updates via SendMessage. Report status to the coordinator.
+3. **Plan**: Use write_todos and task_create to create an actionable plan. Define clear milestones and ownership.
+4. **Organize**: Spawn managers for work streams that need coordination. Use team_create for new teams if needed.
+5. **Track and communicate**: Use task_list and task_get to monitor progress. Send updates via send_message. Report status to the coordinator.
 6. **Report**: Summarize the plan, decisions, and expected outcomes. Use suggest_followups for next steps.
 
 Focus on enabling the team to deliver effectively rather than on implementation details.`,

@@ -1,10 +1,11 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { loadTeamConfig, listTasks, readInbox, getTeamsDir } from './team-fs'
+import { loadTeamConfig, listTasks, readInbox, getTeamsDir, validateTeamName } from './team-fs'
 import type { TeamConfig, TeamTask, TeamMember } from '../types/team-config'
 import type { TeamProtocolMessage } from '../types/team-protocol'
 
 function getInboxesDir(teamName: string): string {
+  validateTeamName(teamName)
   return path.join(getTeamsDir(), teamName, 'inboxes')
 }
 

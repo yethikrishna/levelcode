@@ -23,6 +23,7 @@ import { areCreditsRestored } from './components/out-of-credits-banner'
 import { PendingBashMessage } from './components/pending-bash-message'
 import { StatusBar } from './components/status-bar'
 import { TeamPanel } from './components/team-panel'
+import { TeamSettingsScreen } from './components/team-settings-screen'
 import { TopBanner } from './components/top-banner'
 import { getSlashCommandsWithSkills } from './data/slash-commands'
 import { useAgentValidation } from './hooks/use-agent-validation'
@@ -50,6 +51,7 @@ import { getProjectRoot } from './project-files'
 import { useChatHistoryStore } from './state/chat-history-store'
 import { useChatStore } from './state/chat-store'
 import { useReviewStore } from './state/review-store'
+import { useTeamSettingsStore } from './state/team-settings-store'
 import { useTeamStore } from './state/team-store'
 import { useFeedbackStore } from './state/feedback-store'
 import { useMessageBlockStore } from './state/message-block-store'
@@ -645,6 +647,13 @@ export const Chat = ({
     })),
   )
 
+  const { teamSettingsMode, closeTeamSettings } = useTeamSettingsStore(
+    useShallow((state) => ({
+      teamSettingsMode: state.settingsMode,
+      closeTeamSettings: state.closeSettingsScreen,
+    })),
+  )
+
   const publishMutation = usePublishMutation()
 
   const handleCommandResult = useCallback(
@@ -679,6 +688,10 @@ export const Chat = ({
 
       if (result.openReviewScreen) {
         useReviewStore.getState().openReviewScreen()
+      }
+
+      if (result.openTeamSettings) {
+        useTeamSettingsStore.getState().openSettingsScreen()
       }
     },
     [
@@ -1427,6 +1440,10 @@ export const Chat = ({
         )}
 
         {ad && getAdsEnabled() && <AdBanner ad={ad} />}
+
+        {teamSettingsMode && (
+          <TeamSettingsScreen onClose={closeTeamSettings} />
+        )}
 
         {reviewMode ? (
           <ReviewScreen

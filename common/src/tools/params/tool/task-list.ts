@@ -18,7 +18,7 @@ const description = `
 List all tasks in the current team's task list.
 
 - When to use: To see available tasks, check progress, or find unblocked work to claim.
-- Returns a summary of each task: id, subject, status, owner, blockedBy.
+- Returns a summary of each task: id, subject, status, priority, owner, blockedBy.
 
 Example:
 ${$getNativeToolCallExampleString({

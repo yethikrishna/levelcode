@@ -11,6 +11,65 @@ import {
 } from '../types/team-config-schemas'
 import { z } from 'zod'
 
+// --- Input validation ---
+
+const TEAM_NAME_RE = /^[a-zA-Z0-9_-]+$/
+const TEAM_NAME_MAX = 50
+const AGENT_NAME_RE = /^[a-zA-Z0-9_-]+$/
+const AGENT_NAME_MAX = 100
+const TASK_ID_RE = /^[0-9]+$/
+
+export function validateTeamName(teamName: string): void {
+  if (!teamName || typeof teamName !== 'string') {
+    throw new Error('Team name is required and must be a string.')
+  }
+  if (teamName.length > TEAM_NAME_MAX) {
+    throw new Error(`Team name must be at most ${TEAM_NAME_MAX} characters.`)
+  }
+  if (!TEAM_NAME_RE.test(teamName)) {
+    throw new Error(
+      'Team name may only contain letters, numbers, hyphens, and underscores.',
+    )
+  }
+}
+
+export function validateAgentName(agentName: string): void {
+  if (!agentName || typeof agentName !== 'string') {
+    throw new Error('Agent name is required and must be a string.')
+  }
+  if (agentName.length > AGENT_NAME_MAX) {
+    throw new Error(`Agent name must be at most ${AGENT_NAME_MAX} characters.`)
+  }
+  if (!AGENT_NAME_RE.test(agentName)) {
+    throw new Error(
+      'Agent name may only contain letters, numbers, hyphens, and underscores.',
+    )
+  }
+}
+
+export function validateTaskId(taskId: string): void {
+  if (!taskId || typeof taskId !== 'string') {
+    throw new Error('Task ID is required and must be a string.')
+  }
+  if (!TASK_ID_RE.test(taskId)) {
+    throw new Error('Task ID must be numeric.')
+  }
+}
+
+/**
+ * Ensure a resolved path is contained within an expected parent directory.
+ * Prevents path traversal attacks via ../ or absolute path injection.
+ */
+function assertPathContained(resolvedPath: string, expectedParent: string): void {
+  const normalizedPath = path.resolve(resolvedPath)
+  const normalizedParent = path.resolve(expectedParent)
+  if (!normalizedPath.startsWith(normalizedParent + path.sep) && normalizedPath !== normalizedParent) {
+    throw new Error('Path traversal detected: resolved path escapes the expected directory.')
+  }
+}
+
+// --- Path helpers ---
+
 function getConfigRoot(): string {
   return path.join(os.homedir(), '.config', 'levelcode')
 }
@@ -20,11 +79,17 @@ export function getTeamsDir(): string {
 }
 
 export function getTasksDir(teamName: string): string {
-  return path.join(getConfigRoot(), 'tasks', teamName)
+  validateTeamName(teamName)
+  const tasksDir = path.join(getConfigRoot(), 'tasks', teamName)
+  assertPathContained(tasksDir, path.join(getConfigRoot(), 'tasks'))
+  return tasksDir
 }
 
 function getTeamDir(teamName: string): string {
-  return path.join(getTeamsDir(), teamName)
+  validateTeamName(teamName)
+  const teamDir = path.join(getTeamsDir(), teamName)
+  assertPathContained(teamDir, getTeamsDir())
+  return teamDir
 }
 
 function getTeamConfigPath(teamName: string): string {
@@ -36,11 +101,17 @@ function getInboxesDir(teamName: string): string {
 }
 
 function getInboxPath(teamName: string, agentName: string): string {
-  return path.join(getInboxesDir(teamName), `${agentName}.json`)
+  validateAgentName(agentName)
+  const inboxPath = path.join(getInboxesDir(teamName), `${agentName}.json`)
+  assertPathContained(inboxPath, getInboxesDir(teamName))
+  return inboxPath
 }
 
 function getTaskPath(teamName: string, taskId: string): string {
-  return path.join(getTasksDir(teamName), `${taskId}.json`)
+  validateTaskId(taskId)
+  const taskPath = path.join(getTasksDir(teamName), `${taskId}.json`)
+  assertPathContained(taskPath, getTasksDir(teamName))
+  return taskPath
 }
 
 export function createTeam(config: TeamConfig): void {

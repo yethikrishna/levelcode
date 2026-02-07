@@ -185,20 +185,20 @@ describe('team-maintenance', () => {
 
       const tasksDir = getTasksDir('test-team')
       const oldTask = makeTask({
-        id: 'old-1',
+        id: '100',
         status: 'completed',
         updatedAt: Date.now() - 60_000,
       })
-      fs.writeFileSync(path.join(tasksDir, 'old-1.json'), JSON.stringify(oldTask))
+      fs.writeFileSync(path.join(tasksDir, '100.json'), JSON.stringify(oldTask))
 
       const result = pruneCompletedTasks('test-team', 30_000)
 
       expect(result.archived).toHaveLength(1)
-      expect(result.archived).toContain('old-1')
+      expect(result.archived).toContain('100')
       // Original file should be gone
-      expect(fs.existsSync(path.join(tasksDir, 'old-1.json'))).toBe(false)
+      expect(fs.existsSync(path.join(tasksDir, '100.json'))).toBe(false)
       // Should be in the completed archive subdirectory
-      expect(fs.existsSync(path.join(result.archiveDir, 'old-1.json'))).toBe(true)
+      expect(fs.existsSync(path.join(result.archiveDir, '100.json'))).toBe(true)
     })
 
     it('should not archive completed tasks within the threshold', () => {
@@ -207,16 +207,16 @@ describe('team-maintenance', () => {
 
       const tasksDir = getTasksDir('test-team')
       const recentTask = makeTask({
-        id: 'recent-1',
+        id: '101',
         status: 'completed',
         updatedAt: Date.now() - 5_000,
       })
-      fs.writeFileSync(path.join(tasksDir, 'recent-1.json'), JSON.stringify(recentTask))
+      fs.writeFileSync(path.join(tasksDir, '101.json'), JSON.stringify(recentTask))
 
       const result = pruneCompletedTasks('test-team', 30_000)
 
       expect(result.archived).toHaveLength(0)
-      expect(fs.existsSync(path.join(tasksDir, 'recent-1.json'))).toBe(true)
+      expect(fs.existsSync(path.join(tasksDir, '101.json'))).toBe(true)
     })
 
     it('should not archive non-completed tasks regardless of age', () => {
@@ -225,17 +225,17 @@ describe('team-maintenance', () => {
 
       const tasksDir = getTasksDir('test-team')
       const pendingTask = makeTask({
-        id: 'pending-1',
+        id: '102',
         status: 'pending',
         updatedAt: Date.now() - 60_000,
       })
       const inProgressTask = makeTask({
-        id: 'ip-1',
+        id: '103',
         status: 'in_progress',
         updatedAt: Date.now() - 60_000,
       })
-      fs.writeFileSync(path.join(tasksDir, 'pending-1.json'), JSON.stringify(pendingTask))
-      fs.writeFileSync(path.join(tasksDir, 'ip-1.json'), JSON.stringify(inProgressTask))
+      fs.writeFileSync(path.join(tasksDir, '102.json'), JSON.stringify(pendingTask))
+      fs.writeFileSync(path.join(tasksDir, '103.json'), JSON.stringify(inProgressTask))
 
       const result = pruneCompletedTasks('test-team', 30_000)
 
@@ -253,29 +253,29 @@ describe('team-maintenance', () => {
 
       const tasksDir = getTasksDir('test-team')
       const oldCompleted = makeTask({
-        id: 'old-done',
+        id: '200',
         status: 'completed',
         updatedAt: Date.now() - 60_000,
       })
       const freshCompleted = makeTask({
-        id: 'fresh-done',
+        id: '201',
         status: 'completed',
         updatedAt: Date.now(),
       })
       const pending = makeTask({
-        id: 'still-pending',
+        id: '202',
         status: 'pending',
         updatedAt: Date.now() - 60_000,
       })
-      fs.writeFileSync(path.join(tasksDir, 'old-done.json'), JSON.stringify(oldCompleted))
-      fs.writeFileSync(path.join(tasksDir, 'fresh-done.json'), JSON.stringify(freshCompleted))
-      fs.writeFileSync(path.join(tasksDir, 'still-pending.json'), JSON.stringify(pending))
+      fs.writeFileSync(path.join(tasksDir, '200.json'), JSON.stringify(oldCompleted))
+      fs.writeFileSync(path.join(tasksDir, '201.json'), JSON.stringify(freshCompleted))
+      fs.writeFileSync(path.join(tasksDir, '202.json'), JSON.stringify(pending))
 
       const result = pruneCompletedTasks('test-team', 30_000)
 
-      expect(result.archived).toEqual(['old-done'])
-      expect(fs.existsSync(path.join(tasksDir, 'fresh-done.json'))).toBe(true)
-      expect(fs.existsSync(path.join(tasksDir, 'still-pending.json'))).toBe(true)
+      expect(result.archived).toEqual(['200'])
+      expect(fs.existsSync(path.join(tasksDir, '201.json'))).toBe(true)
+      expect(fs.existsSync(path.join(tasksDir, '202.json'))).toBe(true)
     })
   })
 
@@ -376,12 +376,12 @@ describe('team-maintenance', () => {
 
       // Write task files directly
       const tasksDir = getTasksDir('test-team')
-      const completedTask = makeTask({ id: 't1', status: 'completed' })
-      const pendingTask = makeTask({ id: 't2', status: 'pending' })
-      const inProgressTask = makeTask({ id: 't3', status: 'in_progress' })
-      fs.writeFileSync(path.join(tasksDir, 't1.json'), JSON.stringify(completedTask))
-      fs.writeFileSync(path.join(tasksDir, 't2.json'), JSON.stringify(pendingTask))
-      fs.writeFileSync(path.join(tasksDir, 't3.json'), JSON.stringify(inProgressTask))
+      const completedTask = makeTask({ id: '10', status: 'completed' })
+      const pendingTask = makeTask({ id: '20', status: 'pending' })
+      const inProgressTask = makeTask({ id: '30', status: 'in_progress' })
+      fs.writeFileSync(path.join(tasksDir, '10.json'), JSON.stringify(completedTask))
+      fs.writeFileSync(path.join(tasksDir, '20.json'), JSON.stringify(pendingTask))
+      fs.writeFileSync(path.join(tasksDir, '30.json'), JSON.stringify(inProgressTask))
 
       const stats = getTeamStats('test-team')
 
@@ -417,8 +417,8 @@ describe('team-maintenance', () => {
 
       const tasksDir = getTasksDir('test-team')
       for (let i = 1; i <= 5; i++) {
-        const task = makeTask({ id: `t${i}`, status: 'completed' })
-        fs.writeFileSync(path.join(tasksDir, `t${i}.json`), JSON.stringify(task))
+        const task = makeTask({ id: `${i}`, status: 'completed' })
+        fs.writeFileSync(path.join(tasksDir, `${i}.json`), JSON.stringify(task))
       }
 
       const stats = getTeamStats('test-team')
@@ -523,17 +523,17 @@ describe('team-maintenance', () => {
 
       const tasksDir = getTasksDir('test-team')
       const taskWithDangling = makeTask({
-        id: 'task-1',
-        blockedBy: ['nonexistent-task'],
+        id: '1',
+        blockedBy: ['999'],
         blocks: [],
       })
-      fs.writeFileSync(path.join(tasksDir, 'task-1.json'), JSON.stringify(taskWithDangling))
+      fs.writeFileSync(path.join(tasksDir, '1.json'), JSON.stringify(taskWithDangling))
 
       const issues = validateTeamIntegrity('test-team')
 
       const dangling = issues.filter((i) => i.type === 'dangling_task_reference')
       expect(dangling.length).toBeGreaterThanOrEqual(1)
-      expect(dangling[0]!.message).toContain('nonexistent-task')
+      expect(dangling[0]!.message).toContain('999')
     })
 
     it('should return no issues for a fully consistent team', () => {
@@ -546,8 +546,8 @@ describe('team-maintenance', () => {
 
       // Create a valid task
       const tasksDir = getTasksDir('test-team')
-      const task = makeTask({ id: 'task-1', blockedBy: [], blocks: [] })
-      fs.writeFileSync(path.join(tasksDir, 'task-1.json'), JSON.stringify(task))
+      const task = makeTask({ id: '1', blockedBy: [], blocks: [] })
+      fs.writeFileSync(path.join(tasksDir, '1.json'), JSON.stringify(task))
 
       const issues = validateTeamIntegrity('test-team')
 
@@ -582,8 +582,8 @@ describe('team-maintenance', () => {
       createTeam(config)
 
       const tasksDir = getTasksDir('test-team')
-      const task = makeTask({ id: 'archived-task' })
-      fs.writeFileSync(path.join(tasksDir, 'archived-task.json'), JSON.stringify(task))
+      const task = makeTask({ id: '50' })
+      fs.writeFileSync(path.join(tasksDir, '50.json'), JSON.stringify(task))
 
       const archiveDir = archiveTeam('test-team')
 
@@ -593,7 +593,7 @@ describe('team-maintenance', () => {
       // Tasks should be in the archive
       const archivedTasksDir = path.join(archiveDir!, 'tasks')
       expect(fs.existsSync(archivedTasksDir)).toBe(true)
-      expect(fs.existsSync(path.join(archivedTasksDir, 'archived-task.json'))).toBe(true)
+      expect(fs.existsSync(path.join(archivedTasksDir, '50.json'))).toBe(true)
     })
 
     it('should return null for a nonexistent team', () => {

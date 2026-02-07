@@ -47,6 +47,12 @@ export const handleTeamCreate = (async (params: {
     )
   }
 
+  if (team_name.length > 50) {
+    return errorResult(
+      'Team name must be at most 50 characters.',
+    )
+  }
+
   // Check if a team with this name already exists
   try {
     const existing = loadTeamConfig(team_name)

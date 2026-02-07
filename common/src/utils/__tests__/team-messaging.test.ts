@@ -145,12 +145,11 @@ describe('team-messaging', () => {
   // 1. sendMessage delivers to correct inbox file
   // =========================================================================
   describe('sendMessage delivers to correct inbox file', () => {
-    it('should write to the named agent inbox file', () => {
+    it('should write to the named agent inbox file', async () => {
       createTeam(makeTeamConfig())
       const msg = makeDirectMessage()
-      sendMessage('msg-team', 'developer', msg)
+      await sendMessage('msg-team', 'developer', msg)
 
-      // The inbox file should exist at inboxes/developer.json
       const inboxPath = path.join(getTeamsDir(), 'msg-team', 'inboxes', 'developer.json')
       expect(fs.existsSync(inboxPath)).toBe(true)
 
@@ -160,11 +159,11 @@ describe('team-messaging', () => {
       expect((parsed[0] as TeamMessage).text).toBe('Hello developer')
     })
 
-    it('should deliver to different agents independently', () => {
+    it('should deliver to different agents independently', async () => {
       createTeam(makeTeamConfig())
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ to: 'developer', text: 'msg for dev' }))
-      sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'msg for tester' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ to: 'developer', text: 'msg for dev' }))
+      await sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'msg for tester' }))
 
       const devInbox = readInbox('msg-team', 'developer')
       const testerInbox = readInbox('msg-team', 'tester')
@@ -175,10 +174,10 @@ describe('team-messaging', () => {
       expect((testerInbox[0] as TeamMessage).text).toBe('msg for tester')
     })
 
-    it('should create inbox directory automatically if it does not exist', () => {
+    it('should create inbox directory automatically if it does not exist', async () => {
       // Do not call createTeam -- sendMessage should handle missing dirs
       const msg = makeDirectMessage()
-      sendMessage('auto-team', 'some-agent', msg)
+      await sendMessage('auto-team', 'some-agent', msg)
 
       const inbox = readInbox('auto-team', 'some-agent')
       expect(inbox).toHaveLength(1)
@@ -189,12 +188,12 @@ describe('team-messaging', () => {
   // 2. Multiple messages append correctly (not overwrite)
   // =========================================================================
   describe('multiple messages append correctly', () => {
-    it('should append three sequential messages without overwriting earlier ones', () => {
+    it('should append three sequential messages without overwriting earlier ones', async () => {
       createTeam(makeTeamConfig())
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'first' }))
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'second' }))
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'third' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'first' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'second' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'third' }))
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(3)
@@ -203,11 +202,11 @@ describe('team-messaging', () => {
       expect((inbox[2] as TeamMessage).text).toBe('third')
     })
 
-    it('should preserve messages from different senders', () => {
+    it('should preserve messages from different senders', async () => {
       createTeam(makeTeamConfig())
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ from: 'team-lead', text: 'from lead' }))
-      sendMessage('msg-team', 'developer', makeDirectMessage({ from: 'tester', text: 'from tester' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ from: 'team-lead', text: 'from lead' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ from: 'tester', text: 'from tester' }))
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(2)
@@ -215,7 +214,7 @@ describe('team-messaging', () => {
       expect((inbox[1] as TeamMessage).from).toBe('tester')
     })
 
-    it('should preserve mixed message types in order', () => {
+    it('should preserve mixed message types in order', async () => {
       createTeam(makeTeamConfig())
 
       const dm = makeDirectMessage({ text: 'direct msg' })
@@ -226,9 +225,9 @@ describe('team-messaging', () => {
         timestamp: new Date().toISOString(),
       }
 
-      sendMessage('msg-team', 'team-lead', dm)
-      sendMessage('msg-team', 'team-lead', bc)
-      sendMessage('msg-team', 'team-lead', idle)
+      await sendMessage('msg-team', 'team-lead', dm)
+      await sendMessage('msg-team', 'team-lead', bc)
+      await sendMessage('msg-team', 'team-lead', idle)
 
       const inbox = readInbox('msg-team', 'team-lead')
       expect(inbox).toHaveLength(3)
@@ -247,11 +246,11 @@ describe('team-messaging', () => {
       expect(inbox).toEqual([])
     })
 
-    it('should return messages in insertion order', () => {
+    it('should return messages in insertion order', async () => {
       createTeam(makeTeamConfig())
 
       for (let i = 1; i <= 5; i++) {
-        sendMessage('msg-team', 'developer', makeDirectMessage({ text: `message-${i}` }))
+        await sendMessage('msg-team', 'developer', makeDirectMessage({ text: `message-${i}` }))
       }
 
       const inbox = readInbox('msg-team', 'developer')
@@ -261,9 +260,9 @@ describe('team-messaging', () => {
       }
     })
 
-    it('should not mutate the inbox file when reading', () => {
+    it('should not mutate the inbox file when reading', async () => {
       createTeam(makeTeamConfig())
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'persistent' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'persistent' }))
 
       // Read twice -- both should return the same result
       const first = readInbox('msg-team', 'developer')
@@ -277,10 +276,10 @@ describe('team-messaging', () => {
   // 4. clearInbox empties the inbox
   // =========================================================================
   describe('clearInbox empties the inbox', () => {
-    it('should remove all messages from an agent inbox', () => {
+    it('should remove all messages from an agent inbox', async () => {
       createTeam(makeTeamConfig())
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'msg1' }))
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'msg2' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'msg1' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'msg2' }))
       expect(readInbox('msg-team', 'developer')).toHaveLength(2)
 
       clearInbox('msg-team', 'developer')
@@ -289,10 +288,10 @@ describe('team-messaging', () => {
       expect(inbox).toEqual([])
     })
 
-    it('should leave other agent inboxes untouched', () => {
+    it('should leave other agent inboxes untouched', async () => {
       createTeam(makeTeamConfig())
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'dev msg' }))
-      sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'tester msg' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'dev msg' }))
+      await sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'tester msg' }))
 
       clearInbox('msg-team', 'developer')
 
@@ -304,12 +303,12 @@ describe('team-messaging', () => {
       expect(() => clearInbox('msg-team', 'nonexistent-agent')).not.toThrow()
     })
 
-    it('should allow new messages after clearing', () => {
+    it('should allow new messages after clearing', async () => {
       createTeam(makeTeamConfig())
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'before-clear' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'before-clear' }))
       clearInbox('msg-team', 'developer')
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'after-clear' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'after-clear' }))
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
@@ -321,7 +320,7 @@ describe('team-messaging', () => {
   // 5. Broadcasting sends to all members except sender
   // =========================================================================
   describe('broadcasting sends to all members except sender', () => {
-    it('should deliver a broadcast to every member except the sender', () => {
+    it('should deliver a broadcast to every member except the sender', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
@@ -333,7 +332,7 @@ describe('team-messaging', () => {
         .map((m) => m.name)
 
       for (const recipient of recipients) {
-        sendMessage('msg-team', recipient, broadcast)
+        await sendMessage('msg-team', recipient, broadcast)
       }
 
       // Sender should have an empty inbox
@@ -376,7 +375,7 @@ describe('team-messaging', () => {
       expect(inbox).toEqual([])
     })
 
-    it('should deliver the same content to all broadcast recipients', () => {
+    it('should deliver the same content to all broadcast recipients', async () => {
       createTeam(makeTeamConfig())
 
       const broadcast = makeBroadcast({
@@ -387,7 +386,7 @@ describe('team-messaging', () => {
 
       const otherMembers = ['developer', 'developer-2', 'tester']
       for (const member of otherMembers) {
-        sendMessage('msg-team', member, broadcast)
+        await sendMessage('msg-team', member, broadcast)
       }
 
       for (const member of otherMembers) {
@@ -405,7 +404,7 @@ describe('team-messaging', () => {
   // 6. Shutdown request/response flow
   // =========================================================================
   describe('shutdown request/response flow', () => {
-    it('should deliver a shutdown request to the target agent', () => {
+    it('should deliver a shutdown request to the target agent', async () => {
       createTeam(makeTeamConfig())
 
       const req: ShutdownRequest = {
@@ -415,7 +414,7 @@ describe('team-messaging', () => {
         reason: 'Task complete, wrapping up',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'developer', req)
+      await sendMessage('msg-team', 'developer', req)
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
@@ -426,7 +425,7 @@ describe('team-messaging', () => {
       expect(received.reason).toBe('Task complete, wrapping up')
     })
 
-    it('should deliver a shutdown approval response back to the requester', () => {
+    it('should deliver a shutdown approval response back to the requester', async () => {
       createTeam(makeTeamConfig())
 
       const approval: ShutdownApproved = {
@@ -435,7 +434,7 @@ describe('team-messaging', () => {
         from: 'developer',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', approval)
+      await sendMessage('msg-team', 'team-lead', approval)
 
       const inbox = readInbox('msg-team', 'team-lead')
       expect(inbox).toHaveLength(1)
@@ -445,7 +444,7 @@ describe('team-messaging', () => {
       expect(received.from).toBe('developer')
     })
 
-    it('should deliver a shutdown rejection response back to the requester', () => {
+    it('should deliver a shutdown rejection response back to the requester', async () => {
       createTeam(makeTeamConfig())
 
       const rejection: ShutdownRejected = {
@@ -455,7 +454,7 @@ describe('team-messaging', () => {
         reason: 'Still working on task #3',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', rejection)
+      await sendMessage('msg-team', 'team-lead', rejection)
 
       const inbox = readInbox('msg-team', 'team-lead')
       expect(inbox).toHaveLength(1)
@@ -465,7 +464,7 @@ describe('team-messaging', () => {
       expect(received.reason).toBe('Still working on task #3')
     })
 
-    it('should handle full shutdown request -> approved round trip', () => {
+    it('should handle full shutdown request -> approved round trip', async () => {
       createTeam(makeTeamConfig())
 
       // Lead sends shutdown request to developer
@@ -476,7 +475,7 @@ describe('team-messaging', () => {
         reason: 'Session ending',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'developer', req)
+      await sendMessage('msg-team', 'developer', req)
 
       // Developer reads the request
       const devInbox = readInbox('msg-team', 'developer')
@@ -490,7 +489,7 @@ describe('team-messaging', () => {
         from: 'developer',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', approval)
+      await sendMessage('msg-team', 'team-lead', approval)
 
       // Lead reads the approval
       const leadInbox = readInbox('msg-team', 'team-lead')
@@ -499,7 +498,7 @@ describe('team-messaging', () => {
       expect((leadInbox[0] as ShutdownApproved).requestId).toBe('sd-round-trip')
     })
 
-    it('should handle full shutdown request -> rejected round trip', () => {
+    it('should handle full shutdown request -> rejected round trip', async () => {
       createTeam(makeTeamConfig())
 
       const req: ShutdownRequest = {
@@ -508,7 +507,7 @@ describe('team-messaging', () => {
         from: 'team-lead',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'developer', req)
+      await sendMessage('msg-team', 'developer', req)
 
       const rejection: ShutdownRejected = {
         type: 'shutdown_rejected',
@@ -517,7 +516,7 @@ describe('team-messaging', () => {
         reason: 'Need 5 more minutes',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', rejection)
+      await sendMessage('msg-team', 'team-lead', rejection)
 
       const leadInbox = readInbox('msg-team', 'team-lead')
       expect(leadInbox).toHaveLength(1)
@@ -530,7 +529,7 @@ describe('team-messaging', () => {
   // 7. Plan approval request/response flow
   // =========================================================================
   describe('plan approval request/response flow', () => {
-    it('should deliver a plan approval request to the lead', () => {
+    it('should deliver a plan approval request to the lead', async () => {
       createTeam(makeTeamConfig())
 
       const req: PlanApprovalRequest = {
@@ -540,7 +539,7 @@ describe('team-messaging', () => {
         planContent: '## Plan\n1. Refactor auth module\n2. Add tests\n3. Deploy',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', req)
+      await sendMessage('msg-team', 'team-lead', req)
 
       const inbox = readInbox('msg-team', 'team-lead')
       expect(inbox).toHaveLength(1)
@@ -551,7 +550,7 @@ describe('team-messaging', () => {
       expect(received.planContent).toContain('Refactor auth module')
     })
 
-    it('should deliver an approval response back to the requester', () => {
+    it('should deliver an approval response back to the requester', async () => {
       createTeam(makeTeamConfig())
 
       const resp: PlanApprovalResponse = {
@@ -560,7 +559,7 @@ describe('team-messaging', () => {
         approved: true,
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'developer', resp)
+      await sendMessage('msg-team', 'developer', resp)
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
@@ -569,7 +568,7 @@ describe('team-messaging', () => {
       expect(received.requestId).toBe('plan-001')
     })
 
-    it('should deliver a rejection with feedback', () => {
+    it('should deliver a rejection with feedback', async () => {
       createTeam(makeTeamConfig())
 
       const resp: PlanApprovalResponse = {
@@ -579,7 +578,7 @@ describe('team-messaging', () => {
         feedback: 'Please add error handling for the API calls',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'developer', resp)
+      await sendMessage('msg-team', 'developer', resp)
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
@@ -588,7 +587,7 @@ describe('team-messaging', () => {
       expect(received.feedback).toBe('Please add error handling for the API calls')
     })
 
-    it('should handle full plan request -> approved round trip', () => {
+    it('should handle full plan request -> approved round trip', async () => {
       createTeam(makeTeamConfig())
 
       // Developer submits plan
@@ -599,7 +598,7 @@ describe('team-messaging', () => {
         planContent: 'Step 1: Read code. Step 2: Write code.',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', req)
+      await sendMessage('msg-team', 'team-lead', req)
 
       // Lead reads it
       const leadInbox = readInbox('msg-team', 'team-lead')
@@ -613,7 +612,7 @@ describe('team-messaging', () => {
         approved: true,
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'developer', approval)
+      await sendMessage('msg-team', 'developer', approval)
 
       // Developer reads approval
       const devInbox = readInbox('msg-team', 'developer')
@@ -621,7 +620,7 @@ describe('team-messaging', () => {
       expect((devInbox[0] as PlanApprovalResponse).approved).toBe(true)
     })
 
-    it('should handle full plan request -> rejected with feedback round trip', () => {
+    it('should handle full plan request -> rejected with feedback round trip', async () => {
       createTeam(makeTeamConfig())
 
       const req: PlanApprovalRequest = {
@@ -631,7 +630,7 @@ describe('team-messaging', () => {
         planContent: 'I will just yolo deploy.',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', req)
+      await sendMessage('msg-team', 'team-lead', req)
 
       const rejection: PlanApprovalResponse = {
         type: 'plan_approval_response',
@@ -640,7 +639,7 @@ describe('team-messaging', () => {
         feedback: 'Please add a testing step before deploy',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'developer-2', rejection)
+      await sendMessage('msg-team', 'developer-2', rejection)
 
       const dev2Inbox = readInbox('msg-team', 'developer-2')
       expect(dev2Inbox).toHaveLength(1)
@@ -654,27 +653,19 @@ describe('team-messaging', () => {
   // =========================================================================
   // 8. Message formatting (message-formatter.ts)
   // =========================================================================
-  // Note: message-formatter.ts lives in packages/agent-runtime/src, but we
-  // can test it from here since it is pure logic with no runtime deps beyond
-  // the TeamProtocolMessage type.
-  // We import it dynamically to avoid cross-package import issues; if the
-  // import fails these tests will be skipped automatically.
   describe('message formatting', () => {
-    // We inline the formatter import attempt. If the project structure makes
-    // a direct import impossible, we replicate the known behaviour.
     let formatTeamMessage: (msg: TeamProtocolMessage) => string
     let formatInboxMessages: (msgs: TeamProtocolMessage[]) => string | null
 
     beforeEach(async () => {
       try {
-        // Attempt direct import -- works in bun monorepo with path aliases
         const mod = await import(
           '../../../../packages/agent-runtime/src/message-formatter'
         )
         formatTeamMessage = mod.formatTeamMessage
         formatInboxMessages = mod.formatInboxMessages
       } catch {
-        // Fallback: skip formatting tests if import fails
+        // Fallback stubs if cross-package import fails
         formatTeamMessage = () => ''
         formatInboxMessages = () => null
       }
@@ -856,30 +847,28 @@ describe('team-messaging', () => {
   // 9. Inbox isolation between agents
   // =========================================================================
   describe('inbox isolation between agents', () => {
-    it('agent A cannot see agent B messages and vice versa', () => {
+    it('agent A cannot see agent B messages and vice versa', async () => {
       createTeam(makeTeamConfig())
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'dev-only' }))
-      sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'tester-only' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'dev-only' }))
+      await sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'tester-only' }))
 
       const devInbox = readInbox('msg-team', 'developer')
       const testerInbox = readInbox('msg-team', 'tester')
 
-      // developer should only see their messages
       expect(devInbox).toHaveLength(1)
       expect((devInbox[0] as TeamMessage).text).toBe('dev-only')
 
-      // tester should only see their messages
       expect(testerInbox).toHaveLength(1)
       expect((testerInbox[0] as TeamMessage).text).toBe('tester-only')
     })
 
-    it('clearing one inbox does not affect another', () => {
+    it('clearing one inbox does not affect another', async () => {
       createTeam(makeTeamConfig())
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'dev msg' }))
-      sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'tester msg' }))
-      sendMessage('msg-team', 'developer-2', makeDirectMessage({ to: 'developer-2', text: 'dev2 msg' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'dev msg' }))
+      await sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'tester msg' }))
+      await sendMessage('msg-team', 'developer-2', makeDirectMessage({ to: 'developer-2', text: 'dev2 msg' }))
 
       clearInbox('msg-team', 'developer')
 
@@ -888,14 +877,14 @@ describe('team-messaging', () => {
       expect(readInbox('msg-team', 'developer-2')).toHaveLength(1)
     })
 
-    it('inboxes across different teams are isolated', () => {
+    it('inboxes across different teams are isolated', async () => {
       const team1 = makeTeamConfig({ name: 'team-alpha' })
       const team2 = makeTeamConfig({ name: 'team-beta' })
       createTeam(team1)
       createTeam(team2)
 
-      sendMessage('team-alpha', 'developer', makeDirectMessage({ text: 'alpha msg' }))
-      sendMessage('team-beta', 'developer', makeDirectMessage({ text: 'beta msg' }))
+      await sendMessage('team-alpha', 'developer', makeDirectMessage({ text: 'alpha msg' }))
+      await sendMessage('team-beta', 'developer', makeDirectMessage({ text: 'beta msg' }))
 
       const alphaInbox = readInbox('team-alpha', 'developer')
       const betaInbox = readInbox('team-beta', 'developer')
@@ -906,11 +895,11 @@ describe('team-messaging', () => {
       expect((betaInbox[0] as TeamMessage).text).toBe('beta msg')
     })
 
-    it('each agent has a separate inbox file on disk', () => {
+    it('each agent has a separate inbox file on disk', async () => {
       createTeam(makeTeamConfig())
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'a' }))
-      sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'b' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'a' }))
+      await sendMessage('msg-team', 'tester', makeDirectMessage({ to: 'tester', text: 'b' }))
 
       const inboxDir = path.join(getTeamsDir(), 'msg-team', 'inboxes')
       const files = fs.readdirSync(inboxDir).sort()
@@ -932,11 +921,11 @@ describe('team-messaging', () => {
   // 10. Large message handling
   // =========================================================================
   describe('large message handling', () => {
-    it('should handle a message with a very long text string (10KB)', () => {
+    it('should handle a message with a very long text string (10KB)', async () => {
       createTeam(makeTeamConfig())
 
       const longText = 'x'.repeat(10_000)
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: longText }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: longText }))
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
@@ -944,33 +933,33 @@ describe('team-messaging', () => {
       expect((inbox[0] as TeamMessage).text.length).toBe(10_000)
     })
 
-    it('should handle a message with a very long text string (100KB)', () => {
+    it('should handle a message with a very long text string (100KB)', async () => {
       createTeam(makeTeamConfig())
 
       const longText = 'A'.repeat(100_000)
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: longText }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: longText }))
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
       expect((inbox[0] as TeamMessage).text.length).toBe(100_000)
     })
 
-    it('should handle a message with unicode and special characters', () => {
+    it('should handle a message with unicode and special characters', async () => {
       createTeam(makeTeamConfig())
 
       const specialText = 'Hello \u{1F600} \u{1F680} \u{2764}\nNew line\t\tTabs\n"quotes" & <xml> \\ backslash'
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: specialText }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: specialText }))
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
       expect((inbox[0] as TeamMessage).text).toBe(specialText)
     })
 
-    it('should handle many messages in a single inbox (100 messages)', () => {
+    it('should handle many messages in a single inbox (100 messages)', async () => {
       createTeam(makeTeamConfig())
 
       for (let i = 0; i < 100; i++) {
-        sendMessage('msg-team', 'developer', makeDirectMessage({ text: `message-${i}` }))
+        await sendMessage('msg-team', 'developer', makeDirectMessage({ text: `message-${i}` }))
       }
 
       const inbox = readInbox('msg-team', 'developer')
@@ -982,7 +971,7 @@ describe('team-messaging', () => {
       expect((inbox[99] as TeamMessage).text).toBe('message-99')
     })
 
-    it('should handle a plan approval request with very long plan content', () => {
+    it('should handle a plan approval request with very long plan content', async () => {
       createTeam(makeTeamConfig())
 
       const longPlan = Array.from({ length: 500 }, (_, i) => `Step ${i + 1}: Do thing ${i + 1}`).join('\n')
@@ -993,7 +982,7 @@ describe('team-messaging', () => {
         planContent: longPlan,
         timestamp: new Date().toISOString(),
       }
-      sendMessage('msg-team', 'team-lead', req)
+      await sendMessage('msg-team', 'team-lead', req)
 
       const inbox = readInbox('msg-team', 'team-lead')
       expect(inbox).toHaveLength(1)
@@ -1002,10 +991,10 @@ describe('team-messaging', () => {
       expect(received.planContent.split('\n')).toHaveLength(500)
     })
 
-    it('should handle an empty text message', () => {
+    it('should handle an empty text message', async () => {
       createTeam(makeTeamConfig())
 
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: '' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: '' }))
 
       const inbox = readInbox('msg-team', 'developer')
       expect(inbox).toHaveLength(1)
@@ -1017,12 +1006,12 @@ describe('team-messaging', () => {
   // 11. Concurrent writes don't lose messages
   // =========================================================================
   describe('concurrent writes don\'t lose messages', () => {
-    it('should not lose messages when sending rapidly in sequence', () => {
+    it('should not lose messages when sending rapidly in sequence', async () => {
       createTeam(makeTeamConfig())
 
       const total = 50
       for (let i = 0; i < total; i++) {
-        sendMessage('msg-team', 'developer', makeDirectMessage({ text: `rapid-${i}` }))
+        await sendMessage('msg-team', 'developer', makeDirectMessage({ text: `rapid-${i}` }))
       }
 
       const inbox = readInbox('msg-team', 'developer')
@@ -1032,7 +1021,7 @@ describe('team-messaging', () => {
       }
     })
 
-    it('should not lose messages when multiple senders write to the same inbox sequentially', () => {
+    it('should not lose messages when multiple senders write to the same inbox sequentially', async () => {
       createTeam(makeTeamConfig())
 
       const senders = ['team-lead', 'developer-2', 'tester']
@@ -1040,7 +1029,7 @@ describe('team-messaging', () => {
 
       for (const sender of senders) {
         for (let i = 0; i < msgsPerSender; i++) {
-          sendMessage(
+          await sendMessage(
             'msg-team',
             'developer',
             makeDirectMessage({ from: sender, text: `${sender}-msg-${i}` }),
@@ -1060,19 +1049,19 @@ describe('team-messaging', () => {
       }
     })
 
-    it('should handle interleaved send and read operations', () => {
+    it('should handle interleaved send and read operations', async () => {
       createTeam(makeTeamConfig())
 
       // Send some messages
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-1-msg-1' }))
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-1-msg-2' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-1-msg-1' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-1-msg-2' }))
 
       // Read (should not consume)
       const afterBatch1 = readInbox('msg-team', 'developer')
       expect(afterBatch1).toHaveLength(2)
 
       // Send more messages
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-2-msg-1' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-2-msg-1' }))
 
       // Read again -- should now see 3
       const afterBatch2 = readInbox('msg-team', 'developer')
@@ -1080,14 +1069,14 @@ describe('team-messaging', () => {
 
       // Clear and send new messages
       clearInbox('msg-team', 'developer')
-      sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-3-msg-1' }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ text: 'batch-3-msg-1' }))
 
       const afterClear = readInbox('msg-team', 'developer')
       expect(afterClear).toHaveLength(1)
       expect((afterClear[0] as TeamMessage).text).toBe('batch-3-msg-1')
     })
 
-    it('should handle parallel writes to different inboxes without cross-contamination', () => {
+    it('should handle parallel writes to different inboxes without cross-contamination', async () => {
       createTeam(makeTeamConfig())
 
       const agents = ['developer', 'developer-2', 'tester', 'team-lead']
@@ -1096,7 +1085,7 @@ describe('team-messaging', () => {
       // Write to all agents (simulating parallel by interleaving)
       for (let i = 0; i < msgsPerAgent; i++) {
         for (const agent of agents) {
-          sendMessage(
+          await sendMessage(
             'msg-team',
             agent,
             makeDirectMessage({ to: agent, text: `${agent}-${i}` }),
@@ -1113,24 +1102,42 @@ describe('team-messaging', () => {
         }
       }
     })
+
+    it('should not lose messages with truly concurrent writes via Promise.all', async () => {
+      createTeam(makeTeamConfig())
+
+      const concurrentCount = 20
+      const promises = Array.from({ length: concurrentCount }, (_, i) =>
+        sendMessage('msg-team', 'developer', makeDirectMessage({ text: `concurrent-${i}` })),
+      )
+
+      await Promise.all(promises)
+
+      const inbox = readInbox('msg-team', 'developer')
+      expect(inbox).toHaveLength(concurrentCount)
+
+      // All messages should be present (order may vary due to concurrency)
+      const texts = inbox.map((m) => (m as TeamMessage).text).sort()
+      const expected = Array.from({ length: concurrentCount }, (_, i) => `concurrent-${i}`).sort()
+      expect(texts).toEqual(expected)
+    })
   })
 
   // =========================================================================
   // Additional edge cases
   // =========================================================================
   describe('edge cases', () => {
-    it('should handle agent names with special characters', () => {
+    it('should handle agent names with special characters', async () => {
       createTeam(makeTeamConfig())
 
-      // Agent names that are valid but unusual
-      sendMessage('msg-team', 'agent-with-dashes', makeDirectMessage({ text: 'dashes' }))
-      sendMessage('msg-team', 'agent_with_underscores', makeDirectMessage({ text: 'underscores' }))
+      await sendMessage('msg-team', 'agent-with-dashes', makeDirectMessage({ text: 'dashes' }))
+      await sendMessage('msg-team', 'agent_with_underscores', makeDirectMessage({ text: 'underscores' }))
 
       expect(readInbox('msg-team', 'agent-with-dashes')).toHaveLength(1)
       expect(readInbox('msg-team', 'agent_with_underscores')).toHaveLength(1)
     })
 
-    it('should handle sending all protocol message types to one inbox', () => {
+    it('should handle sending all protocol message types to one inbox', async () => {
       createTeam(makeTeamConfig())
 
       const messages: TeamProtocolMessage[] = [
@@ -1183,7 +1190,7 @@ describe('team-messaging', () => {
       ]
 
       for (const msg of messages) {
-        sendMessage('msg-team', 'developer', msg)
+        await sendMessage('msg-team', 'developer', msg)
       }
 
       const inbox = readInbox('msg-team', 'developer')
@@ -1202,13 +1209,14 @@ describe('team-messaging', () => {
       expect(types).toContain('idle_notification')
     })
 
-    it('should preserve timestamps exactly as provided', () => {
+    it('should preserve timestamps exactly as provided', async () => {
       createTeam(makeTeamConfig())
 
       const timestamp = '2024-06-15T12:30:45.123Z'
-      sendMessage('msg-team', 'developer', makeDirectMessage({ timestamp }))
+      await sendMessage('msg-team', 'developer', makeDirectMessage({ timestamp }))
 
       const inbox = readInbox('msg-team', 'developer')
+      expect(inbox).toHaveLength(1)
       expect(inbox[0]!.timestamp).toBe(timestamp)
     })
 

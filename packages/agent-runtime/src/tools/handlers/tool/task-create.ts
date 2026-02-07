@@ -1,10 +1,9 @@
-import * as fs from 'fs'
 import { jsonToolResult } from '@levelcode/common/util/messages'
 import {
   createTask,
-  getTeamsDir,
   listTasks,
 } from '@levelcode/common/utils/team-fs'
+import { findCurrentTeam } from '@levelcode/common/utils/team-discovery'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
 import type {
@@ -17,35 +16,13 @@ function errorResult(message: string) {
   return { output: jsonToolResult({ error: message }) }
 }
 
-function getActiveTeamName(): string | null {
-  let teamsDir: string
-  try {
-    teamsDir = getTeamsDir()
-  } catch {
-    return null
-  }
-  if (!fs.existsSync(teamsDir)) {
-    return null
-  }
-  let entries: fs.Dirent[]
-  try {
-    entries = fs.readdirSync(teamsDir, { withFileTypes: true })
-  } catch {
-    return null
-  }
-  const teamDirs = entries.filter((e) => e.isDirectory())
-  if (teamDirs.length === 0) {
-    return null
-  }
-  return teamDirs[0]!.name
-}
-
 type ToolName = 'task_create'
 export const handleTaskCreate = (async (params: {
   previousToolCallFinished: Promise<void>
   toolCall: LevelCodeToolCall<ToolName>
+  agentStepId: string
 }): Promise<{ output: LevelCodeToolOutput<ToolName> }> => {
-  const { previousToolCallFinished, toolCall } = params
+  const { previousToolCallFinished, toolCall, agentStepId } = params
   const { subject, description, activeForm, priority, metadata } = toolCall.input
 
   await previousToolCallFinished
@@ -59,12 +36,20 @@ export const handleTaskCreate = (async (params: {
     return errorResult('A non-empty "description" is required to create a task.')
   }
 
-  const teamName = getActiveTeamName()
-  if (!teamName) {
+  let teamResult: ReturnType<typeof findCurrentTeam>
+  try {
+    teamResult = findCurrentTeam(agentStepId)
+  } catch {
     return errorResult(
-      'No active team found. Create a team first using TeamCreate.',
+      'Failed to look up team for the current agent. The teams directory may be inaccessible.',
     )
   }
+  if (!teamResult) {
+    return errorResult(
+      'No active team found. Create a team first using team_create.',
+    )
+  }
+  const teamName = teamResult.teamName
 
   let existingTasks: TeamTask[]
   try {

@@ -183,12 +183,12 @@ describe('team lifecycle E2E', () => {
     it('should create multiple tasks with individual JSON files', async () => {
       createTeam(makeTeamConfig())
 
-      const task1 = makeTask({ id: 'task-1', subject: 'Set up project structure' })
-      const task2 = makeTask({ id: 'task-2', subject: 'Implement auth module' })
+      const task1 = makeTask({ id: '1', subject: 'Set up project structure' })
+      const task2 = makeTask({ id: '2', subject: 'Implement auth module' })
       const task3 = makeTask({
-        id: 'task-3',
+        id: '3',
         subject: 'Write tests for auth',
-        blockedBy: ['task-2'],
+        blockedBy: ['2'],
       })
 
       await createTask('e2e-team', task1)
@@ -197,9 +197,9 @@ describe('team lifecycle E2E', () => {
 
       // Verify files exist
       const tasksDir = getTasksDir('e2e-team')
-      expect(fs.existsSync(path.join(tasksDir, 'task-1.json'))).toBe(true)
-      expect(fs.existsSync(path.join(tasksDir, 'task-2.json'))).toBe(true)
-      expect(fs.existsSync(path.join(tasksDir, 'task-3.json'))).toBe(true)
+      expect(fs.existsSync(path.join(tasksDir, '1.json'))).toBe(true)
+      expect(fs.existsSync(path.join(tasksDir, '2.json'))).toBe(true)
+      expect(fs.existsSync(path.join(tasksDir, '3.json'))).toBe(true)
 
       // Verify content
       const tasks = listTasks('e2e-team')
@@ -210,8 +210,8 @@ describe('team lifecycle E2E', () => {
       expect(subjects).toContain('Write tests for auth')
 
       // Verify dependency on task-3
-      const t3 = getTask('e2e-team', 'task-3')
-      expect(t3!.blockedBy).toEqual(['task-2'])
+      const t3 = getTask('e2e-team', '3')
+      expect(t3!.blockedBy).toEqual(['2'])
     })
   })
 
@@ -220,16 +220,16 @@ describe('team lifecycle E2E', () => {
       createTeam(makeTeamConfig())
       await addTeamMember('e2e-team', makeMember({ agentId: 'sr-001', name: 'senior-dev' }))
 
-      await createTask('e2e-team', makeTask({ id: 'task-1', subject: 'Build API' }))
-      await createTask('e2e-team', makeTask({ id: 'task-2', subject: 'Build UI' }))
+      await createTask('e2e-team', makeTask({ id: '1', subject: 'Build API' }))
+      await createTask('e2e-team', makeTask({ id: '2', subject: 'Build UI' }))
 
-      await updateTask('e2e-team', 'task-1', { owner: 'sr-001' })
-      await updateTask('e2e-team', 'task-2', { owner: 'lead-001' })
+      await updateTask('e2e-team', '1', { owner: 'sr-001' })
+      await updateTask('e2e-team', '2', { owner: 'lead-001' })
 
-      const t1 = getTask('e2e-team', 'task-1')
+      const t1 = getTask('e2e-team', '1')
       expect(t1!.owner).toBe('sr-001')
 
-      const t2 = getTask('e2e-team', 'task-2')
+      const t2 = getTask('e2e-team', '2')
       expect(t2!.owner).toBe('lead-001')
     })
   })
@@ -237,38 +237,38 @@ describe('team lifecycle E2E', () => {
   describe('Step 5: Update task status and verify transitions', () => {
     it('should transition tasks through pending -> in_progress -> completed', async () => {
       createTeam(makeTeamConfig())
-      await createTask('e2e-team', makeTask({ id: 'task-1', status: 'pending' }))
+      await createTask('e2e-team', makeTask({ id: '1', status: 'pending' }))
 
       // pending -> in_progress
-      await updateTask('e2e-team', 'task-1', { status: 'in_progress', owner: 'dev-001' })
-      let task = getTask('e2e-team', 'task-1')
+      await updateTask('e2e-team', '1', { status: 'in_progress', owner: 'dev-001' })
+      let task = getTask('e2e-team', '1')
       expect(task!.status).toBe('in_progress')
       expect(task!.owner).toBe('dev-001')
 
       // in_progress -> completed
-      await updateTask('e2e-team', 'task-1', { status: 'completed' })
-      task = getTask('e2e-team', 'task-1')
+      await updateTask('e2e-team', '1', { status: 'completed' })
+      task = getTask('e2e-team', '1')
       expect(task!.status).toBe('completed')
     })
 
     it('should allow setting blocked status', async () => {
       createTeam(makeTeamConfig())
-      await createTask('e2e-team', makeTask({ id: 'task-1', status: 'pending' }))
+      await createTask('e2e-team', makeTask({ id: '1', status: 'pending' }))
 
-      await updateTask('e2e-team', 'task-1', { status: 'blocked' })
-      const task = getTask('e2e-team', 'task-1')
+      await updateTask('e2e-team', '1', { status: 'blocked' })
+      const task = getTask('e2e-team', '1')
       expect(task!.status).toBe('blocked')
     })
 
     it('should update the updatedAt timestamp on each transition', async () => {
       createTeam(makeTeamConfig())
-      await createTask('e2e-team', makeTask({ id: 'task-1', updatedAt: 1000 }))
+      await createTask('e2e-team', makeTask({ id: '1', updatedAt: 1000 }))
 
       const before = Date.now()
-      await updateTask('e2e-team', 'task-1', { status: 'in_progress' })
+      await updateTask('e2e-team', '1', { status: 'in_progress' })
       const after = Date.now()
 
-      const task = getTask('e2e-team', 'task-1')
+      const task = getTask('e2e-team', '1')
       expect(task!.updatedAt).toBeGreaterThanOrEqual(before)
       expect(task!.updatedAt).toBeLessThanOrEqual(after)
     })
@@ -343,7 +343,7 @@ describe('team lifecycle E2E', () => {
       const completed: TaskCompletedMessage = {
         type: 'task_completed',
         from: 'dev-001',
-        taskId: 'task-1',
+        taskId: '1',
         taskSubject: 'Build API',
         timestamp: '2024-01-01T00:02:00Z',
       }
@@ -360,7 +360,7 @@ describe('team lifecycle E2E', () => {
       const leadInbox = readInbox('e2e-team', 'lead-001')
       expect(leadInbox).toHaveLength(1)
       expect(leadInbox[0]!.type).toBe('task_completed')
-      expect((leadInbox[0] as TaskCompletedMessage).taskId).toBe('task-1')
+      expect((leadInbox[0] as TaskCompletedMessage).taskId).toBe('1')
     })
 
     it('should clear inbox after reading', async () => {
@@ -389,54 +389,54 @@ describe('team lifecycle E2E', () => {
 
       // task-2 depends on task-1; task-3 depends on task-2
       await createTask('e2e-team', makeTask({
-        id: 'task-1',
+        id: '1',
         subject: 'Foundation',
-        blocks: ['task-2'],
+        blocks: ['2'],
         status: 'pending',
       }))
       await createTask('e2e-team', makeTask({
-        id: 'task-2',
+        id: '2',
         subject: 'Build on foundation',
-        blockedBy: ['task-1'],
-        blocks: ['task-3'],
+        blockedBy: ['1'],
+        blocks: ['3'],
         status: 'blocked',
       }))
       await createTask('e2e-team', makeTask({
-        id: 'task-3',
+        id: '3',
         subject: 'Final polish',
-        blockedBy: ['task-2'],
+        blockedBy: ['2'],
         status: 'blocked',
       }))
 
       // Verify initial dependency state
-      const t2Initial = getTask('e2e-team', 'task-2')
-      expect(t2Initial!.blockedBy).toEqual(['task-1'])
+      const t2Initial = getTask('e2e-team', '2')
+      expect(t2Initial!.blockedBy).toEqual(['1'])
       expect(t2Initial!.status).toBe('blocked')
 
       // Complete task-1
-      await updateTask('e2e-team', 'task-1', { status: 'completed' })
-      const t1 = getTask('e2e-team', 'task-1')
+      await updateTask('e2e-team', '1', { status: 'completed' })
+      const t1 = getTask('e2e-team', '1')
       expect(t1!.status).toBe('completed')
 
       // Simulate unblocking task-2 (the orchestrator would do this)
-      await updateTask('e2e-team', 'task-2', { status: 'pending', blockedBy: [] })
-      const t2Unblocked = getTask('e2e-team', 'task-2')
+      await updateTask('e2e-team', '2', { status: 'pending', blockedBy: [] })
+      const t2Unblocked = getTask('e2e-team', '2')
       expect(t2Unblocked!.status).toBe('pending')
       expect(t2Unblocked!.blockedBy).toEqual([])
 
       // Progress task-2 to completion
-      await updateTask('e2e-team', 'task-2', { status: 'in_progress', owner: 'sr-001' })
-      await updateTask('e2e-team', 'task-2', { status: 'completed' })
+      await updateTask('e2e-team', '2', { status: 'in_progress', owner: 'sr-001' })
+      await updateTask('e2e-team', '2', { status: 'completed' })
 
       // Simulate unblocking task-3
-      await updateTask('e2e-team', 'task-3', { status: 'pending', blockedBy: [] })
-      const t3Unblocked = getTask('e2e-team', 'task-3')
+      await updateTask('e2e-team', '3', { status: 'pending', blockedBy: [] })
+      const t3Unblocked = getTask('e2e-team', '3')
       expect(t3Unblocked!.status).toBe('pending')
       expect(t3Unblocked!.blockedBy).toEqual([])
 
       // Complete the chain
-      await updateTask('e2e-team', 'task-3', { status: 'in_progress', owner: 'jr-001' })
-      await updateTask('e2e-team', 'task-3', { status: 'completed' })
+      await updateTask('e2e-team', '3', { status: 'in_progress', owner: 'jr-001' })
+      await updateTask('e2e-team', '3', { status: 'completed' })
 
       // Verify all tasks completed
       const allTasks = listTasks('e2e-team')
@@ -447,42 +447,42 @@ describe('team lifecycle E2E', () => {
       createTeam(makeTeamConfig())
 
       await createTask('e2e-team', makeTask({
-        id: 'setup',
+        id: '10',
         subject: 'Project setup',
-        blocks: ['feature-a', 'feature-b', 'feature-c'],
+        blocks: ['11', '12', '13'].sort(),
         status: 'pending',
       }))
       await createTask('e2e-team', makeTask({
-        id: 'feature-a',
+        id: '11',
         subject: 'Feature A',
-        blockedBy: ['setup'],
+        blockedBy: ['10'],
         status: 'blocked',
       }))
       await createTask('e2e-team', makeTask({
-        id: 'feature-b',
+        id: '12',
         subject: 'Feature B',
-        blockedBy: ['setup'],
+        blockedBy: ['10'],
         status: 'blocked',
       }))
       await createTask('e2e-team', makeTask({
-        id: 'feature-c',
+        id: '13',
         subject: 'Feature C',
-        blockedBy: ['setup'],
+        blockedBy: ['10'],
         status: 'blocked',
       }))
 
       // Complete setup
-      await updateTask('e2e-team', 'setup', { status: 'completed' })
+      await updateTask('e2e-team', '10', { status: 'completed' })
 
       // Unblock all three features
-      await updateTask('e2e-team', 'feature-a', { status: 'pending', blockedBy: [] })
-      await updateTask('e2e-team', 'feature-b', { status: 'pending', blockedBy: [] })
-      await updateTask('e2e-team', 'feature-c', { status: 'pending', blockedBy: [] })
+      await updateTask('e2e-team', '11', { status: 'pending', blockedBy: [] })
+      await updateTask('e2e-team', '12', { status: 'pending', blockedBy: [] })
+      await updateTask('e2e-team', '13', { status: 'pending', blockedBy: [] })
 
       const tasks = listTasks('e2e-team')
       const pendingTasks = tasks.filter((t) => t.status === 'pending')
       expect(pendingTasks).toHaveLength(3)
-      expect(pendingTasks.map((t) => t.id).sort()).toEqual(['feature-a', 'feature-b', 'feature-c'])
+      expect(pendingTasks.map((t) => t.id).sort()).toEqual(['11', '12', '13'].sort())
     })
   })
 
@@ -617,8 +617,8 @@ describe('team lifecycle E2E', () => {
     it('should remove all team directories and task files', async () => {
       createTeam(makeTeamConfig())
       await addTeamMember('e2e-team', makeMember({ agentId: 'dev-001' }))
-      await createTask('e2e-team', makeTask({ id: 'task-1' }))
-      await createTask('e2e-team', makeTask({ id: 'task-2' }))
+      await createTask('e2e-team', makeTask({ id: '1' }))
+      await createTask('e2e-team', makeTask({ id: '2' }))
       await sendMessage('e2e-team', 'dev-001', {
         type: 'message',
         from: 'lead-001',
@@ -634,8 +634,8 @@ describe('team lifecycle E2E', () => {
       expect(fs.existsSync(path.join(teamDir, 'config.json'))).toBe(true)
       expect(fs.existsSync(path.join(teamDir, 'inboxes'))).toBe(true)
       expect(fs.existsSync(tasksDir)).toBe(true)
-      expect(fs.existsSync(path.join(tasksDir, 'task-1.json'))).toBe(true)
-      expect(fs.existsSync(path.join(tasksDir, 'task-2.json'))).toBe(true)
+      expect(fs.existsSync(path.join(tasksDir, '1.json'))).toBe(true)
+      expect(fs.existsSync(path.join(tasksDir, '2.json'))).toBe(true)
 
       deleteTeam('e2e-team')
 
@@ -683,43 +683,43 @@ describe('team lifecycle E2E', () => {
 
       // === Step 3: Create tasks ===
       await createTask('e2e-team', makeTask({
-        id: 'task-1',
+        id: '1',
         subject: 'Architecture design',
         description: 'Define system architecture',
-        blocks: ['task-2', 'task-3'],
+        blocks: ['2', '3'],
       }))
       await createTask('e2e-team', makeTask({
-        id: 'task-2',
+        id: '2',
         subject: 'Implement core API',
         description: 'Build the REST API',
-        blockedBy: ['task-1'],
-        blocks: ['task-4'],
+        blockedBy: ['1'],
+        blocks: ['4'],
         status: 'blocked',
       }))
       await createTask('e2e-team', makeTask({
-        id: 'task-3',
+        id: '3',
         subject: 'Implement UI shell',
         description: 'Build the frontend skeleton',
-        blockedBy: ['task-1'],
-        blocks: ['task-4'],
+        blockedBy: ['1'],
+        blocks: ['4'],
         status: 'blocked',
       }))
       await createTask('e2e-team', makeTask({
-        id: 'task-4',
+        id: '4',
         subject: 'Integration testing',
         description: 'E2E tests for API + UI',
-        blockedBy: ['task-2', 'task-3'],
+        blockedBy: ['2', '3'],
         status: 'blocked',
       }))
       expect(listTasks('e2e-team')).toHaveLength(4)
 
       // === Step 4: Assign task-1 ===
-      await updateTask('e2e-team', 'task-1', { owner: 'lead-001' })
-      expect(getTask('e2e-team', 'task-1')!.owner).toBe('lead-001')
+      await updateTask('e2e-team', '1', { owner: 'lead-001' })
+      expect(getTask('e2e-team', '1')!.owner).toBe('lead-001')
 
       // === Step 5: Progress task-1 ===
-      await updateTask('e2e-team', 'task-1', { status: 'in_progress' })
-      expect(getTask('e2e-team', 'task-1')!.status).toBe('in_progress')
+      await updateTask('e2e-team', '1', { status: 'in_progress' })
+      expect(getTask('e2e-team', '1')!.status).toBe('in_progress')
 
       // === Step 6: Send messages ===
       await sendMessage('e2e-team', 'sr-001', {
@@ -733,27 +733,27 @@ describe('team lifecycle E2E', () => {
       expect(readInbox('e2e-team', 'sr-001')).toHaveLength(1)
 
       // === Step 7: Complete task-1 and unblock dependents ===
-      await updateTask('e2e-team', 'task-1', { status: 'completed' })
-      expect(getTask('e2e-team', 'task-1')!.status).toBe('completed')
+      await updateTask('e2e-team', '1', { status: 'completed' })
+      expect(getTask('e2e-team', '1')!.status).toBe('completed')
 
       // Unblock task-2 and task-3
-      await updateTask('e2e-team', 'task-2', { status: 'pending', blockedBy: [] })
-      await updateTask('e2e-team', 'task-3', { status: 'pending', blockedBy: [] })
-      expect(getTask('e2e-team', 'task-2')!.status).toBe('pending')
-      expect(getTask('e2e-team', 'task-3')!.status).toBe('pending')
+      await updateTask('e2e-team', '2', { status: 'pending', blockedBy: [] })
+      await updateTask('e2e-team', '3', { status: 'pending', blockedBy: [] })
+      expect(getTask('e2e-team', '2')!.status).toBe('pending')
+      expect(getTask('e2e-team', '3')!.status).toBe('pending')
 
       // Assign and complete task-2
-      await updateTask('e2e-team', 'task-2', { owner: 'sr-001', status: 'in_progress' })
-      await updateTask('e2e-team', 'task-2', { status: 'completed' })
+      await updateTask('e2e-team', '2', { owner: 'sr-001', status: 'in_progress' })
+      await updateTask('e2e-team', '2', { status: 'completed' })
 
       // Assign and complete task-3
-      await updateTask('e2e-team', 'task-3', { owner: 'jr-001', status: 'in_progress' })
-      await updateTask('e2e-team', 'task-3', { status: 'completed' })
+      await updateTask('e2e-team', '3', { owner: 'jr-001', status: 'in_progress' })
+      await updateTask('e2e-team', '3', { status: 'completed' })
 
       // Unblock and complete task-4
-      await updateTask('e2e-team', 'task-4', { status: 'pending', blockedBy: [] })
-      await updateTask('e2e-team', 'task-4', { owner: 'tester-001', status: 'in_progress' })
-      await updateTask('e2e-team', 'task-4', { status: 'completed' })
+      await updateTask('e2e-team', '4', { status: 'pending', blockedBy: [] })
+      await updateTask('e2e-team', '4', { owner: 'tester-001', status: 'in_progress' })
+      await updateTask('e2e-team', '4', { status: 'completed' })
 
       // All tasks completed
       const allTasks = listTasks('e2e-team')

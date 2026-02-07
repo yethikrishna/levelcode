@@ -1,6 +1,6 @@
-import * as fs from 'fs'
 import { jsonToolResult } from '@levelcode/common/util/messages'
-import { getTeamsDir, getTask } from '@levelcode/common/utils/team-fs'
+import { getTask } from '@levelcode/common/utils/team-fs'
+import { findCurrentTeam } from '@levelcode/common/utils/team-discovery'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
 import type {
@@ -12,35 +12,13 @@ function errorResult(message: string) {
   return { output: jsonToolResult({ error: message }) }
 }
 
-function getActiveTeamName(): string | null {
-  let teamsDir: string
-  try {
-    teamsDir = getTeamsDir()
-  } catch {
-    return null
-  }
-  if (!fs.existsSync(teamsDir)) {
-    return null
-  }
-  let entries: fs.Dirent[]
-  try {
-    entries = fs.readdirSync(teamsDir, { withFileTypes: true })
-  } catch {
-    return null
-  }
-  const teamDirs = entries.filter((e) => e.isDirectory())
-  if (teamDirs.length === 0) {
-    return null
-  }
-  return teamDirs[0]!.name
-}
-
 type ToolName = 'task_get'
 export const handleTaskGet = (async (params: {
   previousToolCallFinished: Promise<void>
   toolCall: LevelCodeToolCall<ToolName>
+  agentStepId: string
 }): Promise<{ output: LevelCodeToolOutput<ToolName> }> => {
-  const { previousToolCallFinished, toolCall } = params
+  const { previousToolCallFinished, toolCall, agentStepId } = params
   const { taskId } = toolCall.input
 
   await previousToolCallFinished
@@ -50,12 +28,25 @@ export const handleTaskGet = (async (params: {
     return errorResult('A non-empty "taskId" is required.')
   }
 
-  const teamName = getActiveTeamName()
-  if (!teamName) {
+  // Validate taskId is numeric to prevent path traversal
+  if (!/^[0-9]+$/.test(taskId)) {
+    return errorResult('Task ID must be numeric.')
+  }
+
+  let teamResult: ReturnType<typeof findCurrentTeam>
+  try {
+    teamResult = findCurrentTeam(agentStepId)
+  } catch {
     return errorResult(
-      'No active team found. Create a team first using TeamCreate.',
+      'Failed to look up team for the current agent. The teams directory may be inaccessible.',
     )
   }
+  if (!teamResult) {
+    return errorResult(
+      'No active team found. Create a team first using team_create.',
+    )
+  }
+  const teamName = teamResult.teamName
 
   let task
   try {

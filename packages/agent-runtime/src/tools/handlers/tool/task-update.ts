@@ -2,11 +2,11 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { jsonToolResult } from '@levelcode/common/util/messages'
 import {
-  getTeamsDir,
   getTasksDir,
   getTask,
   updateTask,
 } from '@levelcode/common/utils/team-fs'
+import { findCurrentTeam } from '@levelcode/common/utils/team-discovery'
 import { emitTaskCompleted } from '@levelcode/common/utils/team-hook-emitter'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
@@ -23,38 +23,16 @@ function errorResult(message: string) {
   return { output: jsonToolResult({ error: message }) }
 }
 
-function getActiveTeamName(): string | null {
-  let teamsDir: string
-  try {
-    teamsDir = getTeamsDir()
-  } catch {
-    return null
-  }
-  if (!fs.existsSync(teamsDir)) {
-    return null
-  }
-  let entries: fs.Dirent[]
-  try {
-    entries = fs.readdirSync(teamsDir, { withFileTypes: true })
-  } catch {
-    return null
-  }
-  const teamDirs = entries.filter((e) => e.isDirectory())
-  if (teamDirs.length === 0) {
-    return null
-  }
-  return teamDirs[0]!.name
-}
-
 type ToolName = 'task_update'
 export const handleTaskUpdate = (async (params: {
   previousToolCallFinished: Promise<void>
   toolCall: LevelCodeToolCall<ToolName>
+  agentStepId: string
   trackEvent: TrackEventFn
   userId: string | undefined
   logger: Logger
 }): Promise<{ output: LevelCodeToolOutput<ToolName> }> => {
-  const { previousToolCallFinished, toolCall, trackEvent, userId, logger } = params
+  const { previousToolCallFinished, toolCall, agentStepId, trackEvent, userId, logger } = params
   const {
     taskId,
     status,
@@ -75,6 +53,11 @@ export const handleTaskUpdate = (async (params: {
     return errorResult('A non-empty "taskId" is required.')
   }
 
+  // Validate taskId is numeric to prevent path traversal
+  if (!/^[0-9]+$/.test(taskId)) {
+    return errorResult('Task ID must be numeric.')
+  }
+
   // Validate status if provided
   if (status !== undefined && !VALID_STATUSES.includes(status as typeof VALID_STATUSES[number])) {
     return errorResult(
@@ -82,12 +65,20 @@ export const handleTaskUpdate = (async (params: {
     )
   }
 
-  const teamName = getActiveTeamName()
-  if (!teamName) {
+  let teamResult: ReturnType<typeof findCurrentTeam>
+  try {
+    teamResult = findCurrentTeam(agentStepId)
+  } catch {
     return errorResult(
-      'No active team found. Create a team first using TeamCreate.',
+      'Failed to look up team for the current agent. The teams directory may be inaccessible.',
     )
   }
+  if (!teamResult) {
+    return errorResult(
+      'No active team found. Create a team first using team_create.',
+    )
+  }
+  const teamName = teamResult.teamName
 
   let existingTask
   try {

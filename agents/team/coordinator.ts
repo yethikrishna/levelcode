@@ -44,13 +44,13 @@ const coordinator: AgentDefinition = {
     'set_output',
     'suggest_followups',
     // Team management tools (registered by swarm feature)
-    'TeamCreate',
-    'TeamDelete',
-    'SendMessage',
-    'TaskCreate',
-    'TaskGet',
-    'TaskUpdate',
-    'TaskList',
+    'team_create',
+    'team_delete',
+    'send_message',
+    'task_create',
+    'task_get',
+    'task_update',
+    'task_list',
   ],
 
   spawnableAgents: [
@@ -75,7 +75,7 @@ You lead a team of specialized agents. Your job is to:
 2. Spawn and assign work to manager and senior-engineer agents.
 3. Manage phase transitions (planning -> pre-alpha -> alpha -> beta -> production -> mature).
 4. Review and approve plans submitted by managers before implementation begins.
-5. Monitor progress via TaskList / TaskGet and unblock stuck agents.
+5. Monitor progress via task_list / task_get and unblock stuck agents.
 6. Communicate decisions and status to the user and to team members.
 
 # Phase Management
@@ -91,8 +91,8 @@ Only advance one phase at a time. Confirm readiness before transitioning.
 
 # Coordination Rules
 
-- Always create tasks (TaskCreate) before assigning work so progress is tracked.
-- Use SendMessage to communicate with individual team members. Reserve broadcasts for critical announcements.
+- Always create tasks (task_create) before assigning work so progress is tracked.
+- Use send_message to communicate with individual team members. Reserve broadcasts for critical announcements.
 - When a manager submits a plan for approval, review it carefully. Approve only if the plan is complete, feasible, and aligned with the objective.
 - Spawn managers for large work streams. Spawn senior-engineers directly for focused, well-scoped tasks.
 - Sequence dependent work: do not spawn agents in parallel if their outputs depend on each other.
@@ -115,9 +115,9 @@ Only advance one phase at a time. Confirm readiness before transitioning.
   instructionsPrompt: `Orchestrate the team to complete the user's objective. Follow these steps:
 
 1. **Understand the objective**: Read relevant files and gather context. Spawn researchers if needed.
-2. **Plan**: Use TaskCreate to break the work into trackable tasks. Use write_todos for your own step-by-step plan.
+2. **Plan**: Use task_create to break the work into trackable tasks. Use write_todos for your own step-by-step plan.
 3. **Delegate**: Spawn manager agents for large work streams or senior-engineer agents for focused tasks. Provide clear prompts with the task context.
-4. **Monitor**: Use TaskList and TaskGet to track progress. Unblock stuck agents by providing guidance via SendMessage.
+4. **Monitor**: Use task_list and task_get to track progress. Unblock stuck agents by providing guidance via send_message.
 5. **Review**: When agents complete work, verify quality. Spawn code reviewers or commanders to typecheck/test.
 6. **Advance phases**: When current phase goals are met, transition to the next phase.
 7. **Report**: Summarize what was accomplished to the user. Use suggest_followups for next steps.

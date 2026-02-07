@@ -225,7 +225,7 @@ describe('team-concurrency', () => {
         Array.from({ length: taskCount }, (_, i) =>
           createTask(
             'concurrency-team',
-            makeTask({ id: `task-${i}`, subject: `Task ${i}` }),
+            makeTask({ id: `${i + 1}`, subject: `Task ${i}` }),
           ),
         ),
       )
@@ -237,7 +237,7 @@ describe('team-concurrency', () => {
       const taskIds = new Set(tasks.map((t) => t.id))
       expect(taskIds.size).toBe(taskCount)
       for (let i = 0; i < taskCount; i++) {
-        expect(taskIds.has(`task-${i}`)).toBe(true)
+        expect(taskIds.has(`${i + 1}`)).toBe(true)
       }
     })
 
@@ -251,7 +251,7 @@ describe('team-concurrency', () => {
           createTask(
             'concurrency-team',
             makeTask({
-              id: `ct-${i}`,
+              id: `${100 + i}`,
               subject: `Concurrent task ${i}`,
               description: `Description for task ${i} with some padding ${'x'.repeat(100)}`,
             }),
@@ -262,12 +262,12 @@ describe('team-concurrency', () => {
       // Each task file should be valid JSON
       const tasksDir = getTasksDir('concurrency-team')
       for (let i = 0; i < taskCount; i++) {
-        const taskPath = path.join(tasksDir, `ct-${i}.json`)
+        const taskPath = path.join(tasksDir, `${100 + i}.json`)
         expect(fs.existsSync(taskPath)).toBe(true)
         const raw = fs.readFileSync(taskPath, 'utf-8')
         expect(() => JSON.parse(raw)).not.toThrow()
         const parsed = JSON.parse(raw)
-        expect(parsed.id).toBe(`ct-${i}`)
+        expect(parsed.id).toBe(`${100 + i}`)
       }
     })
 
@@ -680,22 +680,22 @@ describe('team-concurrency', () => {
       createTeam(config)
       await createTask(
         'concurrency-team',
-        makeTask({ id: 'race-task', subject: 'Race condition task' }),
+        makeTask({ id: '200', subject: 'Race condition task' }),
       )
 
       // Two agents try to update the same task at the same time
       await Promise.all([
-        updateTask('concurrency-team', 'race-task', {
+        updateTask('concurrency-team', '200', {
           status: 'in_progress',
           owner: 'agent-A',
         }),
-        updateTask('concurrency-team', 'race-task', {
+        updateTask('concurrency-team', '200', {
           status: 'in_progress',
           owner: 'agent-B',
         }),
       ])
 
-      const task = getTask('concurrency-team', 'race-task')
+      const task = getTask('concurrency-team', '200')
       expect(task).not.toBeNull()
       expect(task!.status).toBe('in_progress')
       // One of the two owners should win (last-writer-wins with lock serialization)
@@ -708,7 +708,7 @@ describe('team-concurrency', () => {
       await createTask(
         'concurrency-team',
         makeTask({
-          id: 'transition-task',
+          id: '300',
           subject: 'Transition task',
           description: 'This description must survive',
         }),
@@ -716,27 +716,27 @@ describe('team-concurrency', () => {
 
       // Multiple concurrent updates to different fields
       await Promise.all([
-        updateTask('concurrency-team', 'transition-task', {
+        updateTask('concurrency-team', '300', {
           status: 'in_progress',
         }),
-        updateTask('concurrency-team', 'transition-task', {
+        updateTask('concurrency-team', '300', {
           owner: 'agent-C',
         }),
-        updateTask('concurrency-team', 'transition-task', {
+        updateTask('concurrency-team', '300', {
           activeForm: 'Working on it',
         }),
       ])
 
-      const task = getTask('concurrency-team', 'transition-task')
+      const task = getTask('concurrency-team', '300')
       expect(task).not.toBeNull()
       // Original fields should be intact
-      expect(task!.id).toBe('transition-task')
+      expect(task!.id).toBe('300')
       expect(task!.subject).toBe('Transition task')
       expect(task!.description).toBe('This description must survive')
       // The task file should be valid JSON
       const taskPath = path.join(
         getTasksDir('concurrency-team'),
-        'transition-task.json',
+        '300.json',
       )
       const raw = fs.readFileSync(taskPath, 'utf-8')
       expect(() => JSON.parse(raw)).not.toThrow()
@@ -752,7 +752,7 @@ describe('team-concurrency', () => {
         Array.from({ length: taskCount }, (_, i) =>
           createTask(
             'concurrency-team',
-            makeTask({ id: `multi-${i}`, subject: `Multi-task ${i}` }),
+            makeTask({ id: `${400 + i}`, subject: `Multi-task ${i}` }),
           ),
         ),
       )
@@ -760,7 +760,7 @@ describe('team-concurrency', () => {
       // Now update all tasks concurrently
       await Promise.all(
         Array.from({ length: taskCount }, (_, i) =>
-          updateTask('concurrency-team', `multi-${i}`, {
+          updateTask('concurrency-team', `${400 + i}`, {
             status: 'in_progress',
             owner: `agent-${i}`,
           }),
@@ -769,7 +769,7 @@ describe('team-concurrency', () => {
 
       // All tasks should be updated correctly
       for (let i = 0; i < taskCount; i++) {
-        const task = getTask('concurrency-team', `multi-${i}`)
+        const task = getTask('concurrency-team', `${400 + i}`)
         expect(task).not.toBeNull()
         expect(task!.status).toBe('in_progress')
         expect(task!.owner).toBe(`agent-${i}`)
@@ -783,7 +783,7 @@ describe('team-concurrency', () => {
       await createTask(
         'concurrency-team',
         makeTask({
-          id: 'timestamp-race',
+          id: '500',
           updatedAt: earlyTime,
         }),
       )
@@ -791,16 +791,16 @@ describe('team-concurrency', () => {
       const before = Date.now()
 
       await Promise.all([
-        updateTask('concurrency-team', 'timestamp-race', {
+        updateTask('concurrency-team', '500', {
           subject: 'Updated A',
         }),
-        updateTask('concurrency-team', 'timestamp-race', {
+        updateTask('concurrency-team', '500', {
           subject: 'Updated B',
         }),
       ])
 
       const after = Date.now()
-      const task = getTask('concurrency-team', 'timestamp-race')
+      const task = getTask('concurrency-team', '500')
       expect(task).not.toBeNull()
       // updatedAt should be recent, not the original earlyTime
       expect(task!.updatedAt).toBeGreaterThanOrEqual(before)
@@ -817,9 +817,9 @@ describe('team-concurrency', () => {
         Array.from({ length: agentCount }, async (_, i) => {
           await createTask(
             'concurrency-team',
-            makeTask({ id: `seq-${i}`, subject: `Seq ${i}`, status: 'pending' }),
+            makeTask({ id: `${600 + i}`, subject: `Seq ${i}`, status: 'pending' }),
           )
-          await updateTask('concurrency-team', `seq-${i}`, {
+          await updateTask('concurrency-team', `${600 + i}`, {
             status: 'in_progress',
             owner: `agent-${i}`,
           })
@@ -830,7 +830,7 @@ describe('team-concurrency', () => {
       const tasks = listTasks('concurrency-team')
       expect(tasks).toHaveLength(agentCount)
       for (let i = 0; i < agentCount; i++) {
-        const task = getTask('concurrency-team', `seq-${i}`)
+        const task = getTask('concurrency-team', `${600 + i}`)
         expect(task).not.toBeNull()
         expect(task!.status).toBe('in_progress')
         expect(task!.owner).toBe(`agent-${i}`)
@@ -851,7 +851,7 @@ describe('team-concurrency', () => {
         Array.from({ length: 5 }, (_, i) =>
           createTask(
             'concurrency-team',
-            makeTask({ id: `stress-${i}`, subject: `Stress task ${i}` }),
+            makeTask({ id: `${700 + i}`, subject: `Stress task ${i}` }),
           ),
         ),
       )
@@ -870,7 +870,7 @@ describe('team-concurrency', () => {
 
         // Task updates
         ...Array.from({ length: 5 }, (_, i) =>
-          updateTask('concurrency-team', `stress-${i}`, {
+          updateTask('concurrency-team', `${700 + i}`, {
             status: 'in_progress',
             owner: `stress-owner-${i}`,
           }),
@@ -894,7 +894,7 @@ describe('team-concurrency', () => {
 
       // All tasks should be updated
       for (let i = 0; i < 5; i++) {
-        const task = getTask('concurrency-team', `stress-${i}`)
+        const task = getTask('concurrency-team', `${700 + i}`)
         expect(task).not.toBeNull()
         expect(task!.status).toBe('in_progress')
       }

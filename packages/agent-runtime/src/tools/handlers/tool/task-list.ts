@@ -1,6 +1,6 @@
-import * as fs from 'fs'
 import { jsonToolResult } from '@levelcode/common/util/messages'
-import { getTeamsDir, listTasks } from '@levelcode/common/utils/team-fs'
+import { listTasks } from '@levelcode/common/utils/team-fs'
+import { findCurrentTeam } from '@levelcode/common/utils/team-discovery'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
 import type {
@@ -8,47 +8,36 @@ import type {
   LevelCodeToolOutput,
 } from '@levelcode/common/tools/list'
 
-function getActiveTeamName(): string | null {
-  let teamsDir: string
-  try {
-    teamsDir = getTeamsDir()
-  } catch {
-    return null
-  }
-  if (!fs.existsSync(teamsDir)) {
-    return null
-  }
-  let entries: fs.Dirent[]
-  try {
-    entries = fs.readdirSync(teamsDir, { withFileTypes: true })
-  } catch {
-    return null
-  }
-  const teamDirs = entries.filter((e) => e.isDirectory())
-  if (teamDirs.length === 0) {
-    return null
-  }
-  return teamDirs[0]!.name
-}
-
 type ToolName = 'task_list'
 export const handleTaskList = (async (params: {
   previousToolCallFinished: Promise<void>
   toolCall: LevelCodeToolCall<ToolName>
+  agentStepId: string
 }): Promise<{ output: LevelCodeToolOutput<ToolName> }> => {
-  const { previousToolCallFinished } = params
+  const { previousToolCallFinished, agentStepId } = params
 
   await previousToolCallFinished
 
-  const teamName = getActiveTeamName()
-  if (!teamName) {
+  let teamResult: ReturnType<typeof findCurrentTeam>
+  try {
+    teamResult = findCurrentTeam(agentStepId)
+  } catch {
     return {
       output: jsonToolResult({
-        error: 'No active team found. Create a team first using TeamCreate.',
+        error: 'Failed to look up team for the current agent. The teams directory may be inaccessible.',
         tasks: [],
       }),
     }
   }
+  if (!teamResult) {
+    return {
+      output: jsonToolResult({
+        error: 'No active team found. Create a team first using team_create.',
+        tasks: [],
+      }),
+    }
+  }
+  const teamName = teamResult.teamName
 
   let tasks
   try {
@@ -68,6 +57,7 @@ export const handleTaskList = (async (params: {
     id: t.id,
     subject: t.subject,
     status: t.status,
+    priority: t.priority ?? 'medium',
     owner: t.owner ?? null,
     blockedBy: (Array.isArray(t.blockedBy) ? t.blockedBy : []).filter((id) => {
       const blocker = tasks.find((bt) => bt.id === id)

@@ -37,18 +37,18 @@ export const devPhaseSchema = z.enum([
 
 export const teamMemberSchema = z.object({
   agentId: z.string(),
-  name: z.string(),
+  name: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, 'Agent name may only contain letters, numbers, hyphens, and underscores'),
   role: teamRoleSchema,
   agentType: z.string(),
   model: z.string(),
   joinedAt: z.number(),
-  status: z.enum(['active', 'idle', 'completed', 'failed']),
+  status: z.enum(['active', 'idle', 'working', 'blocked', 'completed', 'failed']),
   currentTaskId: z.string().optional(),
   cwd: z.string(),
 })
 
 export const teamConfigSchema = z.object({
-  name: z.string(),
+  name: z.string().min(1).max(50).regex(/^[a-zA-Z0-9_-]+$/, 'Team name may only contain letters, numbers, hyphens, and underscores'),
   description: z.string(),
   createdAt: z.number(),
   leadAgentId: z.string(),
@@ -61,7 +61,7 @@ export const teamConfigSchema = z.object({
 })
 
 export const teamTaskSchema = z.object({
-  id: z.string(),
+  id: z.string().regex(/^[0-9]+$/, 'Task ID must be numeric'),
   subject: z.string(),
   description: z.string(),
   status: z.enum(['pending', 'in_progress', 'completed', 'blocked']),

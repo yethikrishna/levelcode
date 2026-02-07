@@ -15,8 +15,12 @@ function getStatusStyle(
   switch (member.status) {
     case 'active':
       return { label: 'working', color: theme.success }
+    case 'working':
+      return { label: 'working', color: theme.success }
     case 'idle':
       return { label: 'idle', color: theme.warning }
+    case 'blocked':
+      return { label: 'blocked', color: theme.info ?? theme.warning }
     case 'failed':
       return { label: 'failed', color: theme.error }
     case 'completed':

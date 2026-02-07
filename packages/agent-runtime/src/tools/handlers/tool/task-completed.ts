@@ -120,7 +120,7 @@ export const handleTaskCompleted = (async ({
     taskSummary = `Task #${task.id} "${task.subject}" completed by ${agentName}.`
 
     try {
-      updateTask(teamName, task.id, { status: 'completed' })
+      await updateTask(teamName, task.id, { status: 'completed' })
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)

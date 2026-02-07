@@ -135,7 +135,7 @@ export function syncFromDisk(teamName: string): TeamConfig | null {
  * Write the current store state back to disk.
  * No-op if there is no active team.
  */
-export function syncToDisk(): void {
+export async function syncToDisk(): Promise<void> {
   const { activeTeam, members, currentPhase } = useTeamStore.getState()
   if (!activeTeam) {
     return
@@ -146,7 +146,7 @@ export function syncToDisk(): void {
     members,
     phase: currentPhase,
   }
-  saveTeamConfig(activeTeam.name, updated)
+  await saveTeamConfig(activeTeam.name, updated)
 }
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null

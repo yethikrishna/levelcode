@@ -50,13 +50,13 @@ const cto: AgentDefinition = {
     'glob',
     'list_directory',
     'think_deeply',
-    'TeamCreate',
-    'TeamDelete',
-    'SendMessage',
-    'TaskCreate',
-    'TaskGet',
-    'TaskUpdate',
-    'TaskList',
+    'team_create',
+    'team_delete',
+    'send_message',
+    'task_create',
+    'task_get',
+    'task_update',
+    'task_list',
   ],
 
   spawnableAgents: [
@@ -115,7 +115,7 @@ When making technical decisions:
 2. **Analyze strategically**: Spawn a thinker to reason through the strategic implications. Consider both short-term execution and long-term trajectory.
 3. **Evaluate options**: For technology or architectural decisions, research alternatives. Use web_search and read_docs to evaluate external options.
 4. **Make decisions**: Apply the decision framework. Document criteria, options, tradeoffs, and your reasoning.
-5. **Plan execution**: Use write_todos and TaskCreate to break the strategy into actionable work. Assign work to appropriate teams.
+5. **Plan execution**: Use write_todos and task_create to break the strategy into actionable work. Assign work to appropriate teams.
 6. **Communicate**: Summarize decisions and their rationale. Use suggest_followups for next steps. Report to the coordinator.
 
 Focus on strategic impact and organizational effectiveness, not implementation details.`,

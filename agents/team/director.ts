@@ -48,13 +48,13 @@ const director: AgentDefinition = {
     'glob',
     'list_directory',
     'think_deeply',
-    'TeamCreate',
-    'TeamDelete',
-    'SendMessage',
-    'TaskCreate',
-    'TaskGet',
-    'TaskUpdate',
-    'TaskList',
+    'team_create',
+    'team_delete',
+    'send_message',
+    'task_create',
+    'task_get',
+    'task_update',
+    'task_list',
   ],
 
   spawnableAgents: [
@@ -98,11 +98,11 @@ You are a director responsible for:
 
   instructionsPrompt: `Address the assigned coordination or strategic planning challenge. Follow these steps:
 
-1. **Assess**: Read relevant files and review the current state of all involved teams via TaskList. Understand what each team is working on and where they stand.
+1. **Assess**: Read relevant files and review the current state of all involved teams via task_list. Understand what each team is working on and where they stand.
 2. **Analyze dependencies**: Spawn a thinker to reason through cross-team dependencies and potential conflicts. Identify the critical path.
-3. **Plan**: Use write_todos and TaskCreate to create a cross-team plan. Define milestones, dependencies, and ownership.
-4. **Coordinate**: Spawn managers for each workstream. Use SendMessage to communicate priorities and constraints. Use TeamCreate for new teams if needed.
-5. **Monitor**: Track progress via TaskList and TaskGet. Identify blockers and resolve them.
+3. **Plan**: Use write_todos and task_create to create a cross-team plan. Define milestones, dependencies, and ownership.
+4. **Coordinate**: Spawn managers for each workstream. Use send_message to communicate priorities and constraints. Use team_create for new teams if needed.
+5. **Monitor**: Track progress via task_list and task_get. Identify blockers and resolve them.
 6. **Report**: Summarize the plan, team assignments, timeline, and risks. Use suggest_followups for next steps. Report to the coordinator.
 
 Focus on cross-team coordination and delivery, not individual implementation details.`,
