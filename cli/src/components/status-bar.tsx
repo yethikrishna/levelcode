@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { ScrollToBottomButton } from './scroll-to-bottom-button'
 import { ShimmerText } from './shimmer-text'
 import { useTheme } from '../hooks/use-theme'
+import { useTeamStore } from '../state/team-store'
 import { formatElapsedTime } from '../utils/format-elapsed-time'
 
 import type { StatusIndicatorState } from '../utils/status-indicator-state'
@@ -122,11 +123,26 @@ export const StatusBar = ({
     return <span fg={theme.secondary}>{formatElapsedTime(elapsedSeconds)}</span>
   }
 
+  const swarmEnabled = useTeamStore((s) => s.swarmEnabled)
+  const activeTeam = useTeamStore((s) => s.activeTeam)
+  const currentPhase = useTeamStore((s) => s.currentPhase)
+
+  const renderTeamIndicator = () => {
+    if (!swarmEnabled || !activeTeam) return null
+    const phaseLabel = currentPhase.toUpperCase().replace('-', ' ')
+    return (
+      <span fg={theme.primary}>
+        {activeTeam.name} [{phaseLabel}]
+      </span>
+    )
+  }
+
   const statusIndicatorContent = renderStatusIndicator()
   const elapsedTimeContent = renderElapsedTime()
+  const teamIndicatorContent = renderTeamIndicator()
 
   // Only show gray background when there's status indicator or timer
-  const hasContent = statusIndicatorContent || elapsedTimeContent
+  const hasContent = statusIndicatorContent || elapsedTimeContent || teamIndicatorContent
 
   return (
     <box
@@ -153,6 +169,12 @@ export const StatusBar = ({
       <box style={{ flexShrink: 0 }}>
         {!isAtBottom && <ScrollToBottomButton onClick={scrollToLatest} />}
       </box>
+
+      {teamIndicatorContent && (
+        <box style={{ flexShrink: 0 }}>
+          <text style={{ wrapMode: 'none' }}>{teamIndicatorContent}</text>
+        </box>
+      )}
 
       <box
         style={{

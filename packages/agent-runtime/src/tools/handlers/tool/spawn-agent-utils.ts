@@ -5,10 +5,16 @@ import { generateCompactId } from '@levelcode/common/util/string'
 import {
   addTeamMember,
   loadTeamConfig,
-  getTasksDir,
+  sendMessage,
 } from '@levelcode/common/utils/team-fs'
+import { TEAM_AGENTS } from '../../../../../../agents/team'
+import {
+  canManage,
+  getSpawnableRoles,
+} from '../../../../../../agents/team/role-hierarchy'
 
 import { loopAgentSteps } from '../../../run-agent-step'
+import { generateTeamPromptSection } from '../../../system-prompt/team-prompt'
 import { getAgentTemplate } from '../../../templates/agent-registry'
 import {
   filterUnfinishedToolCalls,
@@ -32,7 +38,7 @@ import type {
   AgentTemplateType,
   Subgoal,
 } from '@levelcode/common/types/session-state'
-import type { TeamMember, TeamRole } from '@levelcode/common/types/team-config'
+import type { TeamConfig, TeamMember, TeamRole } from '@levelcode/common/types/team-config'
 import type { ProjectFileContext } from '@levelcode/common/util/file'
 import type { ToolSet } from 'ai'
 
@@ -473,16 +479,105 @@ export interface TeamSpawnOptions {
 }
 
 /**
+ * Resolves a team_role to the corresponding agent template ID from agents/team/.
+ * For example, 'coordinator' maps to the coordinator agent template,
+ * 'manager' maps to the manager agent template, etc.
+ *
+ * Returns the agent template ID (which is the same as the role string for
+ * roles that have a dedicated template), or null if no template exists for
+ * the given role.
+ */
+export function resolveTeamRoleAgentType(
+  teamRole: string,
+): string | null {
+  const role = teamRole as TeamRole
+  const agentDef = TEAM_AGENTS[role]
+  if (!agentDef) {
+    return null
+  }
+  return agentDef.id
+}
+
+/**
+ * Validates that the spawning agent has authority to spawn an agent
+ * with the requested team role.
+ *
+ * Uses canManage from role-hierarchy to check that the spawner's role
+ * has a strictly higher authority level than the target role.
+ * Also checks getSpawnableRoles to ensure the specific role combination
+ * is allowed.
+ *
+ * @param spawnerRole - The team role of the agent performing the spawn
+ * @param targetRole - The team role being requested for the new agent
+ * @throws Error if the spawner lacks authority
+ */
+export function validateSpawnAuthority(
+  spawnerRole: TeamRole,
+  targetRole: TeamRole,
+): void {
+  // Check hierarchical authority first
+  if (!canManage(spawnerRole, targetRole)) {
+    throw new Error(
+      `Role "${spawnerRole}" does not have authority to spawn role "${targetRole}". ` +
+      `A role can only spawn roles with a strictly lower authority level.`,
+    )
+  }
+
+  // Check explicit spawnable roles map for more granular control
+  const spawnableRoles = getSpawnableRoles(spawnerRole)
+  if (spawnableRoles.length > 0 && !spawnableRoles.includes(targetRole)) {
+    throw new Error(
+      `Role "${spawnerRole}" is not configured to spawn role "${targetRole}". ` +
+      `Allowed roles: ${spawnableRoles.join(', ')}.`,
+    )
+  }
+}
+
+/**
+ * Sends a notification to the team lead when a new agent joins the team.
+ * This is a fire-and-forget operation; errors are logged but not thrown.
+ */
+export async function notifyTeamLead(
+  teamName: string,
+  teamConfig: TeamConfig,
+  memberName: string,
+  role: TeamRole,
+  logger: Logger,
+): Promise<void> {
+  try {
+    // Find the team lead member to get their inbox name
+    const leadMember = teamConfig.members.find(
+      (m) => m.agentId === teamConfig.leadAgentId,
+    )
+    const leadInboxName = leadMember?.name ?? teamConfig.leadAgentId
+
+    await sendMessage(teamName, leadInboxName, {
+      type: 'message',
+      from: 'system',
+      to: leadInboxName,
+      text: `New team member joined: "${memberName}" with role "${role}".`,
+      summary: `New ${role} agent joined`,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    logger.debug(
+      { teamName, error },
+      `Failed to notify team lead about new member`,
+    )
+  }
+}
+
+/**
  * Registers a spawned agent as a member of an existing team.
  * Returns the team context string to prepend to the agent's prompt,
  * or null if the team does not exist.
  */
-export function registerAgentAsTeamMember(
+export async function registerAgentAsTeamMember(
   agentId: string,
   agentType: string,
   options: TeamSpawnOptions,
   logger: Logger,
-): string | null {
+): Promise<string | null> {
   const { teamName, teamRole } = options
 
   const teamConfig = loadTeamConfig(teamName)
@@ -509,7 +604,7 @@ export function registerAgentAsTeamMember(
   }
 
   try {
-    addTeamMember(teamName, member)
+    await addTeamMember(teamName, member)
   } catch (error) {
     logger.debug(
       { teamName, agentId, error },
@@ -518,28 +613,8 @@ export function registerAgentAsTeamMember(
     return null
   }
 
-  return buildTeamContextPrompt(teamName, memberName, role, teamConfig.leadAgentId)
-}
+  // Notify the team lead about the new member (fire-and-forget)
+  await notifyTeamLead(teamName, teamConfig, memberName, role, logger)
 
-/**
- * Builds additional system prompt context for a team-aware spawned agent.
- */
-function buildTeamContextPrompt(
-  teamName: string,
-  agentName: string,
-  role: TeamRole,
-  leadAgentId: string,
-): string {
-  const tasksDir = getTasksDir(teamName)
-
-  return [
-    `\n# Team Context`,
-    `You are a member of team "${teamName}".`,
-    `Your name in this team: ${agentName}`,
-    `Your role: ${role}`,
-    `Team lead agent ID: ${leadAgentId}`,
-    `Team task directory: ${tasksDir}`,
-    `Use the team messaging tools (send_message, broadcast) to communicate with teammates.`,
-    `Use the task tools (task_create, task_update, task_list) to coordinate work.`,
-  ].join('\n')
+  return generateTeamPromptSection(teamName, memberName, role, teamConfig.phase)
 }

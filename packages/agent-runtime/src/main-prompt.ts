@@ -1,12 +1,16 @@
 import { trackEvent } from '@levelcode/common/analytics'
 import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
+import { userMessage } from '@levelcode/common/util/messages'
 import { AgentTemplateTypes } from '@levelcode/common/types/session-state'
 
+import { drainInbox } from './inbox-poller'
 import { loopAgentSteps } from './run-agent-step'
+import { findTeamContext } from './team-context'
 import {
   assembleLocalAgentTemplates,
   getAgentTemplate,
 } from './templates/agent-registry'
+import { withSystemTags } from './util/messages'
 
 import type { AgentTemplate } from './templates/types'
 import type { ClientAction } from '@levelcode/common/actions'
@@ -178,6 +182,29 @@ export async function callMainPrompt(
     action.sessionState.mainAgentState.messageHistory.push(
       ...action.toolResults,
     )
+  }
+
+  // Deliver any pending teammate messages before processing the new prompt
+  const teamContext = findTeamContext(promptId)
+  if (teamContext) {
+    const inboxResult = drainInbox({
+      teamName: teamContext.teamName,
+      agentName: teamContext.agentName,
+      logger,
+    })
+    if (inboxResult.formattedContent) {
+      action.sessionState.mainAgentState.messageHistory.push(
+        userMessage(withSystemTags(inboxResult.formattedContent)),
+      )
+      logger.debug(
+        {
+          teamName: teamContext.teamName,
+          agentName: teamContext.agentName,
+          messageCount: inboxResult.messages.length,
+        },
+        'Delivered teammate messages at prompt start',
+      )
+    }
   }
 
   // Assemble local agent templates from fileContext

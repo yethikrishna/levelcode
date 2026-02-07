@@ -1,18 +1,16 @@
-import * as fs from 'fs'
 import { jsonToolResult } from '@levelcode/common/util/messages'
 import { generateCompactId } from '@levelcode/common/util/string'
-import {
-  getTeamsDir,
-  loadTeamConfig,
-  sendMessage,
-} from '@levelcode/common/utils/team-fs'
+import { sendMessage } from '@levelcode/common/utils/team-fs'
+import { findCurrentTeamAndAgent } from '@levelcode/common/utils/team-discovery'
+import { trackMessageSent } from '@levelcode/common/utils/team-analytics'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
 import type {
   LevelCodeToolCall,
   LevelCodeToolOutput,
 } from '@levelcode/common/tools/list'
-import type { TeamConfig } from '@levelcode/common/types/team-config'
+import type { TrackEventFn } from '@levelcode/common/types/contracts/analytics'
+import type { Logger } from '@levelcode/common/types/contracts/logger'
 import type {
   TeamMessage,
   BroadcastMessage,
@@ -24,56 +22,59 @@ import type {
 
 type ToolName = 'send_message'
 
-function findCurrentTeamAndAgent(
-  agentStepId: string,
-): { teamName: string; agentName: string; config: TeamConfig } | null {
-  const teamsDir = getTeamsDir()
-  if (!fs.existsSync(teamsDir)) {
-    return null
-  }
-  const entries = fs.readdirSync(teamsDir, { withFileTypes: true })
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue
-    }
-    const config = loadTeamConfig(entry.name)
-    if (!config) {
-      continue
-    }
-    for (const member of config.members) {
-      if (
-        member.agentId === `lead-${agentStepId}` ||
-        member.agentId === agentStepId
-      ) {
-        return { teamName: config.name, agentName: member.name, config }
-      }
-    }
-  }
-  return null
-}
-
 function errorResult(message: string) {
   return { output: jsonToolResult({ message }) }
+}
+
+async function safeSendMessage(
+  teamName: string,
+  recipientName: string,
+  msg: Parameters<typeof sendMessage>[2],
+): Promise<string | null> {
+  try {
+    await sendMessage(teamName, recipientName, msg)
+    return null
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
+  }
 }
 
 export const handleSendMessage = (async (params: {
   previousToolCallFinished: Promise<void>
   toolCall: LevelCodeToolCall<ToolName>
   agentStepId: string
+  trackEvent: TrackEventFn
+  userId: string | undefined
+  logger: Logger
 }): Promise<{ output: LevelCodeToolOutput<ToolName> }> => {
-  const { previousToolCallFinished, toolCall, agentStepId } = params
+  const { previousToolCallFinished, toolCall, agentStepId, trackEvent, userId, logger } = params
   const { type, recipient, content, summary, request_id, approve } =
     toolCall.input
 
   await previousToolCallFinished
 
-  const teamContext = findCurrentTeamAndAgent(agentStepId)
+  // Validate message type
+  if (!type) {
+    return errorResult(
+      'A "type" is required. Expected one of: message, broadcast, shutdown_request, shutdown_response, plan_approval_response.',
+    )
+  }
+
+  let teamContext: ReturnType<typeof findCurrentTeamAndAgent>
+  try {
+    teamContext = findCurrentTeamAndAgent(agentStepId)
+  } catch {
+    return errorResult(
+      'Failed to look up team for the current agent. The teams directory may be inaccessible.',
+    )
+  }
   if (!teamContext) {
     return errorResult(
       'No team found for the current agent context. Cannot send messages outside a team.',
     )
   }
   const { teamName, agentName, config } = teamContext
+  const members = Array.isArray(config.members) ? config.members : []
   const timestamp = new Date().toISOString()
 
   switch (type) {
@@ -88,12 +89,14 @@ export const handleSendMessage = (async (params: {
           'A "summary" is required for type "message".',
         )
       }
-      const memberExists = config.members.some(
-        (m) => m.name === recipient,
-      )
+      if (recipient === agentName) {
+        return errorResult('Cannot send a message to yourself.')
+      }
+      const memberExists = members.some((m) => m.name === recipient)
       if (!memberExists) {
+        const available = members.map((m) => m.name).join(', ')
         return errorResult(
-          `Recipient "${recipient}" is not a member of team "${teamName}".`,
+          `Recipient "${recipient}" is not a member of team "${teamName}". Available members: ${available}`,
         )
       }
       const msg: TeamMessage = {
@@ -104,7 +107,21 @@ export const handleSendMessage = (async (params: {
         summary,
         timestamp,
       }
-      sendMessage(teamName, recipient, msg)
+      const sendErr = await safeSendMessage(teamName, recipient, msg)
+      if (sendErr) {
+        return errorResult(
+          `Failed to deliver message to "${recipient}": ${sendErr}`,
+        )
+      }
+      try {
+        trackMessageSent(
+          { trackEvent, userId: userId ?? '', logger },
+          teamName,
+          'dm',
+        )
+      } catch {
+        // Analytics failure should not block message delivery response
+      }
       return {
         output: jsonToolResult({
           message: `Message sent to "${recipient}" in team "${teamName}".`,
@@ -125,11 +142,34 @@ export const handleSendMessage = (async (params: {
         summary,
         timestamp,
       }
-      const recipients = config.members
+      const recipients = members
         .filter((m) => m.name !== agentName)
         .map((m) => m.name)
+      if (recipients.length === 0) {
+        return errorResult(
+          'No other team members to broadcast to.',
+        )
+      }
+      const failures: string[] = []
       for (const memberName of recipients) {
-        sendMessage(teamName, memberName, msg)
+        const sendErr = await safeSendMessage(teamName, memberName, msg)
+        if (sendErr) {
+          failures.push(memberName)
+        }
+      }
+      if (failures.length > 0) {
+        return errorResult(
+          `Broadcast partially failed. Could not deliver to: ${failures.join(', ')}`,
+        )
+      }
+      try {
+        trackMessageSent(
+          { trackEvent, userId: userId ?? '', logger },
+          teamName,
+          'broadcast',
+        )
+      } catch {
+        // Analytics failure should not block message delivery response
       }
       return {
         output: jsonToolResult({
@@ -144,13 +184,14 @@ export const handleSendMessage = (async (params: {
           'A "recipient" is required for type "shutdown_request".',
         )
       }
-      const memberExists = config.members.some(
-        (m) => m.name === recipient,
-      )
+      const memberExists = members.some((m) => m.name === recipient)
       if (!memberExists) {
         return errorResult(
           `Recipient "${recipient}" is not a member of team "${teamName}".`,
         )
+      }
+      if (recipient === agentName) {
+        return errorResult('Cannot send a shutdown request to yourself.')
       }
       const msg: ShutdownRequest = {
         type: 'shutdown_request',
@@ -159,7 +200,21 @@ export const handleSendMessage = (async (params: {
         reason: content,
         timestamp,
       }
-      sendMessage(teamName, recipient, msg)
+      const sendErr = await safeSendMessage(teamName, recipient, msg)
+      if (sendErr) {
+        return errorResult(
+          `Failed to deliver shutdown request to "${recipient}": ${sendErr}`,
+        )
+      }
+      try {
+        trackMessageSent(
+          { trackEvent, userId: userId ?? '', logger },
+          teamName,
+          'shutdown',
+        )
+      } catch {
+        // Analytics failure should not block message delivery response
+      }
       return {
         output: jsonToolResult({
           message: `Shutdown request sent to "${recipient}" (requestId: ${msg.requestId}).`,
@@ -180,6 +235,7 @@ export const handleSendMessage = (async (params: {
       }
       // The response goes back to whoever sent the shutdown_request.
       // We broadcast the response so the requester picks it up.
+      const otherMembers = members.filter((m) => m.name !== agentName)
       if (approve) {
         const msg: ShutdownApproved = {
           type: 'shutdown_approved',
@@ -187,11 +243,17 @@ export const handleSendMessage = (async (params: {
           from: agentName,
           timestamp,
         }
-        // Send to all members so the requester sees it regardless of who they are
-        for (const member of config.members) {
-          if (member.name !== agentName) {
-            sendMessage(teamName, member.name, msg)
+        const failures: string[] = []
+        for (const member of otherMembers) {
+          const sendErr = await safeSendMessage(teamName, member.name, msg)
+          if (sendErr) {
+            failures.push(member.name)
           }
+        }
+        if (failures.length > 0) {
+          return errorResult(
+            `Shutdown approved but failed to notify: ${failures.join(', ')}`,
+          )
         }
         return {
           output: jsonToolResult({
@@ -206,10 +268,17 @@ export const handleSendMessage = (async (params: {
           reason: content ?? 'Shutdown rejected without a reason.',
           timestamp,
         }
-        for (const member of config.members) {
-          if (member.name !== agentName) {
-            sendMessage(teamName, member.name, msg)
+        const failures: string[] = []
+        for (const member of otherMembers) {
+          const sendErr = await safeSendMessage(teamName, member.name, msg)
+          if (sendErr) {
+            failures.push(member.name)
           }
+        }
+        if (failures.length > 0) {
+          return errorResult(
+            `Shutdown rejected but failed to notify: ${failures.join(', ')}`,
+          )
         }
         return {
           output: jsonToolResult({
@@ -235,9 +304,7 @@ export const handleSendMessage = (async (params: {
           'An "approve" boolean is required for type "plan_approval_response".',
         )
       }
-      const memberExists = config.members.some(
-        (m) => m.name === recipient,
-      )
+      const memberExists = members.some((m) => m.name === recipient)
       if (!memberExists) {
         return errorResult(
           `Recipient "${recipient}" is not a member of team "${teamName}".`,
@@ -250,7 +317,12 @@ export const handleSendMessage = (async (params: {
         feedback: content,
         timestamp,
       }
-      sendMessage(teamName, recipient, msg)
+      const sendErr = await safeSendMessage(teamName, recipient, msg)
+      if (sendErr) {
+        return errorResult(
+          `Failed to deliver plan approval response to "${recipient}": ${sendErr}`,
+        )
+      }
       const action = approve ? 'approved' : 'rejected'
       return {
         output: jsonToolResult({

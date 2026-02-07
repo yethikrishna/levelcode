@@ -22,6 +22,7 @@ import { MessageWithAgents } from './components/message-with-agents'
 import { areCreditsRestored } from './components/out-of-credits-banner'
 import { PendingBashMessage } from './components/pending-bash-message'
 import { StatusBar } from './components/status-bar'
+import { TeamPanel } from './components/team-panel'
 import { TopBanner } from './components/top-banner'
 import { getSlashCommandsWithSkills } from './data/slash-commands'
 import { useAgentValidation } from './hooks/use-agent-validation'
@@ -49,6 +50,7 @@ import { getProjectRoot } from './project-files'
 import { useChatHistoryStore } from './state/chat-history-store'
 import { useChatStore } from './state/chat-store'
 import { useReviewStore } from './state/review-store'
+import { useTeamStore } from './state/team-store'
 import { useFeedbackStore } from './state/feedback-store'
 import { useMessageBlockStore } from './state/message-block-store'
 import { usePublishStore } from './state/publish-store'
@@ -1300,6 +1302,11 @@ export const Chat = ({
     !feedbackMode &&
     (hasStatusIndicatorContent || shouldShowQueuePreview || !isAtBottom)
 
+  // Team swarm state for conditional rendering
+  const swarmEnabled = useTeamStore((s) => s.swarmEnabled)
+  const activeTeam = useTeamStore((s) => s.activeTeam)
+  const showTeamPanel = swarmEnabled && activeTeam !== null
+
   // Determine if Claude is actively streaming/waiting
   const isClaudeActive = isStreaming || isWaitingForResponse
 
@@ -1390,6 +1397,19 @@ export const Chat = ({
             <PendingBashMessage key={`pending-bash-${msg.id}`} message={msg} />
           ))}
       </scrollbox>
+
+      {showTeamPanel && (
+        <box
+          style={{
+            flexShrink: 0,
+            borderTop: true,
+            borderBottom: true,
+            borderColor: theme.border,
+          }}
+        >
+          <TeamPanel width={separatorWidth} />
+        </box>
+      )}
 
       <box
         style={{

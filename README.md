@@ -16,6 +16,7 @@
 
 <p align="center">
   <a href="#-features">Features</a> |
+  <a href="#-agent-swarms">Swarms</a> |
   <a href="#-installation">Installation</a> |
   <a href="#-quick-start">Quick Start</a> |
   <a href="#-sdk">SDK</a> |
@@ -118,6 +119,35 @@ export default {
   },
 };
 ```
+
+### Agent Swarms
+
+Scale beyond a single agent. LevelCode's **Agent Swarm** system lets you spin up an entire coordinated development team that works together on complex tasks -- each agent with a specialized role, communicating through a structured message protocol.
+
+```bash
+# Enable swarms
+levelcode
+> /team:enable
+
+# Create a team with a project brief
+> /team:create name="auth-team" brief="Build OAuth2 login with Google and GitHub providers"
+
+# Monitor your swarm in real time
+> /team:status
+```
+
+The swarm system automatically assigns agents to the right development phase and coordinates handoffs between them:
+
+| Capability | Details |
+|------------|---------|
+| **24 Specialized Roles** | From intern to CTO -- each with calibrated autonomy, tools, and review requirements |
+| **6 Development Phases** | Requirements, Design, Implementation, Testing, Review, Deployment -- with automatic phase gating |
+| **Real-Time TUI Panel** | Live dashboard showing agent status, messages, tasks, and phase progress |
+| **Structured Messaging** | Agents communicate via a typed protocol with inbox polling and message routing |
+| **Task Assignment** | Hierarchical task breakdown with dependency tracking and automatic delegation |
+| **File Locking** | Prevents conflicts when multiple agents edit the same files concurrently |
+
+> See the full **[Agent Swarms Guide](docs/agent-swarms.md)** for configuration, role definitions, custom team templates, and advanced workflows.
 
 ---
 
@@ -410,6 +440,7 @@ export default defineConfig({
 | [SDK Reference](docs/sdk-reference.md) | Complete SDK API documentation |
 | [Custom Agents](docs/custom-agents.md) | Creating custom agents |
 | [Custom Tools](docs/custom-tools.md) | Building custom tools |
+| [Agent Swarms](docs/agent-swarms.md) | Multi-agent team coordination and swarm workflows |
 | [Architecture](docs/architecture.md) | How LevelCode works |
 
 ---

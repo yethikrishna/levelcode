@@ -13,12 +13,26 @@ import type {
 } from '@levelcode/common/tools/list'
 import type { TeamTask } from '@levelcode/common/types/team-config'
 
+function errorResult(message: string) {
+  return { output: jsonToolResult({ error: message }) }
+}
+
 function getActiveTeamName(): string | null {
-  const teamsDir = getTeamsDir()
+  let teamsDir: string
+  try {
+    teamsDir = getTeamsDir()
+  } catch {
+    return null
+  }
   if (!fs.existsSync(teamsDir)) {
     return null
   }
-  const entries = fs.readdirSync(teamsDir, { withFileTypes: true })
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(teamsDir, { withFileTypes: true })
+  } catch {
+    return null
+  }
   const teamDirs = entries.filter((e) => e.isDirectory())
   if (teamDirs.length === 0) {
     return null
@@ -32,20 +46,34 @@ export const handleTaskCreate = (async (params: {
   toolCall: LevelCodeToolCall<ToolName>
 }): Promise<{ output: LevelCodeToolOutput<ToolName> }> => {
   const { previousToolCallFinished, toolCall } = params
-  const { subject, description, activeForm, metadata } = toolCall.input
+  const { subject, description, activeForm, priority, metadata } = toolCall.input
 
   await previousToolCallFinished
 
-  const teamName = getActiveTeamName()
-  if (!teamName) {
-    return {
-      output: jsonToolResult({
-        error: 'No active team found. Create a team first using TeamCreate.',
-      }),
-    }
+  // Validate required inputs
+  if (!subject || typeof subject !== 'string' || subject.trim() === '') {
+    return errorResult('A non-empty "subject" is required to create a task.')
   }
 
-  const existingTasks = listTasks(teamName)
+  if (!description || typeof description !== 'string' || description.trim() === '') {
+    return errorResult('A non-empty "description" is required to create a task.')
+  }
+
+  const teamName = getActiveTeamName()
+  if (!teamName) {
+    return errorResult(
+      'No active team found. Create a team first using TeamCreate.',
+    )
+  }
+
+  let existingTasks: TeamTask[]
+  try {
+    existingTasks = listTasks(teamName)
+  } catch {
+    // Tasks directory may be corrupted - start fresh with id 1
+    existingTasks = []
+  }
+
   const maxId = existingTasks.reduce((max, t) => {
     const num = parseInt(t.id, 10)
     return isNaN(num) ? max : Math.max(max, num)
@@ -58,6 +86,7 @@ export const handleTaskCreate = (async (params: {
     subject,
     description,
     status: 'pending',
+    priority: priority ?? 'medium',
     blockedBy: [],
     blocks: [],
     phase: 'planning',
@@ -68,15 +97,11 @@ export const handleTaskCreate = (async (params: {
   }
 
   try {
-    createTask(teamName, task)
+    await createTask(teamName, task)
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : String(error)
-    return {
-      output: jsonToolResult({
-        error: `Failed to create task: ${errorMessage}`,
-      }),
-    }
+    return errorResult(`Failed to create task: ${errorMessage}`)
   }
 
   return {

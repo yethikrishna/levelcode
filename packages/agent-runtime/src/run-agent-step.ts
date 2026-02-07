@@ -7,11 +7,14 @@ import { systemMessage, userMessage } from '@levelcode/common/util/messages'
 import { APICallError, type ToolSet } from 'ai'
 import { cloneDeep, mapValues } from 'lodash'
 
+import { drainInbox } from './inbox-poller'
 import { callTokenCountAPI } from './llm-api/levelcode-web-api'
 import { getMCPToolData } from './mcp'
 import { getAgentStreamFromTemplate } from './prompt-agent-stream'
 import { runProgrammaticStep } from './run-programmatic-step'
+import { findTeamContext } from './team-context'
 import { additionalSystemPrompts } from './system-prompt/prompts'
+import { generateTeamPromptSection } from './system-prompt/team-prompt'
 import { getAgentTemplate } from './templates/agent-registry'
 import { buildAgentToolSet } from './templates/prompts'
 import { getAgentPrompt } from './templates/strings'
@@ -625,6 +628,18 @@ export async function loopAgentSteps(
     system = systemPrompt ?? ''
   }
 
+  // Append team context to the system prompt when the agent is part of a team
+  const teamContext = findTeamContext(userInputId)
+  if (teamContext) {
+    const teamPromptSection = generateTeamPromptSection(
+      teamContext.teamName,
+      teamContext.agentName,
+      teamContext.config.members.find((m) => m.name === teamContext.agentName)?.role ?? 'mid-level-engineer',
+      teamContext.config.phase,
+    )
+    system = system + '\n\n' + teamPromptSection
+  }
+
   // Build agent tools (agents as direct tool calls) for non-inherited tools
   const agentTools = useParentTools
     ? {}
@@ -740,6 +755,34 @@ export async function loopAgentSteps(
       }
 
       const startTime = new Date()
+
+      // Check for incoming teammate messages between turns
+      if (totalSteps > 1) {
+        const teamContext = findTeamContext(userInputId)
+        if (teamContext) {
+          const inboxResult = drainInbox({
+            teamName: teamContext.teamName,
+            agentName: teamContext.agentName,
+            logger,
+          })
+          if (inboxResult.formattedContent) {
+            currentAgentState.messageHistory = [
+              ...currentAgentState.messageHistory,
+              userMessage(
+                withSystemTags(inboxResult.formattedContent),
+              ),
+            ]
+            logger.debug(
+              {
+                teamName: teamContext.teamName,
+                agentName: teamContext.agentName,
+                messageCount: inboxResult.messages.length,
+              },
+              'Injected teammate messages into agent message history',
+            )
+          }
+        }
+      }
 
       const stepPrompt = await getAgentPrompt({
         ...params,

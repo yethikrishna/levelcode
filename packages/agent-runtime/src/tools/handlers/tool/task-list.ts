@@ -9,11 +9,21 @@ import type {
 } from '@levelcode/common/tools/list'
 
 function getActiveTeamName(): string | null {
-  const teamsDir = getTeamsDir()
+  let teamsDir: string
+  try {
+    teamsDir = getTeamsDir()
+  } catch {
+    return null
+  }
   if (!fs.existsSync(teamsDir)) {
     return null
   }
-  const entries = fs.readdirSync(teamsDir, { withFileTypes: true })
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(teamsDir, { withFileTypes: true })
+  } catch {
+    return null
+  }
   const teamDirs = entries.filter((e) => e.isDirectory())
   if (teamDirs.length === 0) {
     return null
@@ -40,13 +50,26 @@ export const handleTaskList = (async (params: {
     }
   }
 
-  const tasks = listTasks(teamName)
+  let tasks
+  try {
+    tasks = listTasks(teamName)
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    return {
+      output: jsonToolResult({
+        error: `Failed to list tasks: ${errorMessage}`,
+        tasks: [],
+      }),
+    }
+  }
+
   const summary = tasks.map((t) => ({
     id: t.id,
     subject: t.subject,
     status: t.status,
     owner: t.owner ?? null,
-    blockedBy: t.blockedBy.filter((id) => {
+    blockedBy: (Array.isArray(t.blockedBy) ? t.blockedBy : []).filter((id) => {
       const blocker = tasks.find((bt) => bt.id === id)
       return blocker && blocker.status !== 'completed'
     }),

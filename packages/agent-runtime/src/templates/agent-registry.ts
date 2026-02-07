@@ -2,6 +2,8 @@ import { validateAgents } from '@levelcode/common/templates/agent-validation'
 import { parsePublishedAgentId } from '@levelcode/common/util/agent-id-parsing'
 import { DEFAULT_ORG_PREFIX } from '@levelcode/common/util/agent-name-normalization'
 
+import { getAllTeamAgents } from '../../../../agents/team'
+
 import type { DynamicAgentValidationError } from '@levelcode/common/templates/agent-validation'
 import type { AgentTemplate } from '@levelcode/common/types/agent-template'
 import type { FetchAgentFromDatabaseFn } from '@levelcode/common/types/contracts/database'
@@ -73,7 +75,19 @@ export async function getAgentTemplate(
 }
 
 /**
- * Assemble local agent templates from fileContext + static templates
+ * Build a map of team agent definitions keyed by their ID.
+ * Each entry is the raw AgentDefinition object from agents/team/.
+ */
+function buildTeamAgentMap(): Record<string, any> {
+  const map: Record<string, any> = {}
+  for (const agent of getAllTeamAgents()) {
+    map[agent.id] = agent
+  }
+  return map
+}
+
+/**
+ * Assemble local agent templates from fileContext + static templates + team agents
  */
 export function assembleLocalAgentTemplates(params: {
   fileContext: ProjectFileContext
@@ -89,10 +103,17 @@ export function assembleLocalAgentTemplates(params: {
     logger,
   })
 
-  // Use dynamic templates only
+  // Load team agent templates through the same validation pipeline
+  const { templates: teamTemplates, validationErrors: teamErrors } =
+    validateAgents({
+      agentTemplates: buildTeamAgentMap(),
+      logger,
+    })
 
-  const agentTemplates = { ...dynamicTemplates }
-  return { agentTemplates, validationErrors }
+  // Merge: dynamic (user-defined) agents take priority over team agents
+  const agentTemplates = { ...teamTemplates, ...dynamicTemplates }
+  const allErrors = [...validationErrors, ...teamErrors]
+  return { agentTemplates, validationErrors: allErrors }
 }
 
 /**

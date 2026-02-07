@@ -1,10 +1,16 @@
 import { endsAgentStepParam, toolNames } from '@levelcode/common/tools/constants'
 import { toolParams } from '@levelcode/common/tools/list'
 import { generateCompactId } from '@levelcode/common/util/string'
+import {
+  isToolAllowedInPhase,
+  getMinimumPhaseForTool,
+  TEAM_TOOL_NAMES,
+} from '@levelcode/common/utils/dev-phases'
 import { cloneDeep } from 'lodash'
 
 import { getMCPToolData } from '../mcp'
 import { MCP_TOOL_SEPARATOR } from '../mcp-constants'
+import { findTeamContext } from '../team-context'
 import { getAgentShortName } from '../templates/prompts'
 import { levelcodeToolHandlers } from './handlers/list'
 import {
@@ -177,6 +183,26 @@ export async function executeToolCall<T extends ToolName>(
       message: `Tool \`${toolName}\` is not currently available. Make sure to only use tools provided at the start of the conversation AND that you most recently have permission to use.`,
     })
     return previousToolCallFinished
+  }
+
+  // Phase-based tool gating for team tools
+  // Only check tools that are subject to phase gating (team tools)
+  if (
+    (TEAM_TOOL_NAMES as readonly string[]).includes(toolName) &&
+    !fromHandleSteps
+  ) {
+    const teamContext = findTeamContext(userInputId)
+    if (teamContext) {
+      const { phase } = teamContext.config
+      if (!isToolAllowedInPhase(toolName, phase)) {
+        const requiredPhase = getMinimumPhaseForTool(toolName)
+        onResponseChunk({
+          type: 'error',
+          message: `Tool \`${toolName}\` is not available in the "${phase}" phase. ${requiredPhase ? `This tool requires the "${requiredPhase}" phase or later.` : ''} Use /team:phase to advance the team phase.`,
+        })
+        return previousToolCallFinished
+      }
+    }
   }
 
   if ('error' in toolCall) {

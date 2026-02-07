@@ -1,0 +1,206 @@
+---
+title: 'Agent Swarms'
+section: 'advanced'
+tags: ['swarm', 'team', 'agents', 'multi-agent']
+order: 6
+---
+
+# Agent Swarms
+
+Agent Swarms let you spin up a coordinated team of AI agents that work together on complex tasks. A team lead agent delegates work to specialized teammates, each with a defined role and their own working context.
+
+## Quick Start
+
+### 1. Enable Swarm Features
+
+```bash
+/team:enable
+```
+
+Or set `swarmEnabled: true` in your LevelCode settings.
+
+### 2. Create a Team
+
+```bash
+/team:create
+```
+
+You will be prompted for a team name and description. LevelCode creates a shared workspace on disk where team state, tasks, and messages are stored.
+
+### 3. Spawn Agents
+
+Once a team exists, the lead agent can spawn teammates using the `spawn_agents` tool. Each agent gets a role, a model, and an isolated working directory. Agents communicate through a file-based message protocol and coordinate through shared tasks.
+
+### 4. Assign Work
+
+Create tasks with the `task_create` tool and assign them to team members. Agents pick up tasks, mark them in-progress, and report back when done.
+
+### 5. Monitor Progress
+
+```bash
+/team:status
+```
+
+View the current phase, member list, and task summary at any time.
+
+## Slash Commands
+
+<MarkdownTable>
+| Command | Description |
+| --- | --- |
+| `/team:create` | Create a new team with a name and description |
+| `/team:delete` | Delete the current team and clean up resources |
+| `/team:status` | Show team overview including members, phase, and tasks |
+| `/team:phase` | Set the current development phase |
+| `/team:enable` | Enable swarm features in settings |
+| `/team:disable` | Disable swarm features |
+| `/team:members` | List all members with their roles and current status |
+</MarkdownTable>
+
+## Role Reference
+
+Every agent on a team has a role that defines its responsibilities. Roles range from leadership positions that coordinate work to specialists that focus on a single concern.
+
+### Leadership Roles
+
+<MarkdownTable>
+| Role | Purpose |
+| --- | --- |
+| `coordinator` | Top-level orchestrator. Manages the team, assigns tasks, and drives phases forward. |
+| `cto` | Technical strategy and architecture decisions. |
+| `vp-engineering` | Engineering process and cross-team coordination. |
+| `director` | Oversees a group of managers and their teams. |
+| `manager` | Manages a subset of engineers, handles task breakdown. |
+| `sub-manager` | Assists a manager with a smaller scope. |
+| `product-lead` | Owns product requirements and prioritization. |
+</MarkdownTable>
+
+### Engineering Roles
+
+<MarkdownTable>
+| Role | Purpose |
+| --- | --- |
+| `fellow` | Deep technical expertise. Advises on the hardest problems. |
+| `distinguished-engineer` | Senior technical leadership across the codebase. |
+| `principal-engineer` | Drives architecture and cross-cutting concerns. |
+| `senior-staff-engineer` | Leads large features end-to-end. |
+| `staff-engineer` | Owns significant subsystems. |
+| `super-senior` | Highly experienced engineer handling complex tasks. |
+| `senior-engineer` | Core implementation work with mentoring responsibilities. |
+| `mid-level-engineer` | Solid implementation work on well-defined tasks. |
+| `junior-engineer` | Handles smaller, scoped tasks with guidance. |
+| `intern` | Learning-oriented tasks with close supervision. |
+| `apprentice` | Introductory tasks under direct mentorship. |
+</MarkdownTable>
+
+### Specialist Roles
+
+<MarkdownTable>
+| Role | Purpose |
+| --- | --- |
+| `researcher` | Investigates solutions, reads docs, explores options. |
+| `scientist` | Data analysis, experimentation, and technical research. |
+| `designer` | UI/UX design, component architecture, and visual concerns. |
+| `tester` | Writes and runs tests, validates correctness. |
+| `reviewer` | Code review, quality gates, and standards enforcement. |
+</MarkdownTable>
+
+## Development Phases
+
+Teams progress through a linear sequence of development phases. Each phase unlocks additional tools and signals the maturity of the project.
+
+### Phase Lifecycle
+
+<MarkdownTable>
+| Phase | Description | Available Team Tools |
+| --- | --- | --- |
+| `planning` | Define goals, architecture, and task breakdown. No implementation yet. | `task_create`, `task_update`, `task_get`, `task_list` |
+| `pre-alpha` | Core scaffolding begins. Team communication enabled. | Above + `send_message`, `team_create` |
+| `alpha` | Active feature development and integration. | All tools including `team_delete`, `spawn_agents`, `spawn_agent_inline` |
+| `beta` | Stabilization, testing, and bug fixes. | All tools |
+| `production` | Code is production-ready and deployed. | All tools |
+| `mature` | Ongoing maintenance and incremental improvements. | All tools |
+</MarkdownTable>
+
+Phases advance forward one step at a time. Use `/team:phase` to move to the next phase.
+
+**Important:** Non-team tools (file reads, edits, shell commands) are always available regardless of phase. Only the team-specific collaboration tools listed above are gated.
+
+## Team Tools
+
+These tools are available to agents within a team context:
+
+<MarkdownTable>
+| Tool | Description |
+| --- | --- |
+| `team_create` | Create a new team with configuration |
+| `team_delete` | Disband the current team |
+| `spawn_agents` | Launch new agent teammates with specified roles |
+| `spawn_agent_inline` | Spawn a single agent with inline configuration |
+| `send_message` | Send a direct message or broadcast to teammates |
+| `task_create` | Create a new task with subject, description, and metadata |
+| `task_get` | Retrieve full details of a task by ID |
+| `task_update` | Update task status, owner, dependencies, or description |
+| `task_list` | List all tasks with filtering by status |
+</MarkdownTable>
+
+## Message Protocol
+
+Agents communicate through a file-based message protocol. Message types include:
+
+- **Direct messages** -- One agent sends a message to a specific teammate.
+- **Broadcasts** -- A message sent to every member of the team.
+- **Shutdown requests** -- A lead asks an agent to gracefully stop.
+- **Plan approvals** -- Agents with `plan_mode_required` submit plans for review before proceeding.
+- **Task completed** -- Automatic notification when an agent finishes a task.
+- **Idle notifications** -- Agents signal they are ready for more work.
+
+Messages are delivered asynchronously through each agent's inbox and polled during the agent's runtime loop.
+
+## Configuration
+
+### Team Settings
+
+When creating a team, you can configure:
+
+- **`maxMembers`** -- Maximum number of agents allowed on the team (default varies by plan).
+- **`autoAssign`** -- When `true`, idle agents automatically pick up pending tasks.
+
+### Agent Settings
+
+Each spawned agent has:
+
+- **`role`** -- One of the roles listed above.
+- **`model`** -- The AI model to use for that agent.
+- **`cwd`** -- The working directory for the agent's file operations.
+
+### Enabling/Disabling
+
+Swarm features are controlled by the `swarmEnabled` setting. Toggle it with:
+
+```bash
+/team:enable    # Turn on
+/team:disable   # Turn off
+```
+
+When disabled, all team slash commands and tools are hidden from the interface.
+
+## Example Workflow
+
+Here is a typical workflow for a feature build:
+
+1. **Planning phase** -- The lead creates tasks describing the work to be done.
+2. **Advance to pre-alpha** -- `/team:phase` moves to `pre-alpha`, enabling messaging.
+3. **Advance to alpha** -- `/team:phase` moves to `alpha`, unlocking agent spawning.
+4. **Spawn the team** -- The lead spawns agents: a senior engineer for implementation, a tester for validation, and a researcher for dependency investigation.
+5. **Work in parallel** -- Each agent picks up tasks, works independently, and sends messages when blocked or finished.
+6. **Advance through beta and production** -- As work stabilizes, the lead advances phases, signaling the shift from feature work to hardening and release.
+7. **Teardown** -- `/team:delete` cleans up the team when the project is complete.
+
+## Tips
+
+- Start small. A team of 2-3 agents is easier to coordinate than a large swarm.
+- Use the `planning` phase to think through task breakdown before spawning agents.
+- Assign clear, well-scoped tasks. Agents work best when they know exactly what to do.
+- Use `send_message` for targeted communication rather than `broadcast` to reduce noise.
+- Monitor progress with `/team:status` and `/team:members` regularly.

@@ -261,6 +261,110 @@ The `RunState` object contains:
 - `sessionState`: Internal state to be passed to the next run
 - `output`: The agent's output (text, error, or other types)
 
+### Team Management
+
+The SDK provides programmatic team management for coordinating multiple agents.
+
+#### `client.createTeam(config)`
+
+Creates a new team from a `TeamConfig` object. If a team with the same name already exists it will be overwritten.
+
+```typescript
+import { LevelCodeClient } from '@levelcode/sdk'
+import type { TeamConfig } from '@levelcode/sdk'
+
+const client = new LevelCodeClient({ apiKey: process.env.LEVELCODE_API_KEY })
+
+const config: TeamConfig = {
+  name: 'my-team',
+  description: 'Backend refactor squad',
+  createdAt: Date.now(),
+  leadAgentId: 'lead-001',
+  phase: 'planning',
+  members: [
+    {
+      agentId: 'lead-001',
+      name: 'team-lead',
+      role: 'coordinator',
+      agentType: 'coordinator',
+      model: 'claude-opus-4-6',
+      joinedAt: Date.now(),
+      status: 'active',
+      cwd: process.cwd(),
+    },
+  ],
+  settings: { maxMembers: 10, autoAssign: true },
+}
+
+client.createTeam(config)
+```
+
+#### `client.deleteTeam(name)`
+
+Deletes a team by name, removing all associated data (config, tasks, inboxes). Safe to call on a team that does not exist.
+
+```typescript
+client.deleteTeam('my-team')
+```
+
+#### `client.getTeamStatus(name)`
+
+Returns summary information for a team, or `null` if the team does not exist or has a corrupted config.
+
+```typescript
+const status = client.getTeamStatus('my-team')
+if (status) {
+  console.log(status.name)        // 'my-team'
+  console.log(status.phase)       // 'planning'
+  console.log(status.memberCount) // 1
+}
+```
+
+Returns a `TeamSummary`:
+
+| Field         | Type       | Description                        |
+| ------------- | ---------- | ---------------------------------- |
+| `name`        | `string`   | Team name                          |
+| `phase`       | `DevPhase` | Current development phase          |
+| `memberCount` | `number`   | Number of members in the team      |
+
+#### `client.listTeams()`
+
+Returns an array of `TeamSummary` objects for every team. Teams with corrupted config files are silently skipped.
+
+```typescript
+const teams = client.listTeams()
+for (const team of teams) {
+  console.log(`${team.name} — ${team.phase} (${team.memberCount} members)`)
+}
+```
+
+#### Team Types
+
+The following types are exported from `@levelcode/sdk` for use with the team API:
+
+```typescript
+import type {
+  TeamConfig,
+  TeamMember,
+  TeamTask,
+  TeamRole,
+  DevPhase,
+  TeamSummary,
+  TeamProtocolMessage,
+} from '@levelcode/sdk'
+```
+
+| Type                    | Description                                                        |
+| ----------------------- | ------------------------------------------------------------------ |
+| `TeamConfig`            | Full team configuration (name, members, settings, phase)           |
+| `TeamMember`            | A single member entry (agentId, name, role, model, status)         |
+| `TeamTask`              | A task within a team (id, subject, status, priority, owner)        |
+| `TeamRole`              | Union of all role strings (`'coordinator'`, `'senior-engineer'`, etc.) |
+| `DevPhase`              | Development phase (`'planning'` \| `'pre-alpha'` \| `'alpha'` \| `'beta'` \| `'production'` \| `'mature'`) |
+| `TeamSummary`           | Lightweight summary returned by `getTeamStatus` and `listTeams`    |
+| `TeamProtocolMessage`   | Message type used for inter-agent communication                    |
+
 ## License
 
 MIT

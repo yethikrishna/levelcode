@@ -11,10 +11,31 @@ import { WEBSITE_URL } from '../login/constants'
 import { useChatStore } from '../state/chat-store'
 import { useFeedbackStore } from '../state/feedback-store'
 import { useLoginStore } from '../state/login-store'
+import { useTeamStore } from '../state/team-store'
 import { AGENT_MODES } from '../utils/constants'
 import { getSystemMessage, getUserMessage } from '../utils/message-history'
 import { capturePendingAttachments } from '../utils/pending-attachments'
+import { saveSwarmPreference } from '../utils/settings'
+import { useTeamSettingsStore } from '../state/team-settings-store'
 import { getSkillByName } from '../utils/skill-registry'
+import {
+  createTeam,
+  deleteTeam,
+  loadTeamConfig,
+  listTasks,
+  saveTeamConfig,
+} from '@levelcode/common/utils/team-fs'
+import {
+  canTransition,
+  transitionPhase,
+  PHASE_ORDER,
+} from '@levelcode/common/utils/dev-phases'
+import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
+import { dispatchTeamHookEvent } from '@levelcode/common/utils/team-hook-emitter'
+import { trackEvent } from '../utils/analytics'
+
+import type { PhaseTransitionHookEvent } from '@levelcode/common/types/team-hook-events'
+import type { DevPhase, TeamConfig } from '@levelcode/common/types/team-config'
 
 import type { MultilineInputHandle } from '../components/multiline-input'
 import type { InputValue, PendingAttachment } from '../types/store'
@@ -56,6 +77,7 @@ export type CommandResult = {
   openPublishMode?: boolean
   openChatHistory?: boolean
   openReviewScreen?: boolean
+  openTeamSettings?: boolean
   preSelectAgents?: string[]
 } | void
 
@@ -396,11 +418,37 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           getUserMessage(params.inputValue.trim()),
           getSystemMessage('Usage: /team:create <name>'),
         ])
-      } else {
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      try {
+        const config: TeamConfig = {
+          name: teamName,
+          description: '',
+          createdAt: Date.now(),
+          leadAgentId: 'user',
+          phase: 'planning',
+          members: [],
+          settings: { maxMembers: 10, autoAssign: false },
+        }
+        createTeam(config)
+
+        const { setActiveTeam, setSwarmEnabled } = useTeamStore.getState()
+        setActiveTeam(config)
+        setSwarmEnabled(true)
+
         params.setMessages((prev) => [
           ...prev,
           getUserMessage(params.inputValue.trim()),
-          getSystemMessage(`Creating team "${teamName}"... (not yet connected)`),
+          getSystemMessage(`Team "${teamName}" created successfully. Phase: planning`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to create team: ${error instanceof Error ? error.message : String(error)}`),
         ])
       }
       params.saveToHistory(params.inputValue.trim())
@@ -410,11 +458,35 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:delete',
     handler: (params) => {
-      params.setMessages((prev) => [
-        ...prev,
-        getUserMessage(params.inputValue.trim()),
-        getSystemMessage('Deleting current team... (not yet connected)'),
-      ])
+      const { activeTeam, reset } = useTeamStore.getState()
+      if (!activeTeam) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No active team to delete.'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      try {
+        const teamName = activeTeam.name
+        deleteTeam(teamName)
+        reset()
+
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Team "${teamName}" deleted.`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to delete team: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
     },
@@ -422,11 +494,70 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:status',
     handler: (params) => {
-      params.setMessages((prev) => [
-        ...prev,
-        getUserMessage(params.inputValue.trim()),
-        getSystemMessage('Fetching team status... (not yet connected)'),
-      ])
+      const { activeTeam } = useTeamStore.getState()
+      if (!activeTeam) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No active team. Use /team:create <name> to create one.'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      try {
+        const config = loadTeamConfig(activeTeam.name)
+        if (!config) {
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`Team "${activeTeam.name}" config not found on disk.`),
+          ])
+          params.saveToHistory(params.inputValue.trim())
+          clearInput(params)
+          return
+        }
+
+        const tasks = listTasks(activeTeam.name)
+        const counts = {
+          pending: tasks.filter((t) => t.status === 'pending').length,
+          in_progress: tasks.filter((t) => t.status === 'in_progress').length,
+          completed: tasks.filter((t) => t.status === 'completed').length,
+          blocked: tasks.filter((t) => t.status === 'blocked').length,
+        }
+
+        useTeamStore.getState().updateTaskCounts({
+          pending: counts.pending,
+          inProgress: counts.in_progress,
+          completed: counts.completed,
+          blocked: counts.blocked,
+        })
+
+        const statusLines = [
+          `Team: ${config.name}`,
+          `Phase: ${config.phase}`,
+          `Members: ${config.members.length}`,
+          ``,
+          `Tasks:`,
+          `  Pending:     ${counts.pending}`,
+          `  In Progress: ${counts.in_progress}`,
+          `  Completed:   ${counts.completed}`,
+          `  Blocked:     ${counts.blocked}`,
+        ]
+
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(statusLines.join('\n')),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to fetch status: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
     },
@@ -435,24 +566,103 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
     name: 'team:phase',
     handler: (params, args) => {
       const phase = args.trim()
-      const validPhases = ['planning', 'pre-alpha', 'alpha', 'beta', 'production', 'mature']
+      const validPhases = PHASE_ORDER as readonly string[]
       if (!phase) {
         params.setMessages((prev) => [
           ...prev,
           getUserMessage(params.inputValue.trim()),
           getSystemMessage(`Usage: /team:phase <phase>\nValid phases: ${validPhases.join(', ')}`),
         ])
-      } else if (!validPhases.includes(phase)) {
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      if (!validPhases.includes(phase)) {
         params.setMessages((prev) => [
           ...prev,
           getUserMessage(params.inputValue.trim()),
           getSystemMessage(`Invalid phase "${phase}". Valid phases: ${validPhases.join(', ')}`),
         ])
-      } else {
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      const { activeTeam } = useTeamStore.getState()
+      if (!activeTeam) {
         params.setMessages((prev) => [
           ...prev,
           getUserMessage(params.inputValue.trim()),
-          getSystemMessage(`Setting development phase to "${phase}"... (not yet connected)`),
+          getSystemMessage('No active team. Use /team:create <name> first.'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      const targetPhase = phase as DevPhase
+      if (!canTransition(activeTeam.phase, targetPhase)) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(
+            `Cannot transition from "${activeTeam.phase}" to "${targetPhase}". Only forward single-step transitions are allowed.`,
+          ),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      try {
+        const config = loadTeamConfig(activeTeam.name)
+        if (!config) {
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`Team "${activeTeam.name}" config not found on disk.`),
+          ])
+          params.saveToHistory(params.inputValue.trim())
+          clearInput(params)
+          return
+        }
+
+        const fromPhase = config.phase
+        const updated = transitionPhase(config, targetPhase)
+        await saveTeamConfig(activeTeam.name, updated)
+
+        const { setActiveTeam, setPhase } = useTeamStore.getState()
+        setActiveTeam(updated)
+        setPhase(targetPhase)
+
+        // Fire PhaseTransition hook event to registered listeners
+        const hookEvent: PhaseTransitionHookEvent = {
+          type: 'phase_transition',
+          teamName: activeTeam.name,
+          fromPhase,
+          toPhase: targetPhase,
+          timestamp: Date.now(),
+        }
+        dispatchTeamHookEvent(hookEvent)
+
+        // Track the analytics event
+        trackEvent(AnalyticsEvent.TEAM_PHASE_TRANSITION, {
+          teamName: hookEvent.teamName,
+          fromPhase: hookEvent.fromPhase,
+          toPhase: hookEvent.toPhase,
+        })
+
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Phase transitioned: ${fromPhase} -> ${targetPhase}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Phase transition failed: ${error instanceof Error ? error.message : String(error)}`),
         ])
       }
       params.saveToHistory(params.inputValue.trim())
@@ -462,11 +672,22 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:enable',
     handler: (params) => {
-      params.setMessages((prev) => [
-        ...prev,
-        getUserMessage(params.inputValue.trim()),
-        getSystemMessage('Enabling swarm features... (not yet connected)'),
-      ])
+      try {
+        saveSwarmPreference(true)
+        useTeamStore.getState().setSwarmEnabled(true)
+
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Swarm features enabled.'),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to enable swarm: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
     },
@@ -474,11 +695,22 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:disable',
     handler: (params) => {
-      params.setMessages((prev) => [
-        ...prev,
-        getUserMessage(params.inputValue.trim()),
-        getSystemMessage('Disabling swarm features... (not yet connected)'),
-      ])
+      try {
+        saveSwarmPreference(false)
+        useTeamStore.getState().setSwarmEnabled(false)
+
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Swarm features disabled.'),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to disable swarm: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
     },
@@ -486,13 +718,75 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:members',
     handler: (params) => {
-      params.setMessages((prev) => [
-        ...prev,
-        getUserMessage(params.inputValue.trim()),
-        getSystemMessage('Fetching team members... (not yet connected)'),
-      ])
+      const { activeTeam } = useTeamStore.getState()
+      if (!activeTeam) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No active team. Use /team:create <name> first.'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      try {
+        const config = loadTeamConfig(activeTeam.name)
+        if (!config) {
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`Team "${activeTeam.name}" config not found on disk.`),
+          ])
+          params.saveToHistory(params.inputValue.trim())
+          clearInput(params)
+          return
+        }
+
+        if (config.members.length === 0) {
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`Team "${config.name}" has no members.`),
+          ])
+          params.saveToHistory(params.inputValue.trim())
+          clearInput(params)
+          return
+        }
+
+        const header = 'Role                     Status     Name                 Task'
+        const divider = '-'.repeat(header.length)
+        const rows = config.members.map((m) => {
+          const role = m.role.padEnd(25)
+          const status = m.status.padEnd(11)
+          const name = m.name.padEnd(21)
+          const task = m.currentTaskId ?? '-'
+          return `${role}${status}${name}${task}`
+        })
+
+        const table = [header, divider, ...rows].join('\n')
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(table),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to fetch members: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'team:settings',
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openTeamSettings: true }
     },
   }),
   // Mode commands generated from AGENT_MODES

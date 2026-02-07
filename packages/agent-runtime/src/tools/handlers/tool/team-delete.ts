@@ -1,83 +1,61 @@
-import * as fs from 'fs'
 import { jsonToolResult } from '@levelcode/common/util/messages'
-import {
-  deleteTeam,
-  getTeamsDir,
-  loadTeamConfig,
-} from '@levelcode/common/utils/team-fs'
+import { deleteTeam } from '@levelcode/common/utils/team-fs'
+import { findCurrentTeam } from '@levelcode/common/utils/team-discovery'
+import { trackTeamDeleted } from '@levelcode/common/utils/team-analytics'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
 import type {
   LevelCodeToolCall,
   LevelCodeToolOutput,
 } from '@levelcode/common/tools/list'
+import type { TrackEventFn } from '@levelcode/common/types/contracts/analytics'
+import type { Logger } from '@levelcode/common/types/contracts/logger'
 
 type ToolName = 'team_delete'
 
-function findCurrentTeam(agentStepId: string): string | null {
-  const teamsDir = getTeamsDir()
-  if (!fs.existsSync(teamsDir)) {
-    return null
-  }
-  const entries = fs.readdirSync(teamsDir, { withFileTypes: true })
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue
-    }
-    const config = loadTeamConfig(entry.name)
-    if (!config) {
-      continue
-    }
-    if (config.leadAgentId === `lead-${agentStepId}`) {
-      return config.name
-    }
-    for (const member of config.members) {
-      if (member.agentId === `lead-${agentStepId}` || member.agentId === agentStepId) {
-        return config.name
-      }
-    }
-  }
-  return null
+function errorResult(message: string) {
+  return { output: jsonToolResult({ message }) }
 }
 
 export const handleTeamDelete = (async (params: {
   previousToolCallFinished: Promise<void>
   toolCall: LevelCodeToolCall<ToolName>
   agentStepId: string
+  trackEvent: TrackEventFn
+  userId: string | undefined
+  logger: Logger
 }): Promise<{ output: LevelCodeToolOutput<ToolName> }> => {
-  const { previousToolCallFinished, agentStepId } = params
+  const { previousToolCallFinished, agentStepId, trackEvent, userId, logger } = params
 
   await previousToolCallFinished
 
-  const teamName = findCurrentTeam(agentStepId)
-  if (!teamName) {
-    return {
-      output: jsonToolResult({
-        message: 'No team found for the current agent context. Cannot delete.',
-      }),
-    }
+  let result: ReturnType<typeof findCurrentTeam>
+  try {
+    result = findCurrentTeam(agentStepId)
+  } catch {
+    return errorResult(
+      'Failed to look up team for the current agent. The teams directory may be inaccessible.',
+    )
   }
 
-  const config = loadTeamConfig(teamName)
-  if (!config) {
-    return {
-      output: jsonToolResult({
-        message: `Team "${teamName}" config not found. It may have already been deleted.`,
-      }),
-    }
+  if (!result) {
+    return errorResult(
+      'No team found for the current agent context. Cannot delete.',
+    )
   }
+
+  const { teamName, config } = result
 
   // Validate no active members besides the lead
-  const activeNonLeadMembers = config.members.filter(
+  const members = Array.isArray(config.members) ? config.members : []
+  const activeNonLeadMembers = members.filter(
     (m) => m.status === 'active' && m.agentId !== config.leadAgentId,
   )
   if (activeNonLeadMembers.length > 0) {
     const activeNames = activeNonLeadMembers.map((m) => m.name).join(', ')
-    return {
-      output: jsonToolResult({
-        message: `Cannot delete team "${teamName}": ${activeNonLeadMembers.length} active member(s) besides lead: ${activeNames}. Ensure all agents have completed their work before deleting the team.`,
-      }),
-    }
+    return errorResult(
+      `Cannot delete team "${teamName}": ${activeNonLeadMembers.length} active member(s) besides lead: ${activeNames}. Ensure all agents have completed their work before deleting the team.`,
+    )
   }
 
   try {
@@ -85,11 +63,16 @@ export const handleTeamDelete = (async (params: {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : String(error)
-    return {
-      output: jsonToolResult({
-        message: `Failed to delete team "${teamName}": ${errorMessage}`,
-      }),
-    }
+    return errorResult(`Failed to delete team "${teamName}": ${errorMessage}`)
+  }
+
+  try {
+    trackTeamDeleted(
+      { trackEvent, userId: userId ?? '', logger },
+      teamName,
+    )
+  } catch {
+    // Analytics failure should not block deletion response
   }
 
   return {

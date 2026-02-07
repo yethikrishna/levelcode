@@ -21,6 +21,12 @@ const inputSchema = z
       .describe(
         'Present continuous form shown in spinner when in_progress (e.g., "Running tests")',
       ),
+    priority: z
+      .enum(['critical', 'high', 'medium', 'low'])
+      .optional()
+      .describe(
+        'Task priority level. Defaults to "medium" if not specified.',
+      ),
     metadata: z
       .record(z.string(), z.unknown())
       .optional()

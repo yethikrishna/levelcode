@@ -1,0 +1,565 @@
+[0m[1mbun test [0m[2mv1.2.21 (7c45ed97)[0m
+Using environment: test
+[0m
+common\src\utils\__tests__\team-messaging.test.ts:
+[0m[1m150 |[0m       [0m[35mconst[0m msg = makeDirectMessage()
+[0m[1m151 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, msg)
+[0m[1m152 |[0m 
+[0m[1m153 |[0m       [0m[2m// The inbox file should exist at inboxes/developer.json[0m
+[0m[1m154 |[0m       [0m[35mconst[0m inboxPath = path[0m[3m[1m.join[0m(getTeamsDir(), [0m[32m'msg-team'[0m, [0m[32m'inboxes'[0m, [0m[32m'developer.json'[0m)
+[0m[1m155 |[0m       expect(fs[0m[3m[1m.existsSync[0m(inboxPath))[0m[3m[1m.toBe[0m([0m[33mtrue[0m)
+                                             [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoBe[2m([0m[32mexpected[0m[2m)[0m
+
+Expected: [32mtrue[0m
+Received: [31mfalse[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m155[0m[2m:[33m40[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0msendMessage delivers to correct inbox file[2m >[0m[1m should write to the named agent inbox file[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m167 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'tester'[0m, makeDirectMessage({ to: [0m[32m'tester'[0m, text: [0m[32m'msg for tester'[0m }))
+[0m[1m168 |[0m 
+[0m[1m169 |[0m       [0m[35mconst[0m devInbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m170 |[0m       [0m[35mconst[0m testerInbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'tester'[0m)
+[0m[1m171 |[0m 
+[0m[1m172 |[0m       expect(devInbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                             [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m172[0m[2m:[33m24[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0msendMessage delivers to correct inbox file[2m >[0m[1m should deliver to different agents independently[0m
+[0m[0m[1m179 |[0m       [0m[2m// Do not call createTeam -- sendMessage should handle missing dirs[0m
+[0m[1m180 |[0m       [0m[35mconst[0m msg = makeDirectMessage()
+[0m[1m181 |[0m       sendMessage([0m[32m'auto-team'[0m, [0m[32m'some-agent'[0m, msg)
+[0m[1m182 |[0m 
+[0m[1m183 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'auto-team'[0m, [0m[32m'some-agent'[0m)
+[0m[1m184 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m184[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0msendMessage delivers to correct inbox file[2m >[0m[1m should create inbox directory automatically if it does not exist[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m195 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'first'[0m }))
+[0m[1m196 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'second'[0m }))
+[0m[1m197 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'third'[0m }))
+[0m[1m198 |[0m 
+[0m[1m199 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m200 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m3[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m3[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m200[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mmultiple messages append correctly[2m >[0m[1m should append three sequential messages without overwriting earlier ones[0m [0m[2m[[1m47.00ms[0m[2m][0m
+[0m[0m[1m208 |[0m 
+[0m[1m209 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ from: [0m[32m'team-lead'[0m, text: [0m[32m'from lead'[0m }))
+[0m[1m210 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ from: [0m[32m'tester'[0m, text: [0m[32m'from tester'[0m }))
+[0m[1m211 |[0m 
+[0m[1m212 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m213 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m2[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m2[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m213[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mmultiple messages append correctly[2m >[0m[1m should preserve messages from different senders[0m [0m[2m[[1m31.00ms[0m[2m][0m
+[0m[0m[1m229 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, dm)
+[0m[1m230 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, bc)
+[0m[1m231 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, idle)
+[0m[1m232 |[0m 
+[0m[1m233 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m)
+[0m[1m234 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m3[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m3[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m234[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mmultiple messages append correctly[2m >[0m[1m should preserve mixed message types in order[0m [0m[2m[[1m31.00ms[0m[2m][0m
+[0m[0m[1m253 |[0m       [0m[35mfor[0m ([0m[35mlet[0m i = [0m[33m1[0m[0m[2m;[0m i [0m<[0m= [0m[33m5[0m[0m[2m;[0m i++) {
+[0m[1m254 |[0m         sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m`message-[0m${i}[0m[32m`[0m }))
+[0m[1m255 |[0m       }
+[0m[1m256 |[0m 
+[0m[1m257 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m258 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m5[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m5[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m258[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mreadInbox returns all messages in order[2m >[0m[1m should return messages in insertion order[0m [0m[2m[[1m15.00ms[0m[2m][0m
+[0m[0m[1m267 |[0m 
+[0m[1m268 |[0m       [0m[2m// Read twice -- both should return the same result[0m
+[0m[1m269 |[0m       [0m[35mconst[0m first = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m270 |[0m       [0m[35mconst[0m second = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m271 |[0m       expect(first)[0m[3m[1m.toEqual[0m(second)
+[0m[1m272 |[0m       expect(first)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m272[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mreadInbox returns all messages in order[2m >[0m[1m should not mutate the inbox file when reading[0m
+[0m[0m[1m279 |[0m   describe([0m[32m'clearInbox empties the inbox'[0m, () => {
+[0m[1m280 |[0m     it([0m[32m'should remove all messages from an agent inbox'[0m, () => {
+[0m[1m281 |[0m       createTeam(makeTeamConfig())
+[0m[1m282 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'msg1'[0m }))
+[0m[1m283 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'msg2'[0m }))
+[0m[1m284 |[0m       expect(readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m))[0m[3m[1m.toHaveLength[0m([0m[33m2[0m)
+                                                       [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m2[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m284[0m[2m:[33m50[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mclearInbox empties the inbox[2m >[0m[1m should remove all messages from an agent inbox[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m295 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'tester'[0m, makeDirectMessage({ to: [0m[32m'tester'[0m, text: [0m[32m'tester msg'[0m }))
+[0m[1m296 |[0m 
+[0m[1m297 |[0m       clearInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m298 |[0m 
+[0m[1m299 |[0m       expect(readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m))[0m[3m[1m.toEqual[0m([])
+[0m[1m300 |[0m       expect(readInbox([0m[32m'msg-team'[0m, [0m[32m'tester'[0m))[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                                                    [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m300[0m[2m:[33m47[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mclearInbox empties the inbox[2m >[0m[1m should leave other agent inboxes untouched[0m
+[0m[0m[1m310 |[0m       clearInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m311 |[0m 
+[0m[1m312 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'after-clear'[0m }))
+[0m[1m313 |[0m 
+[0m[1m314 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m315 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m315[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mclearInbox empties the inbox[2m >[0m[1m should allow new messages after clearing[0m [0m[2m[[1m125.00ms[0m[2m][0m
+[0m[0m[1m341 |[0m       expect(senderInbox)[0m[3m[1m.toEqual[0m([])
+[0m[1m342 |[0m 
+[0m[1m343 |[0m       [0m[2m// All other members should have received the broadcast[0m
+[0m[1m344 |[0m       [0m[35mfor[0m ([0m[35mconst[0m recipient of recipients) {
+[0m[1m345 |[0m         [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, recipient)
+[0m[1m346 |[0m         expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                            [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m346[0m[2m:[33m23[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mbroadcasting sends to all members except sender[2m >[0m[1m should deliver a broadcast to every member except the sender[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m390 |[0m         sendMessage([0m[32m'msg-team'[0m, member, broadcast)
+[0m[1m391 |[0m       }
+[0m[1m392 |[0m 
+[0m[1m393 |[0m       [0m[35mfor[0m ([0m[35mconst[0m member of otherMembers) {
+[0m[1m394 |[0m         [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, member)
+[0m[1m395 |[0m         expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                            [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m395[0m[2m:[33m23[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mbroadcasting sends to all members except sender[2m >[0m[1m should deliver the same content to all broadcast recipients[0m [0m[2m[[1m15.00ms[0m[2m][0m
+[0m[0m[1m416 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m417 |[0m       }
+[0m[1m418 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, req)
+[0m[1m419 |[0m 
+[0m[1m420 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m421 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m421[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mshutdown request/response flow[2m >[0m[1m should deliver a shutdown request to the target agent[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m436 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m437 |[0m       }
+[0m[1m438 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, approval)
+[0m[1m439 |[0m 
+[0m[1m440 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m)
+[0m[1m441 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m441[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mshutdown request/response flow[2m >[0m[1m should deliver a shutdown approval response back to the requester[0m
+[0m[0m[1m456 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m457 |[0m       }
+[0m[1m458 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, rejection)
+[0m[1m459 |[0m 
+[0m[1m460 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m)
+[0m[1m461 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m461[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mshutdown request/response flow[2m >[0m[1m should deliver a shutdown rejection response back to the requester[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m478 |[0m       }
+[0m[1m479 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, req)
+[0m[1m480 |[0m 
+[0m[1m481 |[0m       [0m[2m// Developer reads the request[0m
+[0m[1m482 |[0m       [0m[35mconst[0m devInbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m483 |[0m       expect(devInbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                             [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m483[0m[2m:[33m24[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mshutdown request/response flow[2m >[0m[1m should handle full shutdown request -> approved round trip[0m [0m[2m[[1m47.00ms[0m[2m][0m
+[0m[0m[1m518 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m519 |[0m       }
+[0m[1m520 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, rejection)
+[0m[1m521 |[0m 
+[0m[1m522 |[0m       [0m[35mconst[0m leadInbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m)
+[0m[1m523 |[0m       expect(leadInbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                              [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m523[0m[2m:[33m25[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mshutdown request/response flow[2m >[0m[1m should handle full shutdown request -> rejected round trip[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m541 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m542 |[0m       }
+[0m[1m543 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, req)
+[0m[1m544 |[0m 
+[0m[1m545 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m)
+[0m[1m546 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m546[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mplan approval request/response flow[2m >[0m[1m should deliver a plan approval request to the lead[0m
+[0m[0m[1m561 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m562 |[0m       }
+[0m[1m563 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, resp)
+[0m[1m564 |[0m 
+[0m[1m565 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m566 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m566[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mplan approval request/response flow[2m >[0m[1m should deliver an approval response back to the requester[0m
+[0m[0m[1m580 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m581 |[0m       }
+[0m[1m582 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, resp)
+[0m[1m583 |[0m 
+[0m[1m584 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m585 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m585[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mplan approval request/response flow[2m >[0m[1m should deliver a rejection with feedback[0m
+[0m[0m[1m601 |[0m       }
+[0m[1m602 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, req)
+[0m[1m603 |[0m 
+[0m[1m604 |[0m       [0m[2m// Lead reads it[0m
+[0m[1m605 |[0m       [0m[35mconst[0m leadInbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m)
+[0m[1m606 |[0m       expect(leadInbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                              [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m606[0m[2m:[33m25[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mplan approval request/response flow[2m >[0m[1m should handle full plan request -> approved round trip[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m641 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m642 |[0m       }
+[0m[1m643 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer-2'[0m, rejection)
+[0m[1m644 |[0m 
+[0m[1m645 |[0m       [0m[35mconst[0m dev2Inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer-2'[0m)
+[0m[1m646 |[0m       expect(dev2Inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                              [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m646[0m[2m:[33m25[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mplan approval request/response flow[2m >[0m[1m should handle full plan request -> rejected with feedback round trip[0m [0m[2m[[1m15.00ms[0m[2m][0m
+[0m[0m[1m864 |[0m 
+[0m[1m865 |[0m       [0m[35mconst[0m devInbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m866 |[0m       [0m[35mconst[0m testerInbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'tester'[0m)
+[0m[1m867 |[0m 
+[0m[1m868 |[0m       [0m[2m// developer should only see their messages[0m
+[0m[1m869 |[0m       expect(devInbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                             [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m869[0m[2m:[33m24[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0minbox isolation between agents[2m >[0m[1m agent A cannot see agent B messages and vice versa[0m [0m[2m[[1m31.00ms[0m[2m][0m
+[0m[0m[1m882 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer-2'[0m, makeDirectMessage({ to: [0m[32m'developer-2'[0m, text: [0m[32m'dev2 msg'[0m }))
+[0m[1m883 |[0m 
+[0m[1m884 |[0m       clearInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m885 |[0m 
+[0m[1m886 |[0m       expect(readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m))[0m[3m[1m.toEqual[0m([])
+[0m[1m887 |[0m       expect(readInbox([0m[32m'msg-team'[0m, [0m[32m'tester'[0m))[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                                                    [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m887[0m[2m:[33m47[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0minbox isolation between agents[2m >[0m[1m clearing one inbox does not affect another[0m [0m[2m[[1m15.00ms[0m[2m][0m
+[0m[0m[1m898 |[0m       sendMessage([0m[32m'team-beta'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'beta msg'[0m }))
+[0m[1m899 |[0m 
+[0m[1m900 |[0m       [0m[35mconst[0m alphaInbox = readInbox([0m[32m'team-alpha'[0m, [0m[32m'developer'[0m)
+[0m[1m901 |[0m       [0m[35mconst[0m betaInbox = readInbox([0m[32m'team-beta'[0m, [0m[32m'developer'[0m)
+[0m[1m902 |[0m 
+[0m[1m903 |[0m       expect(alphaInbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                               [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m903[0m[2m:[33m26[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0minbox isolation between agents[2m >[0m[1m inboxes across different teams are isolated[0m [0m[2m[[1m94.00ms[0m[2m][0m
+[0m[0m[1m913 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'tester'[0m, makeDirectMessage({ to: [0m[32m'tester'[0m, text: [0m[32m'b'[0m }))
+[0m[1m914 |[0m 
+[0m[1m915 |[0m       [0m[35mconst[0m inboxDir = path[0m[3m[1m.join[0m(getTeamsDir(), [0m[32m'msg-team'[0m, [0m[32m'inboxes'[0m)
+[0m[1m916 |[0m       [0m[35mconst[0m files = fs[0m[3m[1m.readdirSync[0m(inboxDir)[0m[3m[1m.sort[0m()
+[0m[1m917 |[0m 
+[0m[1m918 |[0m       expect(files)[0m[3m[1m.toContain[0m([0m[32m'developer.json'[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoContain[2m([0m[32mexpected[0m[2m)[0m
+
+Expected to contain: [32m"developer.json"[0m
+Received: [31m[ "developer.json.lock", "tester.json.lock" ][0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m918[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0minbox isolation between agents[2m >[0m[1m each agent has a separate inbox file on disk[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m937 |[0m 
+[0m[1m938 |[0m       [0m[35mconst[0m longText = [0m[32m'x'[0m[0m[3m[1m.repeat[0m([0m[33m10[0m_000)
+[0m[1m939 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: longText }))
+[0m[1m940 |[0m 
+[0m[1m941 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m942 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m942[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mlarge message handling[2m >[0m[1m should handle a message with a very long text string (10KB)[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m949 |[0m 
+[0m[1m950 |[0m       [0m[35mconst[0m longText = [0m[32m'A'[0m[0m[3m[1m.repeat[0m([0m[33m100[0m_000)
+[0m[1m951 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: longText }))
+[0m[1m952 |[0m 
+[0m[1m953 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m954 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m954[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mlarge message handling[2m >[0m[1m should handle a message with a very long text string (100KB)[0m
+[0m[0m[1m960 |[0m 
+[0m[1m961 |[0m       [0m[35mconst[0m specialText = [0m[32m'Hello \u{1F600} \u{1F680} \u{2764}\nNew line\t\tTabs\n"quotes" & <xml> \\ backslash'[0m
+[0m[1m962 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: specialText }))
+[0m[1m963 |[0m 
+[0m[1m964 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m965 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m965[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mlarge message handling[2m >[0m[1m should handle a message with unicode and special characters[0m
+[0m[0m[1m972 |[0m       [0m[35mfor[0m ([0m[35mlet[0m i = [0m[33m0[0m[0m[2m;[0m i [0m<[0m [0m[33m100[0m[0m[2m;[0m i++) {
+[0m[1m973 |[0m         sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m`message-[0m${i}[0m[32m`[0m }))
+[0m[1m974 |[0m       }
+[0m[1m975 |[0m 
+[0m[1m976 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m977 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m100[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m100[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m977[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mlarge message handling[2m >[0m[1m should handle many messages in a single inbox (100 messages)[0m [0m[2m[[1m203.00ms[0m[2m][0m
+[0m[0m[1m994 |[0m         timestamp: [0m[35mnew[0m [0m[1mDate[0m()[0m[3m[1m.toISOString[0m(),
+[0m[1m995 |[0m       }
+[0m[1m996 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m, req)
+[0m[1m997 |[0m 
+[0m[1m998 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'team-lead'[0m)
+[0m[1m999 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                          [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m999[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mlarge message handling[2m >[0m[1m should handle a plan approval request with very long plan content[0m [0m[2m[[1m16.00ms[0m[2m][0m
+[0m[0m[1m1006 |[0m       createTeam(makeTeamConfig())
+[0m[1m1007 |[0m 
+[0m[1m1008 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m''[0m }))
+[0m[1m1009 |[0m 
+[0m[1m1010 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m1011 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                           [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1011[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mlarge message handling[2m >[0m[1m should handle an empty text message[0m
+[0m[0m[1m1024 |[0m       [0m[35mfor[0m ([0m[35mlet[0m i = [0m[33m0[0m[0m[2m;[0m i [0m<[0m total[0m[2m;[0m i++) {
+[0m[1m1025 |[0m         sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m`rapid-[0m${i}[0m[32m`[0m }))
+[0m[1m1026 |[0m       }
+[0m[1m1027 |[0m 
+[0m[1m1028 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m1029 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m(total)
+                           [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m50[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1029[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mconcurrent writes don't lose messages[2m >[0m[1m should not lose messages when sending rapidly in sequence[0m [0m[2m[[1m203.00ms[0m[2m][0m
+[0m[0m[1m1047 |[0m           )
+[0m[1m1048 |[0m         }
+[0m[1m1049 |[0m       }
+[0m[1m1050 |[0m 
+[0m[1m1051 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m1052 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m(senders.length * msgsPerSender)
+                           [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m30[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1052[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mconcurrent writes don't lose messages[2m >[0m[1m should not lose messages when multiple senders write to the same inbox sequentially[0m [0m[2m[[1m109.00ms[0m[2m][0m
+[0m[0m[1m1067 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'batch-1-msg-1'[0m }))
+[0m[1m1068 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ text: [0m[32m'batch-1-msg-2'[0m }))
+[0m[1m1069 |[0m 
+[0m[1m1070 |[0m       [0m[2m// Read (should not consume)[0m
+[0m[1m1071 |[0m       [0m[35mconst[0m afterBatch1 = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m1072 |[0m       expect(afterBatch1)[0m[3m[1m.toHaveLength[0m([0m[33m2[0m)
+                                 [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m2[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1072[0m[2m:[33m27[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mconcurrent writes don't lose messages[2m >[0m[1m should handle interleaved send and read operations[0m [0m[2m[[1m31.00ms[0m[2m][0m
+[0m[0m[1m1105 |[0m       }
+[0m[1m1106 |[0m 
+[0m[1m1107 |[0m       [0m[2m// Each agent should have exactly their own messages[0m
+[0m[1m1108 |[0m       [0m[35mfor[0m ([0m[35mconst[0m agent of agents) {
+[0m[1m1109 |[0m         [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, agent)
+[0m[1m1110 |[0m         expect(inbox)[0m[3m[1m.toHaveLength[0m(msgsPerAgent)
+                             [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m20[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1110[0m[2m:[33m23[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0mconcurrent writes don't lose messages[2m >[0m[1m should handle parallel writes to different inboxes without cross-contamination[0m [0m[2m[[1m328.00ms[0m[2m][0m
+[0m[0m[1m1124 |[0m 
+[0m[1m1125 |[0m       [0m[2m// Agent names that are valid but unusual[0m
+[0m[1m1126 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'agent-with-dashes'[0m, makeDirectMessage({ text: [0m[32m'dashes'[0m }))
+[0m[1m1127 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'agent_with_underscores'[0m, makeDirectMessage({ text: [0m[32m'underscores'[0m }))
+[0m[1m1128 |[0m 
+[0m[1m1129 |[0m       expect(readInbox([0m[32m'msg-team'[0m, [0m[32m'agent-with-dashes'[0m))[0m[3m[1m.toHaveLength[0m([0m[33m1[0m)
+                                                                [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m1[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1129[0m[2m:[33m58[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0medge cases[2m >[0m[1m should handle agent names with special characters[0m [0m[2m[[1m15.00ms[0m[2m][0m
+[0m[0m[1m1185 |[0m       [0m[35mfor[0m ([0m[35mconst[0m msg of messages) {
+[0m[1m1186 |[0m         sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, msg)
+[0m[1m1187 |[0m       }
+[0m[1m1188 |[0m 
+[0m[1m1189 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m1190 |[0m       expect(inbox)[0m[3m[1m.toHaveLength[0m([0m[33m9[0m)
+                           [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1m[2mexpect([0m[31mreceived[0m[2m).[0mtoHaveLength[2m([0m[32mexpected[0m[2m)[0m
+
+Expected length: [32m9[0m
+Received length: [31m0[0m
+[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1190[0m[2m:[33m21[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0medge cases[2m >[0m[1m should handle sending all protocol message types to one inbox[0m [0m[2m[[1m32.00ms[0m[2m][0m
+[0m[0m[1m1207 |[0m 
+[0m[1m1208 |[0m       [0m[35mconst[0m timestamp = [0m[32m'2024-06-15T12:30:45.123Z'[0m
+[0m[1m1209 |[0m       sendMessage([0m[32m'msg-team'[0m, [0m[32m'developer'[0m, makeDirectMessage({ timestamp }))
+[0m[1m1210 |[0m 
+[0m[1m1211 |[0m       [0m[35mconst[0m inbox = readInbox([0m[32m'msg-team'[0m, [0m[32m'developer'[0m)
+[0m[1m1212 |[0m       expect(inbox[[0m[33m0[0m]!.timestamp)[0m[3m[1m.toBe[0m(timestamp)
+                          [31m[1m^[0m
+[0m[31mTypeError[0m[2m:[0m [1mundefined is not an object (evaluating 'inbox[0].timestamp')[0m
+[0m      [2mat [0m[0m[2m<anonymous>[0m[2m ([0m[0m[36mC:\Users\kkvin\levelcode-project\levelcode\common\src\utils\__tests__\team-messaging.test.ts[0m[2m:[0m[33m1212[0m[2m:[33m20[0m[2m)[0m
+[0m[31m✗[0m [0mteam-messaging[2m > [0medge cases[2m >[0m[1m should preserve timestamps exactly as provided[0m [0m[2m[[1m46.00ms[0m[2m][0m
+[0m
+[0m[32m 18 pass[0m
+[0m[31m 40 fail[0m
+ 101 expect() calls
+Ran 58 tests across 1 file. [0m[2m[[1m4.31s[0m[2m][0m

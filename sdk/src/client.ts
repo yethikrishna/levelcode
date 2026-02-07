@@ -3,9 +3,18 @@ import { API_KEY_ENV_VAR } from '@levelcode/common/constants/paths'
 import { WEBSITE_URL } from './constants'
 import { getLevelCodeApiKeyFromEnv, isStandaloneMode } from './env'
 import { run } from './run'
+import {
+  sdkCreateTeam,
+  sdkDeleteTeam,
+  sdkGetTeamStatus,
+  sdkListTeams,
+} from './team'
 
 import type { RunOptions, LevelCodeClientOptions } from './run'
 import type { RunState } from './run-state'
+import type { CreateTeamOptions, TeamStatus, RunWithTeamOptions } from './team'
+import type { TeamConfig } from '@levelcode/common/types/team-config'
+import type { TeamSummary } from '@levelcode/common/utils/team-discovery'
 
 export class LevelCodeClient {
   public options: LevelCodeClientOptions & {
@@ -86,5 +95,78 @@ export class LevelCodeClient {
     } catch {
       return false
     }
+  }
+
+  /**
+   * Create a new team for coordinating multiple agents.
+   *
+   * @param name - Unique name for the team.
+   * @param options - Optional configuration including description, phase, preset, members, and settings.
+   * @returns The created TeamConfig.
+   */
+  public createTeam(name: string, options?: CreateTeamOptions): TeamConfig {
+    return sdkCreateTeam(name, this.options.fingerprintId, options)
+  }
+
+  /**
+   * Delete a team and all its associated data (inboxes, tasks).
+   *
+   * @param name - Name of the team to delete.
+   */
+  public deleteTeam(name: string): void {
+    sdkDeleteTeam(name)
+  }
+
+  /**
+   * Get the full status of a team including its config, tasks, and member count.
+   *
+   * @param name - Name of the team.
+   * @returns TeamStatus with config, tasks array, and memberCount.
+   */
+  public getTeamStatus(name: string): TeamStatus {
+    return sdkGetTeamStatus(name)
+  }
+
+  /**
+   * List all teams with summary information (name, phase, member count).
+   *
+   * @returns Array of TeamSummary objects.
+   */
+  public listTeams(): TeamSummary[] {
+    return sdkListTeams()
+  }
+
+  /**
+   * Run an agent as part of a team. The agent will be registered as a team member
+   * and the run will include team context.
+   *
+   * @param options - Run options extended with teamName, memberName, and role.
+   * @returns A Promise that resolves to a RunState.
+   */
+  public async runWithTeam(options: RunWithTeamOptions): Promise<RunState> {
+    const { teamName, memberName, role, ...runOptions } = options
+    const status = sdkGetTeamStatus(teamName)
+    const isMember = status.config.members.some(
+      (m) => m.name === memberName,
+    )
+    if (!isMember) {
+      throw new Error(
+        `Agent "${memberName}" is not a member of team "${teamName}". ` +
+          `Current members: ${status.config.members.map((m) => m.name).join(', ')}`,
+      )
+    }
+
+    const teamContext = [
+      `You are agent "${memberName}" with role "${role}" on team "${teamName}".`,
+      `Team phase: ${status.config.phase}.`,
+      `Team members: ${status.config.members.map((m) => `${m.name} (${m.role})`).join(', ')}.`,
+    ].join(' ')
+
+    const augmentedPrompt = `${teamContext}\n\n${runOptions.prompt}`
+
+    return this.run({
+      ...runOptions,
+      prompt: augmentedPrompt,
+    })
   }
 }

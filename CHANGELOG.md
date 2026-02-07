@@ -5,6 +5,21 @@ All notable changes to LevelCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0] - 2026-02-07
+
+### Added
+- Agent Swarms/Teams system for multi-agent coordination
+- 24 team roles from Intern to CTO with hierarchy
+- 21 agent templates (coordinator, manager, senior-engineer, researcher, designer, product-lead, intern, apprentice, junior-engineer, mid-level-engineer, staff-engineer, senior-staff-engineer, principal-engineer, distinguished-engineer, fellow, cto, vp-engineering, director, tester, sub-manager, scientist)
+- 7 new tools: TeamCreate, TeamDelete, SendMessage, TaskCreate, TaskGet, TaskUpdate, TaskList
+- 7 /team:* slash commands for team management
+- Development phase lifecycle (planning → pre-alpha → alpha → beta → production → mature)
+- Inbox-based inter-agent messaging (DM, broadcast, shutdown, plan approval)
+- Team panel TUI component showing real-time team status
+- swarmEnabled setting and LEVELCODE_ENABLE_SWARMS env flag
+- File-based persistence at ~/.config/levelcode/teams/
+- Hook events: TeammateIdle, TaskCompleted, PhaseTransition
+
 ## [0.0.001] - 2026-02-05
 
 ### Added
@@ -40,7 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VS Code Extension
 - JetBrains Plugin
 - Web Interface
-- Team Collaboration Features
 - Self-Hosted Server Mode
 - Plugin Marketplace
 
@@ -50,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 0.1.0   | 2026-02-07 | Agent Swarms/Teams system |
 | 0.0.001 | 2026-02-05 | Initial release |
 
 ## Contributing

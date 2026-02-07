@@ -30,6 +30,10 @@ const inputSchema = z
         'Present continuous form shown in spinner when in_progress (e.g., "Running tests")',
       ),
     owner: z.string().optional().describe('New owner for the task (agent name)'),
+    priority: z
+      .enum(['critical', 'high', 'medium', 'low'])
+      .optional()
+      .describe('New priority level for the task'),
     addBlocks: z
       .array(z.string())
       .optional()

@@ -145,7 +145,11 @@ export enum AnalyticsEvent {
   CLI_LOG = 'cli.log',
 
   // Team / Swarm
+  TEAM_CREATED = 'team.created',
+  TEAM_DELETED = 'team.deleted',
   TEAM_TEAMMATE_IDLE = 'team.teammate_idle',
   TEAM_TASK_COMPLETED = 'team.task_completed',
   TEAM_PHASE_TRANSITION = 'team.phase_transition',
+  TEAM_MESSAGE_SENT = 'team.message_sent',
+  TEAM_AGENT_SPAWNED = 'team.agent_spawned',
 }

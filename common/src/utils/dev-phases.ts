@@ -1,3 +1,4 @@
+import type { ToolName } from '../tools/constants.js'
 import type { DevPhase, TeamConfig } from '../types/team-config.js'
 
 export const PHASE_ORDER: readonly DevPhase[] = [
@@ -52,28 +53,69 @@ export function getPhaseDescription(phase: DevPhase): string {
   }
 }
 
-export function getPhaseTools(phase: DevPhase): string[] {
+/**
+ * Team tool names that are subject to phase gating.
+ * Non-team tools (read_files, str_replace, etc.) are not gated by dev phase.
+ */
+export const TEAM_TOOL_NAMES: readonly ToolName[] = [
+  'task_create',
+  'task_get',
+  'task_update',
+  'task_list',
+  'send_message',
+  'team_create',
+  'team_delete',
+  'spawn_agents',
+  'spawn_agent_inline',
+] as const
+
+export function getPhaseTools(phase: DevPhase): ToolName[] {
   switch (phase) {
     case 'planning':
-      return ['TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList']
+      return ['task_create', 'task_update', 'task_get', 'task_list']
     case 'pre-alpha':
-      return ['TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList', 'SendMessage']
+      return ['task_create', 'task_update', 'task_get', 'task_list', 'send_message', 'team_create']
     case 'alpha':
     case 'beta':
     case 'production':
     case 'mature':
       return [
-        'TaskCreate',
-        'TaskUpdate',
-        'TaskGet',
-        'TaskList',
-        'SendMessage',
-        'Read',
-        'Write',
-        'Edit',
-        'Bash',
-        'Glob',
-        'Grep',
+        'task_create',
+        'task_update',
+        'task_get',
+        'task_list',
+        'send_message',
+        'team_create',
+        'team_delete',
+        'spawn_agents',
+        'spawn_agent_inline',
       ]
   }
+}
+
+/**
+ * Checks whether a specific tool is allowed in the given dev phase.
+ * Only team tools are gated by phase. Non-team tools always return true.
+ */
+export function isToolAllowedInPhase(toolName: string, phase: DevPhase): boolean {
+  if (!(TEAM_TOOL_NAMES as readonly string[]).includes(toolName)) {
+    return true
+  }
+  return getPhaseTools(phase).includes(toolName as ToolName)
+}
+
+/**
+ * Returns the minimum phase required to use a given team tool.
+ * Returns null for non-team tools (they are always allowed).
+ */
+export function getMinimumPhaseForTool(toolName: string): DevPhase | null {
+  if (!(TEAM_TOOL_NAMES as readonly string[]).includes(toolName)) {
+    return null
+  }
+  for (const phase of PHASE_ORDER) {
+    if (getPhaseTools(phase).includes(toolName as ToolName)) {
+      return phase
+    }
+  }
+  return null
 }

@@ -161,6 +161,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'team:members',
     description: 'List all members with roles and status',
   },
+  {
+    id: 'team:settings',
+    label: 'team:settings',
+    description: 'Open swarm / team settings',
+  },
   ...MODE_COMMANDS,
   {
     id: 'referral',

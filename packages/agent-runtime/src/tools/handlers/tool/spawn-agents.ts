@@ -7,9 +7,15 @@ import {
   executeSubagent,
   extractSubagentContextParams,
   registerAgentAsTeamMember,
+  resolveTeamRoleAgentType,
+  validateSpawnAuthority,
 } from './spawn-agent-utils'
 
+import { loadTeamConfig } from '@levelcode/common/utils/team-fs'
+import { trackAgentSpawned } from '@levelcode/common/utils/team-analytics'
+
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
+import type { TrackEventFn } from '@levelcode/common/types/contracts/analytics'
 import type {
   LevelCodeToolCall,
   LevelCodeToolOutput,
@@ -19,6 +25,7 @@ import type { Logger } from '@levelcode/common/types/contracts/logger'
 import type { ParamsExcluding } from '@levelcode/common/types/function-params'
 import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
 import type { AgentState } from '@levelcode/common/types/session-state'
+import type { TeamRole } from '@levelcode/common/types/team-config'
 import type { ToolSet } from 'ai'
 
 export type SendSubagentChunk = (data: {
@@ -43,6 +50,7 @@ export const handleSpawnAgents = (async (
     logger: Logger
     system: string
     tools?: ToolSet
+    trackEvent: TrackEventFn
     userId: string | undefined
     userInputId: string
     sendSubagentChunk: SendSubagentChunk
@@ -80,7 +88,7 @@ export const handleSpawnAgents = (async (
     writeToClient,
   } = params
   const { agents } = toolCall.input
-  const { logger } = params
+  const { logger, trackEvent, userId } = params
 
   await previousToolCallFinished
 
@@ -93,9 +101,42 @@ export const handleSpawnAgents = (async (
         team_name: teamName,
         team_role: teamRole,
       }) => {
+        // When a team_role is specified, resolve it to the corresponding
+        // agent template from agents/team/. This allows callers to spawn
+        // by role (e.g. team_role: 'coordinator') without needing to know
+        // the exact agent_type ID.
+        let effectiveAgentTypeStr = agentTypeStr
+        if (teamRole && teamName) {
+          const roleAgentType = resolveTeamRoleAgentType(teamRole)
+          if (roleAgentType) {
+            effectiveAgentTypeStr = roleAgentType
+            logger.debug(
+              { teamRole, resolvedAgentType: roleAgentType },
+              `Resolved team role "${teamRole}" to agent type "${roleAgentType}"`,
+            )
+          }
+
+          // Validate that the spawning agent has authority to spawn this role.
+          // Look up the spawner's role from the team config.
+          const teamConfig = loadTeamConfig(teamName)
+          if (teamConfig) {
+            const spawnerMember = teamConfig.members.find(
+              (m) => m.agentId === parentAgentState.agentId,
+            )
+            if (spawnerMember) {
+              validateSpawnAuthority(
+                spawnerMember.role,
+                teamRole as TeamRole,
+              )
+            }
+            // If spawner is the team lead (not necessarily a registered member),
+            // they have implicit authority — no validation needed.
+          }
+        }
+
         const { agentTemplate, agentType } = await validateAndGetAgentTemplate({
           ...params,
-          agentTypeStr,
+          agentTypeStr: effectiveAgentTypeStr,
           parentAgentTemplate,
         })
 
@@ -111,7 +152,7 @@ export const handleSpawnAgents = (async (
         // Register as team member if team_name is provided
         let effectivePrompt = prompt || ''
         if (teamName) {
-          const teamContext = registerAgentAsTeamMember(
+          const teamContext = await registerAgentAsTeamMember(
             subAgentState.agentId,
             agentType,
             { teamName, teamRole },
@@ -120,6 +161,12 @@ export const handleSpawnAgents = (async (
           if (teamContext) {
             effectivePrompt = teamContext + '\n\n' + effectivePrompt
           }
+          trackAgentSpawned(
+            { trackEvent, userId: userId ?? '', logger },
+            teamName,
+            teamRole ?? agentType,
+            agentTemplate.displayName,
+          )
         }
 
         // Extract common context params to avoid bugs from spreading all params

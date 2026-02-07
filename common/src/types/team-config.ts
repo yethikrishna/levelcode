@@ -31,6 +31,14 @@ export type DevPhase =
   | 'production'
   | 'mature'
 
+export type AgentStatus =
+  | 'active'
+  | 'idle'
+  | 'working'
+  | 'blocked'
+  | 'completed'
+  | 'failed'
+
 export interface TeamMember {
   agentId: string
   name: string
@@ -38,7 +46,7 @@ export interface TeamMember {
   agentType: string
   model: string
   joinedAt: number
-  status: 'active' | 'idle' | 'completed' | 'failed'
+  status: AgentStatus
   currentTaskId?: string
   cwd: string
 }
@@ -56,11 +64,14 @@ export interface TeamConfig {
   }
 }
 
+export type TaskPriority = 'critical' | 'high' | 'medium' | 'low'
+
 export interface TeamTask {
   id: string
   subject: string
   description: string
   status: 'pending' | 'in_progress' | 'completed' | 'blocked'
+  priority: TaskPriority
   owner?: string
   blockedBy: string[]
   blocks: string[]

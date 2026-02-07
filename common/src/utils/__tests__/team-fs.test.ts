@@ -171,20 +171,20 @@ describe('team-fs', () => {
   })
 
   describe('saveTeamConfig', () => {
-    it('should overwrite existing config', () => {
+    it('should overwrite existing config', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
       const updatedConfig = { ...config, description: 'Updated description' }
-      saveTeamConfig('test-team', updatedConfig)
+      await saveTeamConfig('test-team', updatedConfig)
 
       const loaded = loadTeamConfig('test-team')
       expect(loaded!.description).toBe('Updated description')
     })
 
-    it('should create directories if they do not exist', () => {
+    it('should create directories if they do not exist', async () => {
       const config = makeTeamConfig({ name: 'new-team' })
-      saveTeamConfig('new-team', config)
+      await saveTeamConfig('new-team', config)
 
       const loaded = loadTeamConfig('new-team')
       expect(loaded).not.toBeNull()
@@ -216,12 +216,12 @@ describe('team-fs', () => {
   })
 
   describe('addTeamMember', () => {
-    it('should add a member to the team config', () => {
+    it('should add a member to the team config', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
       const newMember = makeMember()
-      addTeamMember('test-team', newMember)
+      await addTeamMember('test-team', newMember)
 
       const loaded = loadTeamConfig('test-team')
       expect(loaded!.members).toHaveLength(2)
@@ -229,40 +229,40 @@ describe('team-fs', () => {
       expect(loaded!.members[1]!.agentId).toBe('agent-456')
     })
 
-    it('should throw if team does not exist', () => {
+    it('should throw if team does not exist', async () => {
       const newMember = makeMember()
-      expect(() => addTeamMember('nonexistent-team', newMember)).toThrow(
+      expect(addTeamMember('nonexistent-team', newMember)).rejects.toThrow(
         'Team "nonexistent-team" not found',
       )
     })
   })
 
   describe('removeTeamMember', () => {
-    it('should remove a member by agentId', () => {
+    it('should remove a member by agentId', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
       const newMember = makeMember()
-      addTeamMember('test-team', newMember)
+      await addTeamMember('test-team', newMember)
 
-      removeTeamMember('test-team', 'agent-456')
+      await removeTeamMember('test-team', 'agent-456')
 
       const loaded = loadTeamConfig('test-team')
       expect(loaded!.members).toHaveLength(1)
       expect(loaded!.members[0]!.agentId).toBe('lead-123')
     })
 
-    it('should throw if team does not exist', () => {
-      expect(() => removeTeamMember('nonexistent-team', 'agent-456')).toThrow(
+    it('should throw if team does not exist', async () => {
+      expect(removeTeamMember('nonexistent-team', 'agent-456')).rejects.toThrow(
         'Team "nonexistent-team" not found',
       )
     })
 
-    it('should be a no-op if agentId is not found', () => {
+    it('should be a no-op if agentId is not found', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
-      removeTeamMember('test-team', 'nonexistent-agent')
+      await removeTeamMember('test-team', 'nonexistent-agent')
 
       const loaded = loadTeamConfig('test-team')
       expect(loaded!.members).toHaveLength(1)
@@ -270,12 +270,12 @@ describe('team-fs', () => {
   })
 
   describe('createTask', () => {
-    it('should create a task file in the tasks directory', () => {
+    it('should create a task file in the tasks directory', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
       const task = makeTask()
-      createTask('test-team', task)
+      await createTask('test-team', task)
 
       const tasksDir = getTasksDir('test-team')
       const taskPath = path.join(tasksDir, '1.json')
@@ -287,10 +287,10 @@ describe('team-fs', () => {
       expect(parsed.subject).toBe('Test task')
     })
 
-    it('should create tasks directory if it does not exist', () => {
+    it('should create tasks directory if it does not exist', async () => {
       // Do not call createTeam, just createTask directly
       const task = makeTask()
-      createTask('new-team', task)
+      await createTask('new-team', task)
 
       const tasksDir = getTasksDir('new-team')
       expect(fs.existsSync(tasksDir)).toBe(true)
@@ -298,26 +298,26 @@ describe('team-fs', () => {
   })
 
   describe('updateTask', () => {
-    it('should update task fields', () => {
+    it('should update task fields', async () => {
       const config = makeTeamConfig()
       createTeam(config)
-      createTask('test-team', makeTask())
+      await createTask('test-team', makeTask())
 
-      updateTask('test-team', '1', { status: 'in_progress', owner: 'dev-1' })
+      await updateTask('test-team', '1', { status: 'in_progress', owner: 'dev-1' })
 
       const task = getTask('test-team', '1')
       expect(task!.status).toBe('in_progress')
       expect(task!.owner).toBe('dev-1')
     })
 
-    it('should set updatedAt timestamp', () => {
+    it('should set updatedAt timestamp', async () => {
       const config = makeTeamConfig()
       createTeam(config)
       const originalTask = makeTask({ updatedAt: 1000 })
-      createTask('test-team', originalTask)
+      await createTask('test-team', originalTask)
 
       const before = Date.now()
-      updateTask('test-team', '1', { subject: 'Updated subject' })
+      await updateTask('test-team', '1', { subject: 'Updated subject' })
       const after = Date.now()
 
       const task = getTask('test-team', '1')
@@ -326,23 +326,23 @@ describe('team-fs', () => {
       expect(task!.subject).toBe('Updated subject')
     })
 
-    it('should throw if task does not exist', () => {
+    it('should throw if task does not exist', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
-      expect(() => updateTask('test-team', 'nonexistent', { status: 'completed' })).toThrow(
+      expect(updateTask('test-team', 'nonexistent', { status: 'completed' })).rejects.toThrow(
         'Task "nonexistent" not found in team "test-team"',
       )
     })
   })
 
   describe('listTasks', () => {
-    it('should return all tasks for a team', () => {
+    it('should return all tasks for a team', async () => {
       const config = makeTeamConfig()
       createTeam(config)
-      createTask('test-team', makeTask({ id: '1', subject: 'Task 1' }))
-      createTask('test-team', makeTask({ id: '2', subject: 'Task 2' }))
-      createTask('test-team', makeTask({ id: '3', subject: 'Task 3' }))
+      await createTask('test-team', makeTask({ id: '1', subject: 'Task 1' }))
+      await createTask('test-team', makeTask({ id: '2', subject: 'Task 2' }))
+      await createTask('test-team', makeTask({ id: '3', subject: 'Task 3' }))
 
       const tasks = listTasks('test-team')
       expect(tasks).toHaveLength(3)
@@ -367,10 +367,10 @@ describe('team-fs', () => {
   })
 
   describe('getTask', () => {
-    it('should return a specific task by id', () => {
+    it('should return a specific task by id', async () => {
       const config = makeTeamConfig()
       createTeam(config)
-      createTask('test-team', makeTask({ id: '42', subject: 'Specific task' }))
+      await createTask('test-team', makeTask({ id: '42', subject: 'Specific task' }))
 
       const task = getTask('test-team', '42')
       expect(task).not.toBeNull()
@@ -388,7 +388,7 @@ describe('team-fs', () => {
   })
 
   describe('sendMessage', () => {
-    it('should write a message to the recipient inbox', () => {
+    it('should write a message to the recipient inbox', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
@@ -399,7 +399,7 @@ describe('team-fs', () => {
         text: 'Hello developer',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('test-team', 'developer', msg)
+      await sendMessage('test-team', 'developer', msg)
 
       const inbox = readInbox('test-team', 'developer')
       expect(inbox).toHaveLength(1)
@@ -407,7 +407,7 @@ describe('team-fs', () => {
       expect((inbox[0] as TeamMessage).text).toBe('Hello developer')
     })
 
-    it('should append messages to existing inbox', () => {
+    it('should append messages to existing inbox', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
@@ -424,8 +424,8 @@ describe('team-fs', () => {
         text: 'Broadcast message',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('test-team', 'developer', msg1)
-      sendMessage('test-team', 'developer', msg2)
+      await sendMessage('test-team', 'developer', msg1)
+      await sendMessage('test-team', 'developer', msg2)
 
       const inbox = readInbox('test-team', 'developer')
       expect(inbox).toHaveLength(2)
@@ -433,7 +433,7 @@ describe('team-fs', () => {
       expect(inbox[1]!.type).toBe('broadcast')
     })
 
-    it('should create inboxes directory if it does not exist', () => {
+    it('should create inboxes directory if it does not exist', async () => {
       // Use sendMessage without calling createTeam first
       const msg: TeamMessage = {
         type: 'message',
@@ -442,7 +442,7 @@ describe('team-fs', () => {
         text: 'test',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('fresh-team', 'dev', msg)
+      await sendMessage('fresh-team', 'dev', msg)
 
       const inbox = readInbox('fresh-team', 'dev')
       expect(inbox).toHaveLength(1)
@@ -455,7 +455,7 @@ describe('team-fs', () => {
       expect(inbox).toEqual([])
     })
 
-    it('should return all messages in the inbox', () => {
+    it('should return all messages in the inbox', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
@@ -466,8 +466,8 @@ describe('team-fs', () => {
         text: 'test',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('test-team', 'dev', msg)
-      sendMessage('test-team', 'dev', msg)
+      await sendMessage('test-team', 'dev', msg)
+      await sendMessage('test-team', 'dev', msg)
 
       const inbox = readInbox('test-team', 'dev')
       expect(inbox).toHaveLength(2)
@@ -475,7 +475,7 @@ describe('team-fs', () => {
   })
 
   describe('clearInbox', () => {
-    it('should clear all messages from an inbox', () => {
+    it('should clear all messages from an inbox', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
@@ -486,8 +486,8 @@ describe('team-fs', () => {
         text: 'test',
         timestamp: new Date().toISOString(),
       }
-      sendMessage('test-team', 'dev', msg)
-      sendMessage('test-team', 'dev', msg)
+      await sendMessage('test-team', 'dev', msg)
+      await sendMessage('test-team', 'dev', msg)
 
       clearInbox('test-team', 'dev')
 

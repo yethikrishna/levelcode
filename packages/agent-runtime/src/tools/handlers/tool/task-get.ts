@@ -8,12 +8,26 @@ import type {
   LevelCodeToolOutput,
 } from '@levelcode/common/tools/list'
 
+function errorResult(message: string) {
+  return { output: jsonToolResult({ error: message }) }
+}
+
 function getActiveTeamName(): string | null {
-  const teamsDir = getTeamsDir()
+  let teamsDir: string
+  try {
+    teamsDir = getTeamsDir()
+  } catch {
+    return null
+  }
   if (!fs.existsSync(teamsDir)) {
     return null
   }
-  const entries = fs.readdirSync(teamsDir, { withFileTypes: true })
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(teamsDir, { withFileTypes: true })
+  } catch {
+    return null
+  }
   const teamDirs = entries.filter((e) => e.isDirectory())
   if (teamDirs.length === 0) {
     return null
@@ -31,22 +45,31 @@ export const handleTaskGet = (async (params: {
 
   await previousToolCallFinished
 
-  const teamName = getActiveTeamName()
-  if (!teamName) {
-    return {
-      output: jsonToolResult({
-        error: 'No active team found. Create a team first using TeamCreate.',
-      }),
-    }
+  // Validate required input
+  if (!taskId || typeof taskId !== 'string' || taskId.trim() === '') {
+    return errorResult('A non-empty "taskId" is required.')
   }
 
-  const task = getTask(teamName, taskId)
+  const teamName = getActiveTeamName()
+  if (!teamName) {
+    return errorResult(
+      'No active team found. Create a team first using TeamCreate.',
+    )
+  }
+
+  let task
+  try {
+    task = getTask(teamName, taskId)
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    return errorResult(
+      `Failed to read task "${taskId}": ${errorMessage}`,
+    )
+  }
+
   if (!task) {
-    return {
-      output: jsonToolResult({
-        error: `Task "${taskId}" not found.`,
-      }),
-    }
+    return errorResult(`Task "${taskId}" not found.`)
   }
 
   return {

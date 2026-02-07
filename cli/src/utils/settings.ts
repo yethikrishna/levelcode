@@ -22,6 +22,9 @@ export interface Settings {
   mode?: AgentMode
   adsEnabled?: boolean
   swarmEnabled?: boolean
+  swarmMaxMembers?: number
+  swarmAutoAssign?: boolean
+  swarmDefaultPhase?: string
 }
 
 /**
@@ -99,6 +102,21 @@ const validateSettings = (parsed: unknown): Settings => {
     settings.swarmEnabled = obj.swarmEnabled
   }
 
+  // Validate swarmMaxMembers
+  if (typeof obj.swarmMaxMembers === 'number' && obj.swarmMaxMembers > 0) {
+    settings.swarmMaxMembers = obj.swarmMaxMembers
+  }
+
+  // Validate swarmAutoAssign
+  if (typeof obj.swarmAutoAssign === 'boolean') {
+    settings.swarmAutoAssign = obj.swarmAutoAssign
+  }
+
+  // Validate swarmDefaultPhase
+  if (typeof obj.swarmDefaultPhase === 'string') {
+    settings.swarmDefaultPhase = obj.swarmDefaultPhase
+  }
+
   return settings
 }
 
@@ -160,4 +178,43 @@ export const getSwarmEnabled = (): boolean => {
  */
 export const saveSwarmPreference = (enabled: boolean): void => {
   saveSettings({ swarmEnabled: enabled })
+}
+
+/**
+ * Load swarm-related settings with defaults
+ */
+export const loadSwarmSettings = (): {
+  swarmEnabled: boolean
+  swarmMaxMembers: number
+  swarmAutoAssign: boolean
+  swarmDefaultPhase: string
+} => {
+  const settings = loadSettings()
+  return {
+    swarmEnabled: settings.swarmEnabled ?? false,
+    swarmMaxMembers: settings.swarmMaxMembers ?? 20,
+    swarmAutoAssign: settings.swarmAutoAssign ?? false,
+    swarmDefaultPhase: settings.swarmDefaultPhase ?? 'planning',
+  }
+}
+
+/**
+ * Save swarm max members preference
+ */
+export const saveSwarmMaxMembers = (maxMembers: number): void => {
+  saveSettings({ swarmMaxMembers: maxMembers })
+}
+
+/**
+ * Save swarm auto-assign preference
+ */
+export const saveSwarmAutoAssign = (autoAssign: boolean): void => {
+  saveSettings({ swarmAutoAssign: autoAssign })
+}
+
+/**
+ * Save swarm default phase preference
+ */
+export const saveSwarmDefaultPhase = (phase: string): void => {
+  saveSettings({ swarmDefaultPhase: phase })
 }
