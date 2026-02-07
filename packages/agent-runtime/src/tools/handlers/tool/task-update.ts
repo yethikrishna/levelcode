@@ -116,7 +116,7 @@ export const handleTaskUpdate = (async (params: {
       error instanceof Error ? error.message : String(error)
     return {
       output: jsonToolResult({
-        error: `Failed to update task "${taskId}": ${errorMessage}`,
+        message: `Failed to update task "${taskId}": ${errorMessage}`,
       }),
     }
   }
@@ -124,6 +124,9 @@ export const handleTaskUpdate = (async (params: {
   const updatedTask = getTask(teamName, taskId)
 
   return {
-    output: jsonToolResult(updatedTask),
+    output: jsonToolResult({
+      message: `Task "${taskId}" updated successfully`,
+      task: updatedTask as unknown as Record<string, unknown>,
+    }),
   }
 }) satisfies LevelCodeToolHandlerFunction<ToolName>
