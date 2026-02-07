@@ -56,7 +56,7 @@ jobs:
       - name: Commit and push version bumpAdd commentMore actions
         run: |
           git stash
-          git pull --rebase origin main
+          git pull --rebase origin master
           git stash pop
           git add cli/release/package.json
           git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }}"

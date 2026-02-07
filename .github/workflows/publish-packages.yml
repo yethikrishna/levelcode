@@ -1,0 +1,128 @@
+name: Publish Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      publish_sdk:
+        description: 'Publish @levelcode/sdk'
+        required: true
+        default: true
+        type: boolean
+      publish_cli:
+        description: 'Publish @levelcode/cli'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.x'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set environment variables
+        env:
+          SECRETS_CONTEXT: ${{ toJSON(secrets) }}
+        run: |
+          VAR_NAMES=$(bun scripts/generate-ci-env.ts --scope client 2>/dev/null || echo '[]')
+          if [ "$VAR_NAMES" != "[]" ]; then
+            echo "$SECRETS_CONTEXT" | jq -r --argjson vars "$VAR_NAMES" '
+              to_entries | .[] | select(.key as $k | $vars | index($k)) | .key + "=" + .value
+            ' >> $GITHUB_ENV
+          fi
+          echo "NEXT_PUBLIC_CB_ENVIRONMENT=prod" >> $GITHUB_ENV
+          echo "LEVELCODE_GITHUB_ACTIONS=true" >> $GITHUB_ENV
+
+      - name: Bump SDK version
+        if: inputs.publish_sdk
+        run: |
+          cd sdk
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const parts = pkg.version.split('.');
+            if ('${{ inputs.version_type }}' === 'major') { parts[0]++; parts[1]=0; parts[2]=0; }
+            else if ('${{ inputs.version_type }}' === 'minor') { parts[1]++; parts[2]=0; }
+            else { parts[2]++; }
+            pkg.version = parts.join('.');
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('SDK version: ' + pkg.version);
+          "
+
+      - name: Bump CLI version
+        if: inputs.publish_cli
+        run: |
+          cd cli
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const parts = pkg.version.split('.');
+            if ('${{ inputs.version_type }}' === 'major') { parts[0]++; parts[1]=0; parts[2]=0; }
+            else if ('${{ inputs.version_type }}' === 'minor') { parts[1]++; parts[2]=0; }
+            else { parts[2]++; }
+            pkg.version = parts.join('.');
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('CLI version: ' + pkg.version);
+          "
+
+      - name: Build SDK
+        if: inputs.publish_sdk
+        run: cd sdk && bun run build
+
+      - name: Publish SDK
+        if: inputs.publish_sdk
+        run: cd sdk && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Prebuild agents and build CLI
+        if: inputs.publish_cli
+        run: |
+          cd cli
+          bun run prebuild:agents
+          rm -rf dist
+          bun build src/index.tsx --outdir dist --target bun
+
+      - name: Publish CLI
+        if: inputs.publish_cli
+        run: cd cli && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit and push version bumps
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add sdk/package.json cli/package.json
+          SDK_VERSION=$(node -e "console.log(require('./sdk/package.json').version)")
+          CLI_VERSION=$(node -e "console.log(require('./cli/package.json').version)")
+          git commit -m "chore: publish @levelcode/sdk@${SDK_VERSION} @levelcode/cli@${CLI_VERSION}" || echo "No changes to commit"
+          git push origin master

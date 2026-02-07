@@ -62,7 +62,7 @@ jobs:
       - name: Commit and push version bump
         run: |
           git stash
-          git pull --rebase origin main
+          git pull --rebase origin master
           git stash pop
           git add sdk/package.json
           git commit -m "Bump SDK version to ${{ steps.bump_version.outputs.new_version }}"
