@@ -143,4 +143,9 @@ export enum AnalyticsEvent {
 
   // Client Logging - for sending logger events to PostHog in production
   CLI_LOG = 'cli.log',
+
+  // Team / Swarm
+  TEAM_TEAMMATE_IDLE = 'team.teammate_idle',
+  TEAM_TASK_COMPLETED = 'team.task_completed',
+  TEAM_PHASE_TRANSITION = 'team.phase_transition',
 }

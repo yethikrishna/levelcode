@@ -10,6 +10,7 @@ import type { AgentMode } from './constants'
 const DEFAULT_SETTINGS: Settings = {
   mode: 'DEFAULT' as const,
   adsEnabled: true,
+  swarmEnabled: false,
 }
 
 // Note: FREE mode is now a valid AgentMode (was previously LITE)
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: Settings = {
 export interface Settings {
   mode?: AgentMode
   adsEnabled?: boolean
+  swarmEnabled?: boolean
 }
 
 /**
@@ -92,6 +94,11 @@ const validateSettings = (parsed: unknown): Settings => {
     settings.adsEnabled = obj.adsEnabled
   }
 
+  // Validate swarmEnabled
+  if (typeof obj.swarmEnabled === 'boolean') {
+    settings.swarmEnabled = obj.swarmEnabled
+  }
+
   return settings
 }
 
@@ -133,4 +140,24 @@ export const loadModePreference = (): AgentMode => {
  */
 export const saveModePreference = (mode: AgentMode): void => {
   saveSettings({ mode })
+}
+
+/**
+ * Check if swarm/team features are enabled.
+ * Enabled when the setting is true OR the LEVELCODE_ENABLE_SWARMS env var is set.
+ */
+export const getSwarmEnabled = (): boolean => {
+  const envFlag = process.env.LEVELCODE_ENABLE_SWARMS
+  if (envFlag === '1' || envFlag === 'true') {
+    return true
+  }
+  const settings = loadSettings()
+  return settings.swarmEnabled ?? false
+}
+
+/**
+ * Save the swarm enabled preference
+ */
+export const saveSwarmPreference = (enabled: boolean): void => {
+  saveSettings({ swarmEnabled: enabled })
 }

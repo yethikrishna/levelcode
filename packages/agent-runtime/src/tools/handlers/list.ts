@@ -29,6 +29,13 @@ import { handleUpdateSubgoal } from './tool/update-subgoal'
 import { handleWebSearch } from './tool/web-search'
 import { handleWriteFile } from './tool/write-file'
 import { handleWriteTodos } from './tool/write-todos'
+import { handleSendMessage } from './tool/send-message'
+import { handleTaskCreate } from './tool/task-create'
+import { handleTaskGet } from './tool/task-get'
+import { handleTaskList } from './tool/task-list'
+import { handleTaskUpdate } from './tool/task-update'
+import { handleTeamCreate } from './tool/team-create'
+import { handleTeamDelete } from './tool/team-delete'
 
 import type { LevelCodeToolHandlerFunction } from './handler-function-type'
 import type { ToolName } from '@levelcode/common/tools/constants'
@@ -69,6 +76,13 @@ export const levelcodeToolHandlers = {
   str_replace: handleStrReplace,
   suggest_followups: handleSuggestFollowups,
   task_completed: handleTaskCompleted,
+  task_create: handleTaskCreate,
+  task_get: handleTaskGet,
+  task_list: handleTaskList,
+  task_update: handleTaskUpdate,
+  send_message: handleSendMessage,
+  team_create: handleTeamCreate,
+  team_delete: handleTeamDelete,
   think_deeply: handleThinkDeeply,
   update_subgoal: handleUpdateSubgoal,
   web_search: handleWebSearch,

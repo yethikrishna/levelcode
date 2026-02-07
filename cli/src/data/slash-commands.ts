@@ -125,6 +125,42 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Attach an image file (or Ctrl+V to paste from clipboard)',
     aliases: ['img', 'attach'],
   },
+  // Team / swarm commands
+  {
+    id: 'team:create',
+    label: 'team:create',
+    description: 'Create a new team',
+  },
+  {
+    id: 'team:delete',
+    label: 'team:delete',
+    description: 'Delete the current team',
+  },
+  {
+    id: 'team:status',
+    label: 'team:status',
+    description: 'Show team overview (members, phase, tasks)',
+  },
+  {
+    id: 'team:phase',
+    label: 'team:phase',
+    description: 'Set the development phase',
+  },
+  {
+    id: 'team:enable',
+    label: 'team:enable',
+    description: 'Enable swarm features',
+  },
+  {
+    id: 'team:disable',
+    label: 'team:disable',
+    description: 'Disable swarm features',
+  },
+  {
+    id: 'team:members',
+    label: 'team:members',
+    description: 'List all members with roles and status',
+  },
   ...MODE_COMMANDS,
   {
     id: 'referral',

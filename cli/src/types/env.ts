@@ -69,6 +69,9 @@ export type CliEnv = BaseEnv & {
   LEVELCODE_RG_PATH?: string
   LEVELCODE_SCROLL_MULTIPLIER?: string
   LEVELCODE_PERF_TEST?: string
+
+  // Feature flags
+  LEVELCODE_ENABLE_SWARMS?: string
 }
 
 /**

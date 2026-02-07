@@ -69,6 +69,9 @@ export const getCliEnv = (): CliEnv => ({
   LEVELCODE_RG_PATH: process.env.LEVELCODE_RG_PATH,
   LEVELCODE_SCROLL_MULTIPLIER: process.env.LEVELCODE_SCROLL_MULTIPLIER,
   LEVELCODE_PERF_TEST: process.env.LEVELCODE_PERF_TEST,
+
+  // Feature flags
+  LEVELCODE_ENABLE_SWARMS: process.env.LEVELCODE_ENABLE_SWARMS,
 })
 
 /**

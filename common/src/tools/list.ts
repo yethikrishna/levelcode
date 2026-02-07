@@ -19,6 +19,7 @@ import { readFilesParams } from './params/tool/read-files'
 import { readSubtreeParams } from './params/tool/read-subtree'
 import { runFileChangeHooksParams } from './params/tool/run-file-change-hooks'
 import { runTerminalCommandParams } from './params/tool/run-terminal-command'
+import { sendMessageParams } from './params/tool/send-message'
 import { setMessagesParams } from './params/tool/set-messages'
 import { setOutputParams } from './params/tool/set-output'
 import { skillParams } from './params/tool/skill'
@@ -27,6 +28,12 @@ import { spawnAgentsParams } from './params/tool/spawn-agents'
 import { strReplaceParams } from './params/tool/str-replace'
 import { suggestFollowupsParams } from './params/tool/suggest-followups'
 import { taskCompletedParams } from './params/tool/task-completed'
+import { taskCreateParams } from './params/tool/task-create'
+import { taskGetParams } from './params/tool/task-get'
+import { taskListParams } from './params/tool/task-list'
+import { taskUpdateParams } from './params/tool/task-update'
+import { teamCreateParams } from './params/tool/team-create'
+import { teamDeleteParams } from './params/tool/team-delete'
 import { thinkDeeplyParams } from './params/tool/think-deeply'
 import { updateSubgoalParams } from './params/tool/update-subgoal'
 import { webSearchParams } from './params/tool/web-search'
@@ -56,6 +63,7 @@ export const toolParams = {
   read_subtree: readSubtreeParams,
   run_file_change_hooks: runFileChangeHooksParams,
   run_terminal_command: runTerminalCommandParams,
+  send_message: sendMessageParams,
   set_messages: setMessagesParams,
   set_output: setOutputParams,
   skill: skillParams,
@@ -64,6 +72,12 @@ export const toolParams = {
   str_replace: strReplaceParams,
   suggest_followups: suggestFollowupsParams,
   task_completed: taskCompletedParams,
+  task_create: taskCreateParams,
+  task_get: taskGetParams,
+  task_list: taskListParams,
+  task_update: taskUpdateParams,
+  team_create: teamCreateParams,
+  team_delete: teamDeleteParams,
   think_deeply: thinkDeeplyParams,
   update_subgoal: updateSubgoalParams,
   web_search: webSearchParams,

@@ -28,6 +28,9 @@ export const serverEnvSchema = clientEnvSchema.extend({
   DISCORD_PUBLIC_KEY: z.string().default(''),
   DISCORD_BOT_TOKEN: z.string().default(''),
   DISCORD_APPLICATION_ID: z.string().default(''),
+
+  // Feature flags
+  LEVELCODE_ENABLE_SWARMS: z.enum(['0', '1', 'true', 'false']).default('0'),
 })
 export const serverEnvVars = serverEnvSchema.keyof().options
 export type ServerEnvVar = (typeof serverEnvVars)[number]
@@ -71,4 +74,7 @@ export const serverProcessEnv: ServerInput = {
   DISCORD_PUBLIC_KEY: process.env.DISCORD_PUBLIC_KEY,
   DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
   DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
+
+  // Feature flags
+  LEVELCODE_ENABLE_SWARMS: process.env.LEVELCODE_ENABLE_SWARMS,
 }

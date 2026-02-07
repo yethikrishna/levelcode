@@ -385,6 +385,116 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       clearInput(params)
     },
   }),
+  // ── Team / swarm commands ──────────────────────────────────────────
+  defineCommandWithArgs({
+    name: 'team:create',
+    handler: (params, args) => {
+      const teamName = args.trim()
+      if (!teamName) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /team:create <name>'),
+        ])
+      } else {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Creating team "${teamName}"... (not yet connected)`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'team:delete',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('Deleting current team... (not yet connected)'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'team:status',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('Fetching team status... (not yet connected)'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'team:phase',
+    handler: (params, args) => {
+      const phase = args.trim()
+      const validPhases = ['planning', 'pre-alpha', 'alpha', 'beta', 'production', 'mature']
+      if (!phase) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Usage: /team:phase <phase>\nValid phases: ${validPhases.join(', ')}`),
+        ])
+      } else if (!validPhases.includes(phase)) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Invalid phase "${phase}". Valid phases: ${validPhases.join(', ')}`),
+        ])
+      } else {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Setting development phase to "${phase}"... (not yet connected)`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'team:enable',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('Enabling swarm features... (not yet connected)'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'team:disable',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('Disabling swarm features... (not yet connected)'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'team:members',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('Fetching team members... (not yet connected)'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
   // Mode commands generated from AGENT_MODES
   ...AGENT_MODES.map((mode) =>
     defineCommandWithArgs({

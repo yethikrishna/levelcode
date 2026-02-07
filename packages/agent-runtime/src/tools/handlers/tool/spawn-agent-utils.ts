@@ -2,6 +2,11 @@ import { MAX_AGENT_STEPS_DEFAULT } from '@levelcode/common/constants/agents'
 import { toolNames } from '@levelcode/common/tools/constants'
 import { parseAgentId } from '@levelcode/common/util/agent-id-parsing'
 import { generateCompactId } from '@levelcode/common/util/string'
+import {
+  addTeamMember,
+  loadTeamConfig,
+  getTasksDir,
+} from '@levelcode/common/utils/team-fs'
 
 import { loopAgentSteps } from '../../../run-agent-step'
 import { getAgentTemplate } from '../../../templates/agent-registry'
@@ -27,6 +32,7 @@ import type {
   AgentTemplateType,
   Subgoal,
 } from '@levelcode/common/types/session-state'
+import type { TeamMember, TeamRole } from '@levelcode/common/types/team-config'
 import type { ProjectFileContext } from '@levelcode/common/util/file'
 import type { ToolSet } from 'ai'
 
@@ -456,4 +462,84 @@ export async function executeSubagent(
   }
 
   return result
+}
+
+/**
+ * Options for registering a spawned agent as a team member.
+ */
+export interface TeamSpawnOptions {
+  teamName: string
+  teamRole?: string
+}
+
+/**
+ * Registers a spawned agent as a member of an existing team.
+ * Returns the team context string to prepend to the agent's prompt,
+ * or null if the team does not exist.
+ */
+export function registerAgentAsTeamMember(
+  agentId: string,
+  agentType: string,
+  options: TeamSpawnOptions,
+  logger: Logger,
+): string | null {
+  const { teamName, teamRole } = options
+
+  const teamConfig = loadTeamConfig(teamName)
+  if (!teamConfig) {
+    logger.debug(
+      { teamName, agentId },
+      `Team "${teamName}" not found; skipping team registration`,
+    )
+    return null
+  }
+
+  const role: TeamRole = (teamRole as TeamRole) || 'mid-level-engineer'
+  const memberName = `${agentType}-${agentId}`
+
+  const member: TeamMember = {
+    agentId,
+    name: memberName,
+    role,
+    agentType,
+    model: '',
+    joinedAt: Date.now(),
+    status: 'active',
+    cwd: process.cwd(),
+  }
+
+  try {
+    addTeamMember(teamName, member)
+  } catch (error) {
+    logger.debug(
+      { teamName, agentId, error },
+      `Failed to register agent as team member`,
+    )
+    return null
+  }
+
+  return buildTeamContextPrompt(teamName, memberName, role, teamConfig.leadAgentId)
+}
+
+/**
+ * Builds additional system prompt context for a team-aware spawned agent.
+ */
+function buildTeamContextPrompt(
+  teamName: string,
+  agentName: string,
+  role: TeamRole,
+  leadAgentId: string,
+): string {
+  const tasksDir = getTasksDir(teamName)
+
+  return [
+    `\n# Team Context`,
+    `You are a member of team "${teamName}".`,
+    `Your name in this team: ${agentName}`,
+    `Your role: ${role}`,
+    `Team lead agent ID: ${leadAgentId}`,
+    `Team task directory: ${tasksDir}`,
+    `Use the team messaging tools (send_message, broadcast) to communicate with teammates.`,
+    `Use the task tools (task_create, task_update, task_list) to coordinate work.`,
+  ].join('\n')
 }

@@ -6,6 +6,7 @@ import {
   createAgentState,
   executeSubagent,
   extractSubagentContextParams,
+  registerAgentAsTeamMember,
 } from './spawn-agent-utils'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
@@ -85,7 +86,13 @@ export const handleSpawnAgents = (async (
 
   const results = await Promise.allSettled(
     agents.map(
-      async ({ agent_type: agentTypeStr, prompt, params: spawnParams }) => {
+      async ({
+        agent_type: agentTypeStr,
+        prompt,
+        params: spawnParams,
+        team_name: teamName,
+        team_role: teamRole,
+      }) => {
         const { agentTemplate, agentType } = await validateAndGetAgentTemplate({
           ...params,
           agentTypeStr,
@@ -101,6 +108,20 @@ export const handleSpawnAgents = (async (
           {},
         )
 
+        // Register as team member if team_name is provided
+        let effectivePrompt = prompt || ''
+        if (teamName) {
+          const teamContext = registerAgentAsTeamMember(
+            subAgentState.agentId,
+            agentType,
+            { teamName, teamRole },
+            logger,
+          )
+          if (teamContext) {
+            effectivePrompt = teamContext + '\n\n' + effectivePrompt
+          }
+        }
+
         // Extract common context params to avoid bugs from spreading all params
         const contextParams = extractSubagentContextParams(params)
 
@@ -110,7 +131,7 @@ export const handleSpawnAgents = (async (
           // Spawn-specific params
           ancestorRunIds: parentAgentState.ancestorRunIds,
           userInputId: `${userInputId}-${agentType}${subAgentState.agentId}`,
-          prompt: prompt || '',
+          prompt: effectivePrompt,
           spawnParams,
           agentTemplate,
           parentAgentState,

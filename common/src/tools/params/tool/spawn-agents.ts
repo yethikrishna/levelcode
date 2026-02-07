@@ -24,6 +24,18 @@ const inputSchema = z
           .record(z.string(), z.any())
           .optional()
           .describe('Parameters object for the agent (if any)'),
+        team_name: z
+          .string()
+          .optional()
+          .describe(
+            'Optional team name to register this agent as a member of. The team must already exist (created via team_create).',
+          ),
+        team_role: z
+          .string()
+          .optional()
+          .describe(
+            'Optional role for the agent within the team (e.g. "senior-engineer", "researcher"). Defaults to "mid-level-engineer".',
+          ),
       })
       .array(),
   })
