@@ -84,7 +84,7 @@ export async function formatPrompt(
 
   const toInject: Record<PlaceholderValue, () => string | Promise<string>> = {
     [PLACEHOLDER.AGENT_NAME]: () =>
-      agentTemplate ? agentTemplate.displayName || 'Unknown Agent' : 'Buffy',
+      agentTemplate ? agentTemplate.displayName || 'Unknown Agent' : 'Sage',
     [PLACEHOLDER.FILE_TREE_PROMPT_SMALL]: () =>
       getProjectFileTreePrompt({
         fileContext,

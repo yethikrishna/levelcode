@@ -2,9 +2,9 @@ import type { AgentTemplateTypes } from '../types/session-state'
 
 // Define agent personas with their shared characteristics
 export const AGENT_PERSONAS = {
-  // Base agents - all use Buffy persona
+  // Base agents - all use Sage persona
   base: {
-    displayName: 'Buffy the Base Agent',
+    displayName: 'Sage the Base Agent',
     purpose: 'Base agent that orchestrates the full response.',
   } as const,
 

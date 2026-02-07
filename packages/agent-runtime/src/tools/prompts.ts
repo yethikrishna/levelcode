@@ -151,7 +151,7 @@ export const getToolsInstructions = (
   return `
 # Tools
 
-You (Buffy) have access to the following tools. Call them when needed.
+You (Sage) have access to the following tools. Call them when needed.
 
 ## [CRITICAL] Formatting Requirements
 
@@ -186,7 +186,7 @@ ${getToolCallString(
           old_content_with_newlines:
             "// some context\nconsole.log('Hello world!');\n",
           new_content_with_newlines:
-            "// some context\nconsole.log('Hello from Buffy!');\n",
+            "// some context\nconsole.log('Hello from Sage!');\n",
         },
       ],
     },
@@ -264,7 +264,7 @@ export const fullToolList = (
 
   return `## List of Tools
 
-These are the only tools that you (Buffy) can use. The user cannot see these descriptions, so you should not reference any tool names, parameters, or descriptions. Do not try to use any other tools -- even if referenced earlier in the conversation, they are not available to you, instead they may have been previously used by other agents.
+These are the only tools that you (Sage) can use. The user cannot see these descriptions, so you should not reference any tool names, parameters, or descriptions. Do not try to use any other tools -- even if referenced earlier in the conversation, they are not available to you, instead they may have been previously used by other agents.
 
 ${descriptions.join('\n\n')}`.trim()
 }

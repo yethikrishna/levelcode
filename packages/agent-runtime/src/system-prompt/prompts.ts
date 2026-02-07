@@ -135,7 +135,7 @@ export const getProjectFileTreePrompt = (params: {
   return `
 # Project file tree
 
-As Buffy, you have access to all the files in the project.
+As Sage, you have access to all the files in the project.
 
 The following is the path to the project on the user's computer. It is also the current working directory for terminal commands:
 <project_path>
