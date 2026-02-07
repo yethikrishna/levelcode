@@ -155,3 +155,5 @@ jobs:
         run: |
           cd cli/release
           npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
