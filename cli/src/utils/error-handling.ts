@@ -2,7 +2,7 @@ import { env } from '@levelcode/common/env'
 
 import type { ChatMessage } from '../types/chat'
 
-const defaultAppUrl = env.NEXT_PUBLIC_LEVELCODE_APP_URL || 'https://levelcode.com'
+const defaultAppUrl = env.NEXT_PUBLIC_LEVELCODE_APP_URL || 'https://levelcode.vercel.app'
 
 // Normalize unknown errors to a user-facing string.
 const extractErrorMessage = (error: unknown, fallback: string): string => {

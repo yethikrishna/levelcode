@@ -5,7 +5,7 @@ const parsedEnv = clientEnvSchema.safeParse(clientProcessEnv)
 // Provide fallback values for CLI usage where env vars may not be set
 const fallbackEnv = {
   NEXT_PUBLIC_CB_ENVIRONMENT: 'prod' as const,
-  NEXT_PUBLIC_LEVELCODE_APP_URL: '',
+  NEXT_PUBLIC_LEVELCODE_APP_URL: 'https://levelcode.vercel.app',
   NEXT_PUBLIC_SUPPORT_EMAIL: 'support@levelcode.ai',
   NEXT_PUBLIC_POSTHOG_API_KEY: '',
   NEXT_PUBLIC_POSTHOG_HOST_URL: 'https://app.posthog.com',

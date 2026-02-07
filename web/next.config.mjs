@@ -23,6 +23,9 @@ const nextConfig = {
   },
   allowedDevOrigins: DEV_ALLOWED_ORIGINS,
 
+  // Externalize packages that cause ENOENT during Vercel output tracing
+  serverExternalPackages: ['@opentelemetry/api'],
+
   // Enable experimental features for better SSG performance
   experimental: {
     optimizePackageImports: ['@/components/ui'],
