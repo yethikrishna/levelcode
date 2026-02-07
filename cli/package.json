@@ -1,6 +1,6 @@
 {
   "name": "@levelcode/cli",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "LevelCode CLI - Terminal-based AI coding agent that outperforms Claude Code",
   "author": {
     "name": "Yethikrishna R",
