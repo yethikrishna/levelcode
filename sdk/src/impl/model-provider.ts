@@ -3,8 +3,8 @@
  *
  * Routing priority:
  * 1. Claude OAuth: Direct requests to Anthropic API using user's OAuth token
- * 2. Standalone + OPENROUTER_API_KEY: Direct requests to OpenRouter
- * 3. Standalone + ANTHROPIC_API_KEY: Direct requests to Anthropic API
+ * 2. Standalone + OPENROUTER_API_KEY: Direct requests to OpenRouter (or custom base via OPENROUTER_BASE_URL)
+ * 3. Standalone + ANTHROPIC_API_KEY: Direct requests to Anthropic API (or custom base via ANTHROPIC_BASE_URL)
  * 4. Non-standalone: Requests through LevelCode backend (which routes to OpenRouter)
  */
 
@@ -27,7 +27,7 @@ import { createOpenRouter } from '@levelcode/internal/openrouter-ai-sdk'
 
 import { WEBSITE_URL } from '../constants'
 import { getValidClaudeOAuthCredentials } from '../credentials'
-import { getAnthropicApiKeyFromEnv, getByokOpenrouterApiKeyFromEnv, getOpenRouterApiKeyFromEnv, isStandaloneMode } from '../env'
+import { getAnthropicApiKeyFromEnv, getAnthropicBaseUrlFromEnv, getByokOpenrouterApiKeyFromEnv, getOpenRouterApiKeyFromEnv, getOpenRouterBaseUrlFromEnv, isStandaloneMode } from '../env'
 
 import type { LanguageModel } from 'ai'
 
@@ -168,7 +168,8 @@ type OpenRouterUsageAccounting = {
  * Uses the existing createOpenRouter() provider from @levelcode/internal.
  */
 function createDirectOpenRouterModel(openRouterApiKey: string, model: string): LanguageModel {
-  const provider = createOpenRouter({ apiKey: openRouterApiKey, compatibility: 'strict' })
+  const baseURL = getOpenRouterBaseUrlFromEnv()
+  const provider = createOpenRouter({ apiKey: openRouterApiKey, compatibility: 'strict', ...(baseURL && { baseURL }) })
   return provider.chat(model) as unknown as LanguageModel
 }
 
@@ -178,7 +179,8 @@ function createDirectOpenRouterModel(openRouterApiKey: string, model: string): L
  */
 function createDirectAnthropicModel(anthropicApiKey: string, model: string): LanguageModel {
   const anthropicModelId = toAnthropicModelId(model)
-  const anthropic = createAnthropic({ apiKey: anthropicApiKey })
+  const baseURL = getAnthropicBaseUrlFromEnv()
+  const anthropic = createAnthropic({ apiKey: anthropicApiKey, ...(baseURL && { baseURL }) })
   return anthropic(anthropicModelId) as unknown as LanguageModel
 }
 

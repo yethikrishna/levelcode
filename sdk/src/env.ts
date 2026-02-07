@@ -54,8 +54,16 @@ export const getOpenRouterApiKeyFromEnv = (): string | undefined => {
   return process.env.OPENROUTER_API_KEY
 }
 
+export const getOpenRouterBaseUrlFromEnv = (): string | undefined => {
+  return process.env.OPENROUTER_BASE_URL
+}
+
 export const getAnthropicApiKeyFromEnv = (): string | undefined => {
   return process.env.ANTHROPIC_API_KEY
+}
+
+export const getAnthropicBaseUrlFromEnv = (): string | undefined => {
+  return process.env.ANTHROPIC_BASE_URL
 }
 
 /**
