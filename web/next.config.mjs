@@ -1,5 +1,9 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
 import createMDX from '@next/mdx'
 import { withContentlayer } from 'next-contentlayer2'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const withMDX = createMDX({
   extension: /\.mdx?$/,
@@ -23,13 +27,12 @@ const nextConfig = {
   },
   allowedDevOrigins: DEV_ALLOWED_ORIGINS,
 
+  // Point output tracing to monorepo root so Vercel finds node_modules correctly
+  outputFileTracingRoot: path.join(__dirname, '..'),
+
   // Enable experimental features for better SSG performance
   experimental: {
     optimizePackageImports: ['@/components/ui'],
-    // Exclude @opentelemetry/api from output tracing to avoid ENOENT in monorepo
-    outputFileTracingExcludes: {
-      '*': ['@opentelemetry/*'],
-    },
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, net: false, tls: false, path: false }
