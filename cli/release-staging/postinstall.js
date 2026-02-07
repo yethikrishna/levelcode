@@ -8,8 +8,8 @@ const path = require('path');
 const binaryPath = path.join(
   os.homedir(),
   '.config',
-  'manicode',
-  process.platform === 'win32' ? 'codecane.exe' : 'codecane'
+  'levelcode',
+  process.platform === 'win32' ? 'levelcode-staging.exe' : 'levelcode-staging'
 );
 
 try {
@@ -20,17 +20,17 @@ try {
 
 // Print welcome message
 console.log('\n');
-console.log('🧪 Welcome to Codecane (Staging)!');
+console.log('🧪 Welcome to LevelCode (Staging)!');
 console.log('\n');
 console.log('⚠️  This is a staging/beta release for testing purposes.');
 console.log('\n');
 console.log('To get started:');
 console.log('  1. cd to your project directory');
-console.log('  2. Run: codecane');
+console.log('  2. Run: levelcode-staging');
 console.log('\n');
 console.log('Example:');
 console.log('  $ cd ~/my-project');
-console.log('  $ codecane');
+console.log('  $ levelcode-staging');
 console.log('\n');
-console.log('For more information, visit: https://levelcode.com/docs');
+console.log('For more information, visit: https://levelcode.vercel.app/docs');
 console.log('\n');

@@ -435,10 +435,10 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'gpt-5-agent',
     handler: (params) => {
-      // Insert @ GPT-5 Agent into the input field (UI shortcut, not a real command)
+      // Insert @ Titan Agent into the input field (UI shortcut, not a real command)
       params.setInputValue({
-        text: '@GPT-5 Agent ',
-        cursorPosition: '@GPT-5 Agent '.length,
+        text: '@Titan Agent ',
+        cursorPosition: '@Titan Agent '.length,
         lastEditDueToNav: false,
       })
       params.inputRef.current?.focus()
@@ -474,7 +474,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
 
       // If user provided review text directly, send it immediately without showing the screen
       if (trimmedArgs) {
-        const reviewPrompt = `@GPT-5 Agent Please review: ${trimmedArgs}`
+        const reviewPrompt = `@Titan Agent Please review: ${trimmedArgs}`
         params.sendMessage({
           content: reviewPrompt,
           agentMode: params.agentMode,

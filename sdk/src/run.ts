@@ -830,7 +830,7 @@ async function handlePromptResponse({
       const message = [
         'Received invalid prompt response from server:',
         JSON.stringify(parsedOutput.error.issues),
-        'If this issues persists, please contact support@levelcode.com',
+        'If this issues persists, please contact support@levelcode.vercel.app',
       ].join('\n')
       onError({ message })
       resolve({

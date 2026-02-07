@@ -22,7 +22,7 @@ describe('fetchUserDetails (standalone mode)', () => {
   const originalEnv = process.env.NEXT_PUBLIC_LEVELCODE_APP_URL
 
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_LEVELCODE_APP_URL = 'https://test.levelcode.com'
+    process.env.NEXT_PUBLIC_LEVELCODE_APP_URL = 'https://test.levelcode.vercel.app'
   })
 
   afterEach(() => {

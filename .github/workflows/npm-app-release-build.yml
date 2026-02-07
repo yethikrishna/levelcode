@@ -6,7 +6,7 @@ on:
       binary-name:
         required: true
         type: string
-        description: 'Name of the binary to build (levelcode or codecane)'
+        description: 'Name of the binary to build (levelcode or levelcode-staging)'
       new-version:
         required: true
         type: string

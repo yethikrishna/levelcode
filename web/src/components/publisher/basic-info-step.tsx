@@ -99,7 +99,7 @@ export function BasicInfoStep({
           </p>
         )}
         <p className="text-sm text-muted-foreground">
-          This will be your unique URL: levelcode.com/publishers/
+          This will be your unique URL: levelcode.vercel.app/publishers/
           {formData.id || 'your-publisher-id'}
         </p>
       </div>

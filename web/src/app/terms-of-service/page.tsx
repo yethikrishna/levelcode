@@ -19,10 +19,10 @@ export default function TermsOfServicePage() {
             coffee and carefully read the following pages. It will take you
             approximately 20 minutes. These Terms of Service (“Terms”, “Terms of
             Service”) govern your use of our web pages located at
-            https://levelcode.com/ operated by LevelCode, Inc. Our Privacy Policy
+            https://levelcode.vercel.app/ operated by LevelCode, Inc. Our Privacy Policy
             also governs your use of our Service and explains how we collect,
             safeguard and disclose information that results from your use of our
-            web pages. Please read it here https://levelcode.com/privacy-policy.
+            web pages. Please read it here https://levelcode.vercel.app/privacy-policy.
             Your agreement with us includes these Terms and our Privacy Policy
             (“Agreements”). You acknowledge that you have read and understood
             Agreements, and agree to be bound of them. If you do not agree with

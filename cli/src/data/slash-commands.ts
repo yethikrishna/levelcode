@@ -94,19 +94,19 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   {
     id: 'review',
     label: 'review',
-    description: 'Review code changes with GPT-5 Agent',
+    description: 'Review code changes with Titan Agent',
   },
   {
     id: 'agent:gpt-5',
     label: 'agent:gpt-5',
-    description: 'Spawn the GPT-5 agent to help solve complex problems',
-    insertText: '@GPT-5 Agent ',
+    description: 'Spawn the Titan agent to help solve complex problems',
+    insertText: '@Titan Agent ',
   },
   // {
   //   id: 'agent:opus',
   //   label: 'agent:opus',
-  //   description: 'Spawn the Opus agent to help solve any problem',
-  //   insertText: '@Opus Agent ',
+  //   description: 'Spawn the Apex agent to help solve any problem',
+  //   insertText: '@Apex Agent ',
   // },
   {
     id: 'feedback',

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "levelcode"
 version = "0.1.1"
 authors = [
-  { name = "LevelCode Team", email = "founders@levelcode.com" },
+  { name = "LevelCode Team", email = "founders@levelcode.vercel.app" },
 ]
 description = "An AI-powered coding assistant (coming soon, use npm for now)"
 readme = "README.md"

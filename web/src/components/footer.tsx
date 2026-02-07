@@ -14,7 +14,7 @@ const siteLinks: LinkInfo[] = [
   { text: 'Home', href: '/' },
   { text: 'Docs', href: '/docs' },
   // NEWS DISABLED: Uncomment to re-enable news link in footer
-  // { text: 'News', href: 'https://news.levelcode.com', target: '_blank' },
+  // { text: 'News', href: 'https://news.levelcode.vercel.app', target: '_blank' },
   { text: 'Pricing', href: '/pricing' },
   { text: 'Usage', href: '/usage' },
 ]
@@ -30,7 +30,7 @@ const communityLinks: LinkInfo[] = [
     href: 'https://github.com/yethikrishna/levelcode',
     target: '_blank',
   },
-  { text: 'Discord', href: 'https://levelcode.com/discord', target: '_blank' },
+  { text: 'Discord', href: 'https://levelcode.vercel.app/discord', target: '_blank' },
 ]
 
 const authLinks: LinkInfo[] = [{ text: 'Login', href: '/login' }]

@@ -63,10 +63,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
       let reviewText: string
       switch (option.id) {
         case 'uncommitted':
-          reviewText = '@GPT-5 Agent Please review: uncommitted changes'
+          reviewText = '@Titan Agent Please review: uncommitted changes'
           break
         case 'branch':
-          reviewText = '@GPT-5 Agent Please review: this branch compared to main'
+          reviewText = '@Titan Agent Please review: this branch compared to main'
           break
         default:
           return
@@ -78,7 +78,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
   const handleCustomSubmit = useCallback(() => {
     if (customInput.trim()) {
-      onSelectOption(`@GPT-5 Agent Please review: ${customInput.trim()}`)
+      onSelectOption(`@Titan Agent Please review: ${customInput.trim()}`)
     }
   }, [customInput, onSelectOption])
 

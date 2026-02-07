@@ -49,7 +49,7 @@ Types updates.
 
 ### Added
 
-- You can now get an API key from the [LevelCode website](https://www.levelcode.com/profile?tab=api-keys)!
+- You can now get an API key from the [LevelCode website](https://www.levelcode.vercel.app/profile?tab=api-keys)!
 - You can provide your own custom tools!
 
 ### Updated

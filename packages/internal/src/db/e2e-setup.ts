@@ -89,7 +89,7 @@ const db = drizzle(client, { schema })
 try {
   await migrate(db, { migrationsFolder: path.join(here, 'migrations') })
 
-  const userEmail = 'e2e@levelcode.com'
+  const userEmail = 'e2e@levelcode.vercel.app'
   const fallbackUserId = 'e2e-user'
 
   await db

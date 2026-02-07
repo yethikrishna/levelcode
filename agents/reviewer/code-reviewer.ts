@@ -10,7 +10,7 @@ export const createReviewer = (
   model: Model,
 ): Omit<SecretAgentDefinition, 'id'> => ({
   model,
-  displayName: 'Nit Pick Nick',
+  displayName: 'Lint the Reviewer',
   spawnerPrompt:
     'Reviews file changes and responds with critical feedback. Use this after making any significant change to the codebase; otherwise, no need to use this agent for minor changes since it takes a second.',
   inputSchema: {

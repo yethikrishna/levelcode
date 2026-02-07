@@ -21,7 +21,7 @@ async function main() {
   console.log('\nNightly buffbench evaluation completed successfully!')
 
   // Send email with results
-  const recipientEmail = process.env.EVAL_RESULTS_EMAIL || 'team@levelcode.com'
+  const recipientEmail = process.env.EVAL_RESULTS_EMAIL || 'team@levelcode.vercel.app'
   console.log(`\n📧 Sending buffbench results email to ${recipientEmail}...`)
 
   const { metadata, metaAnalysis, ...agentResults } = results

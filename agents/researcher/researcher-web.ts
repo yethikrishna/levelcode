@@ -7,7 +7,7 @@ const definition: SecretAgentDefinition = {
   id: 'researcher-web',
   publisher,
   model: 'x-ai/grok-4.1-fast',
-  displayName: 'Weeb',
+  displayName: 'Query the Web Scout',
   spawnerPrompt: `Browses the web to find relevant information.`,
   inputSchema: {
     prompt: {

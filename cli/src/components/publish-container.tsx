@@ -280,7 +280,7 @@ export const PublishContainer: React.FC<PublishContainerProps> = ({
           Create agents in the .agents/ directory to publish them.
         </text>
         <text style={{ fg: theme.muted }}>
-          See: https://levelcode.com/docs/agents for guidance.
+          See: https://levelcode.vercel.app/docs/agents for guidance.
         </text>
         <Button
           onClick={handleCancel}

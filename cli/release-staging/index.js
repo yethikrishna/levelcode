@@ -10,11 +10,11 @@ const zlib = require('zlib')
 
 const tar = require('tar')
 
-const packageName = 'codecane'
+const packageName = 'levelcode-staging'
 
 function createConfig(packageName) {
   const homeDir = os.homedir()
-  const configDir = path.join(homeDir, '.config', 'manicode')
+  const configDir = path.join(homeDir, '.config', 'levelcode')
   const binaryName =
     process.platform === 'win32' ? `${packageName}.exe` : packageName
 
@@ -23,7 +23,7 @@ function createConfig(packageName) {
     configDir,
     binaryName,
     binaryPath: path.join(configDir, binaryName),
-    metadataPath: path.join(configDir, 'codecane-metadata.json'),
+    metadataPath: path.join(configDir, 'levelcode-staging-metadata.json'),
     tempDownloadDir: path.join(configDir, '.download-temp-staging'),
     userAgent: `${packageName}-cli`,
     requestTimeout: 20000,
@@ -282,7 +282,7 @@ async function downloadBinary(version) {
   }
 
   const downloadUrl = `${
-    process.env.NEXT_PUBLIC_LEVELCODE_APP_URL || 'https://levelcode.com'
+    process.env.NEXT_PUBLIC_LEVELCODE_APP_URL || 'https://levelcode.vercel.app'
   }/api/releases/download/${version}/${fileName}`
 
   // Ensure config directory exists
@@ -388,7 +388,7 @@ async function downloadBinary(version) {
   }
 
   term.clearLine()
-  console.log('Download complete! Starting Codecane...')
+  console.log('Download complete! Starting LevelCode...')
 }
 
 async function ensureBinaryExists() {
@@ -408,7 +408,7 @@ async function ensureBinaryExists() {
     await downloadBinary(version)
   } catch (error) {
     term.clearLine()
-    console.error('❌ Failed to download codecane:', error.message)
+    console.error('❌ Failed to download levelcode-staging:', error.message)
     console.error('Please check your internet connection and try again')
     process.exit(1)
   }
@@ -463,7 +463,7 @@ async function checkForUpdates(runningProcess, exitListener) {
 
 async function main() {
   console.log('\x1b[1m\x1b[91m' + '='.repeat(60) + '\x1b[0m')
-  console.log('\x1b[1m\x1b[93m❄️ CODECANE STAGING ENVIRONMENT ❄️\x1b[0m')
+  console.log('\x1b[1m\x1b[93m❄️ LEVELCODE STAGING ENVIRONMENT ❄️\x1b[0m')
   console.log(
     '\x1b[1m\x1b[91mFOR TESTING PURPOSES ONLY - NOT FOR PRODUCTION USE\x1b[0m',
   )

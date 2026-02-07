@@ -9,7 +9,7 @@ const commander: AgentDefinition = {
   id: 'commander',
   publisher,
   model: 'anthropic/claude-haiku-4.5',
-  displayName: 'Commander',
+  displayName: 'Shell the Commander',
   spawnerPrompt:
     'Runs a single terminal command and describes its output using an LLM based on what information is requested.',
 

@@ -18,7 +18,7 @@ export const createGeneralAgent = (options: {
         effort: 'high' as const,
       },
     }),
-    displayName: isGpt5 ? 'GPT-5 Agent' : 'Opus Agent',
+    displayName: isGpt5 ? 'Titan Agent' : 'Apex Agent',
     spawnerPrompt:
       isGpt5 ?
         'A general-purpose, deep-thinking (and slow) agent that can be used to solve a wide range of problems. Use this to help you solve a specific problem that requires extended reasoning. This agent has no context on the conversation history so it cannot see files you have read or previous discussion. Instead, you must provide all the relevant context via the prompt or filePaths for this agent to work well.'

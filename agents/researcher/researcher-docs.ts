@@ -6,7 +6,7 @@ const definition: SecretAgentDefinition = {
   id: 'researcher-docs',
   publisher,
   model: 'x-ai/grok-4.1-fast',
-  displayName: 'Doc',
+  displayName: 'Ref the Docs Scout',
   spawnerPrompt: `Expert at reading technical documentation of major public libraries and frameworks to find relevant information. (e.g. React, MongoDB, Postgres, etc.)`,
   inputSchema: {
     prompt: {

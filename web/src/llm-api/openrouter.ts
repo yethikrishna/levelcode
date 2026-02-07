@@ -50,7 +50,7 @@ function createOpenRouterRequest(params: {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${openrouterApiKey ?? env.OPEN_ROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://levelcode.com',
+      'HTTP-Referer': 'https://levelcode.vercel.app',
       'X-Title': 'LevelCode',
       'Content-Type': 'application/json',
     },

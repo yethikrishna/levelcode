@@ -28,22 +28,22 @@ describe('credentials', () => {
   describe('getConfigDir', () => {
     test('returns path with environment suffix for non-prod environments', () => {
       const dir = getConfigDir(testEnv as any)
-      expect(dir).toContain('manicode-test')
+      expect(dir).toContain('levelcode-test')
       expect(dir).toContain('.config')
     })
 
     test('returns path without suffix for prod environment', () => {
       const prodEnv = { NEXT_PUBLIC_CB_ENVIRONMENT: 'prod' }
       const dir = getConfigDir(prodEnv as any)
-      expect(dir).toContain('manicode')
-      expect(dir).not.toContain('manicode-prod')
+      expect(dir).toContain('levelcode')
+      expect(dir).not.toContain('levelcode-prod')
     })
 
     test('returns path without suffix when environment is undefined', () => {
       const emptyEnv = {}
       const dir = getConfigDir(emptyEnv as any)
-      expect(dir).toContain('manicode')
-      expect(dir).not.toContain('manicode-')
+      expect(dir).toContain('levelcode')
+      expect(dir).not.toContain('levelcode-')
     })
   })
 
@@ -51,7 +51,7 @@ describe('credentials', () => {
     test('returns path within config directory', () => {
       const credPath = getCredentialsPath(testEnv as any)
       expect(credPath).toContain('credentials.json')
-      expect(credPath).toContain('manicode-test')
+      expect(credPath).toContain('levelcode-test')
     })
   })
 

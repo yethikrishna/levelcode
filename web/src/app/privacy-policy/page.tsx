@@ -11,9 +11,9 @@ export default function PrivacyPolicyPage() {
           <h2>Introduction</h2>
           <p>
             Welcome to LevelCode, Inc. LevelCode, Inc (“us”, “we”, or “our”)
-            operates https://levelcode.com/ (hereinafter referred to as
+            operates https://levelcode.vercel.app/ (hereinafter referred to as
             “Service”). Our Privacy Policy governs your visit to
-            https://levelcode.com/, and explains how we collect, safeguard and
+            https://levelcode.vercel.app/, and explains how we collect, safeguard and
             disclose information that results from your use of our Service. We
             use your data to provide and improve Service. By using Service, you
             agree to the collection and use of information in accordance with
@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <h2>Definitions</h2>
           <p>
-            SERVICE means the https://levelcode.com/ website operated by
+            SERVICE means the https://levelcode.vercel.app/ website operated by
             LevelCode, Inc PERSONAL DATA means data about a living individual who
             can be identified from those data (or from those and other
             information either in our possession or likely to come into our

@@ -26,7 +26,7 @@ export interface ValidateAgentsOptions {
   /**
    * The base URL of the LevelCode website API.
    * Optional - defaults to NEXT_PUBLIC_LEVELCODE_APP_URL or environment-based URL.
-   * Example: 'https://levelcode.com'
+   * Example: 'https://levelcode.vercel.app'
    */
   websiteUrl?: string
 }
@@ -49,7 +49,7 @@ export interface ValidateAgentsOptions {
  * // Remote validation
  * const result = await validateAgents(definitions, {
  *   remote: true,
- *   websiteUrl: 'https://levelcode.com'
+ *   websiteUrl: 'https://levelcode.vercel.app'
  * })
  * ```
  */

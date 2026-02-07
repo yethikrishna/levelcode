@@ -96,7 +96,7 @@ export function DocSidebar({
   //     ...sections,
   //     {
   //       title: 'News',
-  //       href: 'https://news.levelcode.com',
+  //       href: 'https://news.levelcode.vercel.app',
   //       external: true,
   //       subsections: newsArticles,
   //     },

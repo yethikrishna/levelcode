@@ -24,7 +24,7 @@ export interface Article {
 
 export async function GET() {
   try {
-    const res = await fetch('https://news.levelcode.com/api/v1/posts')
+    const res = await fetch('https://news.levelcode.vercel.app/api/v1/posts')
     const data = await res.json()
 
     // Validate response data

@@ -24,14 +24,14 @@ module.exports = {
     'react/no-unescaped-entities': 'off',
     'react-hooks/exhaustive-deps': 'warn', // Keep as warning, not error
     '@next/next/no-img-element': 'off', // Allow <img> for external images
-    // Prevent using process.env.CODEBUFF_API_KEY in web - users must provide their own API key
-    // This prevents accidentally using Codebuff's credits for user operations
-    // Note: env.CODEBUFF_API_KEY is already a TypeScript error (not in schema)
+    // Prevent using process.env.LEVELCODE_API_KEY in web - users must provide their own API key
+    // This prevents accidentally using LevelCode's credits for user operations
+    // Note: env.LEVELCODE_API_KEY is already a TypeScript error (not in schema)
     'no-restricted-syntax': [
       'error',
       {
-        selector: "MemberExpression[object.object.name='process'][object.property.name='env'][property.name='CODEBUFF_API_KEY']",
-        message: 'process.env.CODEBUFF_API_KEY is not allowed in web package. Users must provide their own API key via Authorization header.',
+        selector: "MemberExpression[object.object.name='process'][object.property.name='env'][property.name='LEVELCODE_API_KEY']",
+        message: 'process.env.LEVELCODE_API_KEY is not allowed in web package. Users must provide their own API key via Authorization header.',
       },
     ],
   },

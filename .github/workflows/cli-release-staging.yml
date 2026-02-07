@@ -17,8 +17,8 @@ jobs:
   prepare-and-commit-staging:
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[codecane]')) ||
-      (github.event_name == 'push' && contains(github.event.head_commit.message, '[codecane]'))
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[levelcode-staging]')) ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[levelcode-staging]'))
     outputs:
       new_version: ${{ steps.bump_version.outputs.new_version }}
     steps:
@@ -98,12 +98,12 @@ jobs:
       - name: Commit staging release snapshot
         run: |
           git add -A
-          git commit -m "Staging CLI Release v${{ steps.bump_version.outputs.new_version }} [codecane]
+          git commit -m "Staging CLI Release v${{ steps.bump_version.outputs.new_version }} [levelcode-staging]
 
           Captures the staged state for the CLI prerelease, including the version bump.
 
           🤖 Generated with LevelCode
-          Co-Authored-By: LevelCode <noreply@levelcode.com>"
+          Co-Authored-By: LevelCode <noreply@levelcode.vercel.app>"
 
       - name: Create and push staging tag
         run: |
@@ -120,7 +120,7 @@ jobs:
     needs: prepare-and-commit-staging
     uses: ./.github/workflows/cli-release-build.yml
     with:
-      binary-name: codecane
+      binary-name: levelcode-staging
       new-version: ${{ needs.prepare-and-commit-staging.outputs.new_version }}
       artifact-name: cli-staging-metadata
       checkout-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
@@ -179,23 +179,23 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.prepare-and-commit-staging.outputs.new_version }}
-          name: Codecane v${{ needs.prepare-and-commit-staging.outputs.new_version }} (Staging)
+          name: LevelCode v${{ needs.prepare-and-commit-staging.outputs.new_version }} (Staging)
           prerelease: true
           body: |
-            ## Codecane v${{ needs.prepare-and-commit-staging.outputs.new_version }} (Staging)
+            ## LevelCode v${{ needs.prepare-and-commit-staging.outputs.new_version }} (Staging)
 
             **⚠️ This is a staging build intended for internal testing.**
 
             ### Included Binaries
-            - `codecane-linux-x64.tar.gz`
-            - `codecane-linux-arm64.tar.gz`
-            - `codecane-darwin-x64.tar.gz`
-            - `codecane-darwin-arm64.tar.gz`
-            - `codecane-win32-x64.tar.gz`
+            - `levelcode-staging-linux-x64.tar.gz`
+            - `levelcode-staging-linux-arm64.tar.gz`
+            - `levelcode-staging-darwin-x64.tar.gz`
+            - `levelcode-staging-darwin-arm64.tar.gz`
+            - `levelcode-staging-win32-x64.tar.gz`
 
-            After downloading, extract the tarball, add the binary to your PATH, and run `codecane --help` for usage.
+            After downloading, extract the tarball, add the binary to your PATH, and run `levelcode-staging --help` for usage.
           files: |
-            binaries/*/codecane-*
+            binaries/*/levelcode-staging-*
           repository: LevelCodeAI/levelcode-community
           token: ${{ secrets.LEVELCODE_GITHUB_TOKEN }}
 
@@ -227,7 +227,7 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish codecane staging package to npm
+      - name: Publish levelcode-staging package to npm
         run: |
           cd cli/release-staging
           npm publish --access public

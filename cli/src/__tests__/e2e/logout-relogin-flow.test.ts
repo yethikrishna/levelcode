@@ -43,7 +43,7 @@ describe('Logout and Re-login helpers', () => {
   let tempConfigDir: string
 
   beforeEach(() => {
-    tempConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'manicode-logout-'))
+    tempConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'levelcode-logout-'))
     // Set project root to avoid "Project root not set" error in logger
     setProjectRoot(tempConfigDir)
   })

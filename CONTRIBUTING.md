@@ -143,7 +143,7 @@ Not sure where to start? Here are some great ways to jump in:
 - **New here?** Look for issues labeled `good first issue` - they're perfect for getting familiar with the codebase
 - **Ready for more?** Check out `help wanted` issues where we could really use your expertise
 - **Have an idea?** Browse open issues or create a new one to discuss it
-- **Want to chat?** Join our [Discord](https://levelcode.com/discord) - the team loves discussing new ideas!
+- **Want to chat?** Join our [Discord](https://levelcode.vercel.app/discord) - the team loves discussing new ideas!
 
 ### Development Workflow
 
@@ -248,10 +248,10 @@ Improve `web/`: agent management, project templates, analytics.
 - **Using Infisical?** See the [Infisical Setup Guide](./INFISICAL_SETUP_GUIDE.md) for team secrets management
 - **Empty Agent Store in dev mode?** This is expected behavior - agents from `.agents/` directory need to be published to the database to appear in the marketplace
 
-**Questions?** Jump into our [Discord community](https://levelcode.com/discord) - we're friendly and always happy to help!
+**Questions?** Jump into our [Discord community](https://levelcode.vercel.app/discord) - we're friendly and always happy to help!
 
 ## Resources
 
-- **Documentation**: [levelcode.com/docs](https://levelcode.com/docs)
-- **Community Discord**: [levelcode.com/discord](https://levelcode.com/discord)
+- **Documentation**: [levelcode.vercel.app/docs](https://levelcode.vercel.app/docs)
+- **Community Discord**: [levelcode.vercel.app/discord](https://levelcode.vercel.app/discord)
 - **Report issues**: [GitHub Issues](https://github.com/yethikrishna/levelcode/issues)

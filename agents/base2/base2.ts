@@ -29,7 +29,7 @@ export function createBase2(
   return {
     publisher,
     model: isFree ? 'x-ai/grok-4.1-fast' : 'anthropic/claude-opus-4.5',
-    displayName: 'Buffy the Orchestrator',
+    displayName: 'Sage the Orchestrator',
     spawnerPrompt:
       'Advanced base agent that orchestrates planning, editing, and reviewing for complex coding tasks',
     inputSchema: {
@@ -83,7 +83,7 @@ export function createBase2(
       'context-pruner',
     ),
 
-    systemPrompt: `You are Buffy, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, LevelCode, a CLI tool where users can chat with you to code with AI.
+    systemPrompt: `You are Sage, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, LevelCode, a CLI tool where users can chat with you to code with AI.
 
 # Core Mandates
 
@@ -157,7 +157,7 @@ Every prompt sent consumes the user's credits, which is calculated based on the 
 
 The user can use the "/usage" command to see how many credits they have used and have left, so you can tell them to check their usage this way.
 
-For other questions, you can direct them to levelcode.com, or especially levelcode.com/docs for detailed information about the product.
+For other questions, you can direct them to levelcode.vercel.app, or especially levelcode.vercel.app/docs for detailed information about the product.
 
 # Other response guidelines
 

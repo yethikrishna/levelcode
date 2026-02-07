@@ -12,7 +12,7 @@ export function getApiKey(): string {
     if (!apiKey) {
       throw new Error(
         'LEVELCODE_API_KEY environment variable is required for live e2e tests. ' +
-          'Get your API key at https://www.levelcode.com/api-keys',
+          'Get your API key at https://www.levelcode.vercel.app/api-keys',
       )
     }
     return apiKey

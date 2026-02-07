@@ -6,7 +6,7 @@ const definition: SecretAgentDefinition = {
   id: 'thinker',
   publisher,
   model: 'anthropic/claude-opus-4.5',
-  displayName: 'Theo the Theorizer',
+  displayName: 'Logic the Theorizer',
   spawnerPrompt:
     'Does deep thinking given the current conversation history and a specific prompt to focus on. Use this to help you solve a specific problem. It is better to gather any relevant context before spawning this agent.',
   inputSchema: {

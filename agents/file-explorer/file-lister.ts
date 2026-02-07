@@ -2,7 +2,7 @@ import { publisher } from '../constants'
 import { type SecretAgentDefinition } from '../types/secret-agent-definition'
 
 export const createFileLister = (): Omit<SecretAgentDefinition, 'id'> => ({
-  displayName: 'Liszt the File Lister',
+  displayName: 'Index the Lister',
   publisher,
   model: 'x-ai/grok-4.1-fast',
   spawnerPrompt:

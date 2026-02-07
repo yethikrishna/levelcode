@@ -155,7 +155,7 @@ When running LevelCode in Git Bash (MINGW64), the `start` command is not availab
 
 1. **Manually open the login URL** (easiest):
    - LevelCode displays the login URL after the error
-   - Copy the full URL starting with `https://levelcode.com/login?auth_code=...`
+   - Copy the full URL starting with `https://levelcode.vercel.app/login?auth_code=...`
    - Paste into your browser
    - Complete login in browser
    - Return to terminal - login will succeed
@@ -199,7 +199,7 @@ If these solutions don't resolve your problem:
 
 1. **Search existing issues**: https://github.com/LevelCodeAI/levelcode/issues
 2. **Open a new issue**: https://github.com/LevelCodeAI/levelcode/issues/new
-3. **Join Discord community**: https://levelcode.com/discord
+3. **Join Discord community**: https://levelcode.vercel.app/discord
 
 When reporting issues, please include:
 - Windows version: `winver` command

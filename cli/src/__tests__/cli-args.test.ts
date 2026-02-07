@@ -13,11 +13,11 @@ describe('CLI Argument Parsing', () => {
   })
 
   function parseTestArgs(args: string[]) {
-    process.argv = ['node', 'codecane', ...args]
+    process.argv = ['node', 'levelcode', ...args]
 
     const program = new Command()
     program
-      .name('codecane')
+      .name('levelcode')
       .version('1.0.0', '-v, --version', 'Print the CLI version')
       .option('--agent <agent-id>', 'Specify which agent to use')
       .option('--clear-logs', 'Remove any existing CLI log files')

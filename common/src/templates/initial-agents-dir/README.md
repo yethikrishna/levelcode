@@ -11,8 +11,8 @@ Create specialized agent workflows that coordinate multiple AI agents to tackle 
 ## Need Help?
 
 - For examples, check the `examples/` directory.
-- Join our [Discord community](https://levelcode.com/discord) and ask your questions!
-- Check our [documentation](https://levelcode.com/docs) for more details
+- Join our [Discord community](https://levelcode.vercel.app/discord) and ask your questions!
+- Check our [documentation](https://levelcode.vercel.app/docs) for more details
 
 # What is LevelCode?
 
@@ -197,7 +197,7 @@ async *handleSteps() {
 }
 ```
 
-**Reuse any published agent**: Compose existing [published agents](https://www.levelcode.com/store) to get a leg up. LevelCode agents are the new MCP!
+**Reuse any published agent**: Compose existing [published agents](https://www.levelcode.vercel.app/store) to get a leg up. LevelCode agents are the new MCP!
 
 ## Best Practices
 
@@ -284,10 +284,10 @@ Learn more about the SDK [here](https://www.npmjs.com/package/@levelcode/sdk).
 
 ## Community & Support
 
-- **Discord**: [Join our community](https://levelcode.com/discord) for help and inspiration
+- **Discord**: [Join our community](https://levelcode.vercel.app/discord) for help and inspiration
 - **Examples**: Study the `examples/` directory for patterns
-- **Documentation**: [levelcode.com/docs](https://levelcode.com/docs) and check `types/` for detailed type information
+- **Documentation**: [levelcode.vercel.app/docs](https://levelcode.vercel.app/docs) and check `types/` for detailed type information
 - **Issues**: [Report bugs and request features on GitHub](https://github.com/LevelCodeAI/levelcode/issues)
-- **Support**: [support@levelcode.com](mailto:support@levelcode.com)
+- **Support**: [support@levelcode.vercel.app](mailto:support@levelcode.vercel.app)
 
 Happy agent building! 🤖

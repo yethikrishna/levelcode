@@ -16,7 +16,7 @@ export const createFilePicker = (
   const model = isMax ? 'x-ai/grok-4.1-fast' : 'google/gemini-2.5-flash-lite'
 
   return {
-    displayName: 'Fletcher the File Fetcher',
+    displayName: 'Scout the File Finder',
     publisher,
     model,
     reasoningOptions: {

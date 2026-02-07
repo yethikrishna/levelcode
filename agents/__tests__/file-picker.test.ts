@@ -24,7 +24,7 @@ describe('file-picker agent', () => {
     })
 
     test('has display name', () => {
-      expect(filePicker.displayName).toBe('Fletcher the File Fetcher')
+      expect(filePicker.displayName).toBe('Scout the File Finder')
     })
 
     test('has output mode set to last_message', () => {

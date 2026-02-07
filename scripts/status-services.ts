@@ -80,7 +80,7 @@ function getProcessesOnPort(port: string): number[] {
 
 function isDockerDbRunning(): boolean {
   try {
-    const result = spawnSync('docker', ['ps', '--filter', 'name=manicode-db', '--format', '{{.Status}}'], {
+    const result = spawnSync('docker', ['ps', '--filter', 'name=levelcode-db', '--format', '{{.Status}}'], {
       encoding: 'utf-8',
     })
     return result.stdout.includes('Up')

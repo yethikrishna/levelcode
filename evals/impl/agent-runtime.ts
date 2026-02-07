@@ -6,7 +6,7 @@ import type { ClientEnv, CiEnv } from '@levelcode/common/types/contracts/env'
 
 const evalsClientEnv: ClientEnv = {
   NEXT_PUBLIC_CB_ENVIRONMENT: 'test',
-  NEXT_PUBLIC_LEVELCODE_APP_URL: 'https://test.levelcode.com',
+  NEXT_PUBLIC_LEVELCODE_APP_URL: 'https://test.levelcode.vercel.app',
   NEXT_PUBLIC_SUPPORT_EMAIL: 'support@levelcode.test',
   NEXT_PUBLIC_POSTHOG_API_KEY: 'test-posthog-key',
   NEXT_PUBLIC_POSTHOG_HOST_URL: 'https://test.posthog.com',

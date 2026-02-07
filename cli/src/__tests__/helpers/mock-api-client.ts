@@ -59,6 +59,6 @@ export const createMockApiClient = (
     mock(defaultOkResponse)) as LevelCodeApiClient['publish'],
   logout: (overrides.logout ??
     mock(defaultOkResponse)) as LevelCodeApiClient['logout'],
-  baseUrl: overrides.baseUrl ?? 'https://test.levelcode.com',
+  baseUrl: overrides.baseUrl ?? 'https://test.levelcode.vercel.app',
   authToken: overrides.authToken,
 })

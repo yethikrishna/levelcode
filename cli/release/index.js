@@ -14,7 +14,7 @@ const packageName = 'levelcode'
 
 function createConfig(packageName) {
   const homeDir = os.homedir()
-  const configDir = path.join(homeDir, '.config', 'manicode')
+  const configDir = path.join(homeDir, '.config', 'levelcode')
   const binaryName =
     process.platform === 'win32' ? `${packageName}.exe` : packageName
 
@@ -281,7 +281,7 @@ async function downloadBinary(version) {
   }
 
   const downloadUrl = `${
-    process.env.NEXT_PUBLIC_LEVELCODE_APP_URL || 'https://levelcode.com'
+    process.env.NEXT_PUBLIC_LEVELCODE_APP_URL || 'https://levelcode.vercel.app'
   }/api/releases/download/${version}/${fileName}`
 
   // Ensure config directory exists

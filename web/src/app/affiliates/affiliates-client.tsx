@@ -73,7 +73,7 @@ function SetHandleForm({
         <Label htmlFor="handle">Set Your Affiliate Handle</Label>
         <p className="text-sm text-muted-foreground mt-1">
           This will be part of your referral link (e.g.,
-          levelcode.com/your_unique_handle).
+          levelcode.vercel.app/your_unique_handle).
         </p>
         <p className="text-sm text-muted-foreground mt-1">
           3-20 chars. letters, numbers, underscores only.

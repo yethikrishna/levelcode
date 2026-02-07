@@ -60,7 +60,7 @@ When the user requests a new git commit, please follow these steps closely:
 4. **Create the commit, ending with this specific footer:**
    \`\`\`
    Generated with LevelCode 🤖
-   Co-Authored-By: LevelCode <noreply@levelcode.com>
+   Co-Authored-By: LevelCode <noreply@levelcode.vercel.app>
    \`\`\`
    To maintain proper formatting, use cross-platform compatible commit messages:
    
@@ -70,7 +70,7 @@ When the user requests a new git commit, please follow these steps closely:
    Your commit message here.
 
    🤖 Generated with LevelCode
-   Co-Authored-By: LevelCode <noreply@levelcode.com>
+   Co-Authored-By: LevelCode <noreply@levelcode.vercel.app>
    EOF
    )"
    \`\`\`
@@ -80,7 +80,7 @@ When the user requests a new git commit, please follow these steps closely:
    git commit -m "Your commit message here.
 
    🤖 Generated with LevelCode
-   Co-Authored-By: LevelCode <noreply@levelcode.com>"
+   Co-Authored-By: LevelCode <noreply@levelcode.vercel.app>"
    \`\`\`
    
    Always detect the platform and use the appropriate syntax. HEREDOC syntax (\`<<'EOF'\`) only works in bash/Unix shells and will fail on Windows Command Prompt.
@@ -172,7 +172,7 @@ ${$getNativeToolCallExampleString({
     command: `git commit -m "Your commit message here.
 
 🤖 Generated with LevelCode
-Co-Authored-By: LevelCode <noreply@levelcode.com>"`,
+Co-Authored-By: LevelCode <noreply@levelcode.vercel.app>"`,
   },
   endsAgentStep,
 })}

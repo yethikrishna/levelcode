@@ -408,7 +408,7 @@ logs/YYYY-MM-DDTHH-MM_agent1_vs_agent2/
 LEVELCODE_API_KEY=your-api-key
 
 # Optional
-EVAL_RESULTS_EMAIL=team@levelcode.com  # For nightly email reports
+EVAL_RESULTS_EMAIL=team@levelcode.vercel.app  # For nightly email reports
 ```
 
 ### Task Concurrency

@@ -66,4 +66,4 @@ If you still have errors, it's a good idea to [reinstall Node](https://nodejs.or
 
 ## Feedback
 
-We value your input! Please email your feedback to `founders@levelcode.com`. Thank you for using LevelCode!
+We value your input! Please email your feedback to `founders@levelcode.vercel.app`. Thank you for using LevelCode!

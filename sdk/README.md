@@ -10,7 +10,7 @@ npm install @levelcode/sdk
 
 ## Prerequisites
 
-- Create a LevelCode account and get your [LevelCode API key here](https://www.levelcode.com/api-keys).
+- Create a LevelCode account and get your [LevelCode API key here](https://www.levelcode.vercel.app/api-keys).
 
 ## Usage
 
@@ -22,14 +22,14 @@ import { LevelCodeClient } from '@levelcode/sdk'
 async function main() {
   const client = new LevelCodeClient({
     // You need to pass in your own API key here.
-    // Get one here: https://www.levelcode.com/api-keys
+    // Get one here: https://www.levelcode.vercel.app/api-keys
     apiKey: process.env.LEVELCODE_API_KEY,
     cwd: process.cwd(),
   })
 
   // First run
   const runState1 = await client.run({
-    // The agent id. Any agent on the store (https://levelcode.com/store)
+    // The agent id. Any agent on the store (https://levelcode.vercel.app/store)
     agent: 'levelcode/base@0.0.16',
     prompt: 'Create a simple calculator class',
     handleEvent: (event) => {
@@ -66,7 +66,7 @@ import type { AgentDefinition } from '@levelcode/sdk'
 async function main() {
   const client = new LevelCodeClient({
     // Note: You need to pass in your own API key.
-    // Get it here: https://www.levelcode.com/profile?tab=api-keys
+    // Get it here: https://www.levelcode.vercel.app/profile?tab=api-keys
     apiKey: process.env.LEVELCODE_API_KEY,
     // Optional directory agent runs from (if applicable).
     cwd: process.cwd(),

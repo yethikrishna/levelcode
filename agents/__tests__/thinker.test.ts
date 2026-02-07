@@ -25,7 +25,7 @@ describe('thinker agent', () => {
     })
 
     test('has display name', () => {
-      expect(thinker.displayName).toBe('Theo the Theorizer')
+      expect(thinker.displayName).toBe('Logic the Theorizer')
     })
 
     test('uses opus model', () => {

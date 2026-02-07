@@ -7,7 +7,7 @@ import type { AgentDefinition } from '@levelcode/sdk'
 async function main() {
   const client = new LevelCodeClient({
     // Note: You need to pass in your own API key.
-    // Get it here: https://www.levelcode.com/profile?tab=api-keys
+    // Get it here: https://www.levelcode.vercel.app/profile?tab=api-keys
     apiKey: process.env.LEVELCODE_API_KEY,
     // Optional directory agent runs from (if applicable).
     cwd: process.cwd(),

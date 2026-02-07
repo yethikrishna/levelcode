@@ -56,7 +56,7 @@ export const getConfigDir = (clientEnv: ClientEnv = env): string => {
     clientEnv.NEXT_PUBLIC_CB_ENVIRONMENT !== 'prod'
       ? `-${clientEnv.NEXT_PUBLIC_CB_ENVIRONMENT}`
       : ''
-  return path.join(os.homedir(), '.config', `manicode${envSuffix}`)
+  return path.join(os.homedir(), '.config', `levelcode${envSuffix}`)
 }
 
 /**

@@ -23,7 +23,7 @@ describe('commander agent', () => {
     })
 
     test('has display name', () => {
-      expect(commander.displayName).toBe('Commander')
+      expect(commander.displayName).toBe('Shell the Commander')
     })
 
     test('uses haiku model', () => {

@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_E2E_DATABASE_URL =
-  'postgresql://manicode_user_local:secretpassword_local@localhost:5433/manicode_db_e2e'
+  'postgresql://levelcode_user_local:secretpassword_local@localhost:5433/levelcode_db_e2e'
 
 export const getE2EDatabaseUrl = (): string =>
   process.env.E2E_DATABASE_URL || DEFAULT_E2E_DATABASE_URL

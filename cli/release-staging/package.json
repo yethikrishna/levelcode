@@ -1,14 +1,14 @@
 {
-  "name": "codecane",
+  "name": "levelcode-staging",
   "version": "1.0.420",
   "description": "AI coding agent CLI (staging)",
   "license": "MIT",
   "bin": {
-    "codecane": "index.js"
+    "levelcode-staging": "index.js"
   },
   "scripts": {
     "postinstall": "node postinstall.js",
-    "preuninstall": "node -e \"const fs = require('fs'); const path = require('path'); const os = require('os'); const binaryPath = path.join(os.homedir(), '.config', 'manicode', process.platform === 'win32' ? 'codecane.exe' : 'codecane'); try { fs.unlinkSync(binaryPath) } catch (e) { /* ignore if file doesn't exist */ }\""
+    "preuninstall": "node -e \"const fs = require('fs'); const path = require('path'); const os = require('os'); const binaryPath = path.join(os.homedir(), '.config', 'levelcode', process.platform === 'win32' ? 'levelcode-staging.exe' : 'levelcode-staging'); try { fs.unlinkSync(binaryPath) } catch (e) { /* ignore if file doesn't exist */ }\""
   },
   "files": [
     "index.js",
@@ -34,7 +34,7 @@
     "type": "git",
     "url": "https://github.com/LevelCodeAI/levelcode.git"
   },
-  "homepage": "https://levelcode.com",
+  "homepage": "https://levelcode.vercel.app",
   "publishConfig": {
     "access": "public"
   }

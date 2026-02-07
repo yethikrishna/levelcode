@@ -8,7 +8,7 @@ const path = require('path');
 const binaryPath = path.join(
   os.homedir(),
   '.config',
-  'manicode',
+  'levelcode',
   process.platform === 'win32' ? 'levelcode.exe' : 'levelcode'
 );
 
@@ -30,5 +30,5 @@ console.log('Example:');
 console.log('  $ cd ~/my-project');
 console.log('  $ levelcode');
 console.log('\n');
-console.log('For more information, visit: https://levelcode.com/docs');
+console.log('For more information, visit: https://levelcode.vercel.app/docs');
 console.log('\n');
