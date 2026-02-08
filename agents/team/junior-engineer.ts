@@ -36,6 +36,7 @@ const juniorEngineer: AgentDefinition = {
   includeMessageHistory: true,
 
   toolNames: [
+    'spawn_agents',
     'read_files',
     'read_subtree',
     'str_replace',
