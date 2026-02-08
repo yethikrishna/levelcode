@@ -53,8 +53,8 @@ const subManager: AgentDefinition = {
   ],
 
   spawnableAgents: [
-    'mid-level-engineer',
-    'junior-engineer',
+    'team-mid-level-engineer',
+    'team-junior-engineer',
     'file-picker',
     'code-searcher',
     'directory-lister',

@@ -60,7 +60,7 @@ const cto: AgentDefinition = {
   ],
 
   spawnableAgents: [
-    'manager',
+    'team-manager',
     'senior-engineer',
     'commander',
     'file-picker',

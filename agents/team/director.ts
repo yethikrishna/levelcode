@@ -58,7 +58,7 @@ const director: AgentDefinition = {
   ],
 
   spawnableAgents: [
-    'manager',
+    'team-manager',
     'senior-engineer',
     'commander',
     'file-picker',

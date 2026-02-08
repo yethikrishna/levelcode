@@ -293,7 +293,7 @@ describe('agent templates: individual imports', () => {
     expect(agent.model).toBe('anthropic/claude-opus-4.5')
     expect(agent.toolNames).toContain('spawn_agents')
     expect(agent.toolNames).toContain('send_message')
-    expect(agent.spawnableAgents).toContain('manager')
+    expect(agent.spawnableAgents).toContain('team-manager')
     expect(agent.spawnableAgents).toContain('senior-engineer')
   })
 
@@ -491,7 +491,7 @@ describe('agent templates: cross-template consistency', () => {
 
   test('coordinator can spawn managers', () => {
     const coord = getTeamAgent('coordinator' as any)!
-    expect(coord.spawnableAgents).toContain('manager')
+    expect(coord.spawnableAgents).toContain('team-manager')
   })
 
   test('all 21 displayNames are unique', () => {
