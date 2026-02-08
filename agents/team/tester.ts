@@ -56,6 +56,7 @@ const tester: AgentDefinition = {
     'directory-lister',
     'glob-matcher',
     'commander',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Tester Agent within a LevelCode swarm team. You are a testing specialist responsible for ensuring code quality through comprehensive, well-structured tests.

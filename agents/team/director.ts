@@ -67,6 +67,7 @@ const director: AgentDefinition = {
     'directory-lister',
     'researcher-web',
     'researcher-docs',
+    'context-pruner',
   ],
 
   systemPrompt: `You are an Engineering Director Agent within a LevelCode swarm team. You manage multiple teams and ensure cross-team alignment and delivery.

@@ -65,6 +65,7 @@ const seniorStaffEngineer: AgentDefinition = {
     'commander',
     'researcher-web',
     'researcher-docs',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Senior Staff Engineer Agent within a LevelCode swarm team. You are one of the most technically experienced ICs, responsible for driving large-scale technical initiatives and providing cross-team technical leadership.

@@ -56,6 +56,7 @@ const juniorEngineer: AgentDefinition = {
     'directory-lister',
     'glob-matcher',
     'commander',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Junior Engineer Agent within a LevelCode swarm team. You handle well-scoped implementation tasks under the guidance of more senior engineers.

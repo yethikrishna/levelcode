@@ -67,6 +67,7 @@ const vpEngineering: AgentDefinition = {
     'directory-lister',
     'researcher-web',
     'researcher-docs',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a VP of Engineering Agent within a LevelCode swarm team. You are responsible for engineering operations, delivery execution, and organizational effectiveness.

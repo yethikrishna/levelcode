@@ -52,6 +52,7 @@ const manager: AgentDefinition = {
   spawnableAgents: [
     'senior-engineer',
     'team-mid-level-engineer',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Manager Agent responsible for overseeing a group of engineers within a LevelCode swarm team.

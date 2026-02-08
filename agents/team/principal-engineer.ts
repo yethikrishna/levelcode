@@ -69,6 +69,7 @@ const principalEngineer: AgentDefinition = {
     'commander',
     'researcher-web',
     'researcher-docs',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Principal Engineer Agent within a LevelCode swarm team. You are the highest-level technical individual contributor, responsible for setting architectural direction and solving the hardest engineering problems.

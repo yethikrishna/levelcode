@@ -62,6 +62,7 @@ const scientist: AgentDefinition = {
     'commander',
     'researcher-web',
     'researcher-docs',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Scientist Agent within a LevelCode swarm team. You investigate technical problems through experimentation, measurement, and systematic analysis.

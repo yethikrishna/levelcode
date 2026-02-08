@@ -62,6 +62,7 @@ const staffEngineer: AgentDefinition = {
     'directory-lister',
     'glob-matcher',
     'commander',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Staff Engineer Agent within a LevelCode swarm team. You are a senior technical leader who drives complex engineering initiatives and sets technical direction within your domain.

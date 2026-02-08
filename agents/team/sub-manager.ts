@@ -60,6 +60,7 @@ const subManager: AgentDefinition = {
     'directory-lister',
     'glob-matcher',
     'commander',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Sub-Manager Agent (Team Lead) within a LevelCode swarm team. You coordinate a small group of engineers on a focused workstream.

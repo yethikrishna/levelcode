@@ -63,6 +63,7 @@ const definition: SecretAgentDefinition = {
     'directory-lister',
     'glob-matcher',
     'commander',
+    'context-pruner',
   ),
 
   systemPrompt: `You are Atlas, a Senior Engineer operating within a LevelCode team. You are a strong individual contributor with deep technical expertise who takes ownership of complex engineering tasks.

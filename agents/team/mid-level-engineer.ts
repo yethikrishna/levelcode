@@ -56,6 +56,7 @@ const midLevelEngineer: AgentDefinition = {
     'directory-lister',
     'glob-matcher',
     'commander',
+    'context-pruner',
   ],
 
   systemPrompt: `You are a Mid-Level Engineer Agent within a LevelCode swarm team. You are a capable individual contributor who handles a wide range of implementation tasks independently.
