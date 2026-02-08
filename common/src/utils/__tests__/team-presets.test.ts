@@ -98,34 +98,44 @@ describe('team-presets', () => {
   })
 
   describe('preset validity', () => {
-    it.each(ALL_PRESET_NAMES)('%s should have a non-empty presetName', (name) => {
-      const preset = getTeamPreset(name)!
-      expect(preset.presetName).toBe(name)
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should have a non-empty presetName`, () => {
+        const preset = getTeamPreset(name)!
+        expect(preset.presetName).toBe(name)
+      })
+    }
 
-    it.each(ALL_PRESET_NAMES)('%s should have a non-empty description', (name) => {
-      const preset = getTeamPreset(name)!
-      expect(typeof preset.description).toBe('string')
-      expect(preset.description.length).toBeGreaterThan(0)
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should have a non-empty description`, () => {
+        const preset = getTeamPreset(name)!
+        expect(typeof preset.description).toBe('string')
+        expect(preset.description.length).toBeGreaterThan(0)
+      })
+    }
 
-    it.each(ALL_PRESET_NAMES)('%s should have a valid defaultPhase', (name) => {
-      const preset = getTeamPreset(name)!
-      const validPhases = ['planning', 'pre-alpha', 'alpha', 'beta', 'production', 'mature']
-      expect(validPhases).toContain(preset.defaultPhase)
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should have a valid defaultPhase`, () => {
+        const preset = getTeamPreset(name)!
+        const validPhases = ['planning', 'pre-alpha', 'alpha', 'beta', 'production', 'mature']
+        expect(validPhases).toContain(preset.defaultPhase)
+      })
+    }
 
-    it.each(ALL_PRESET_NAMES)('%s should have valid settings', (name) => {
-      const preset = getTeamPreset(name)!
-      expect(typeof preset.settings.maxMembers).toBe('number')
-      expect(preset.settings.maxMembers).toBeGreaterThan(0)
-      expect(typeof preset.settings.autoAssign).toBe('boolean')
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should have valid settings`, () => {
+        const preset = getTeamPreset(name)!
+        expect(typeof preset.settings.maxMembers).toBe('number')
+        expect(preset.settings.maxMembers).toBeGreaterThan(0)
+        expect(typeof preset.settings.autoAssign).toBe('boolean')
+      })
+    }
 
-    it.each(ALL_PRESET_NAMES)('%s should have maxMembers >= member count', (name) => {
-      const preset = getTeamPreset(name)!
-      expect(preset.settings.maxMembers).toBeGreaterThanOrEqual(preset.members.length)
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should have maxMembers >= member count`, () => {
+        const preset = getTeamPreset(name)!
+        expect(preset.settings.maxMembers).toBeGreaterThanOrEqual(preset.members.length)
+      })
+    }
   })
 
   describe('preset member counts', () => {
@@ -154,58 +164,70 @@ describe('team-presets', () => {
       expect(preset.members).toHaveLength(6)
     })
 
-    it.each(ALL_PRESET_NAMES)('%s should have at least 1 member', (name) => {
-      const preset = getTeamPreset(name)!
-      expect(preset.members.length).toBeGreaterThan(0)
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should have at least 1 member`, () => {
+        const preset = getTeamPreset(name)!
+        expect(preset.members.length).toBeGreaterThan(0)
+      })
+    }
   })
 
   describe('preset member fields', () => {
-    it.each(ALL_PRESET_NAMES)('%s members should all have required fields (name, role, agentType)', (name) => {
-      const preset = getTeamPreset(name)!
-      for (const member of preset.members) {
-        expect(typeof member.name).toBe('string')
-        expect(member.name.length).toBeGreaterThan(0)
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} members should all have required fields (name, role, agentType)`, () => {
+        const preset = getTeamPreset(name)!
+        for (const member of preset.members) {
+          expect(typeof member.name).toBe('string')
+          expect(member.name.length).toBeGreaterThan(0)
 
-        expect(typeof member.role).toBe('string')
-        expect(member.role.length).toBeGreaterThan(0)
+          expect(typeof member.role).toBe('string')
+          expect(member.role.length).toBeGreaterThan(0)
 
-        expect(typeof member.agentType).toBe('string')
-        expect(member.agentType.length).toBeGreaterThan(0)
-      }
-    })
+          expect(typeof member.agentType).toBe('string')
+          expect(member.agentType.length).toBeGreaterThan(0)
+        }
+      })
+    }
 
-    it.each(ALL_PRESET_NAMES)('%s members should all have a model field', (name) => {
-      const preset = getTeamPreset(name)!
-      for (const member of preset.members) {
-        expect(typeof member.model).toBe('string')
-        expect(member.model.length).toBeGreaterThan(0)
-      }
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} members should all have a model field`, () => {
+        const preset = getTeamPreset(name)!
+        for (const member of preset.members) {
+          expect(typeof member.model).toBe('string')
+          expect(member.model.length).toBeGreaterThan(0)
+        }
+      })
+    }
 
-    it.each(ALL_PRESET_NAMES)('%s members should have unique names', (name) => {
-      const preset = getTeamPreset(name)!
-      const names = preset.members.map((m) => m.name)
-      const uniqueNames = new Set(names)
-      expect(uniqueNames.size).toBe(names.length)
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} members should have unique names`, () => {
+        const preset = getTeamPreset(name)!
+        const names = preset.members.map((m) => m.name)
+        const uniqueNames = new Set(names)
+        expect(uniqueNames.size).toBe(names.length)
+      })
+    }
   })
 
   describe('role validity', () => {
-    it.each(ALL_PRESET_NAMES)('%s should only use valid TeamRole values', (name) => {
-      const preset = getTeamPreset(name)!
-      for (const member of preset.members) {
-        expect(VALID_ROLES).toContain(member.role)
-      }
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should only use valid TeamRole values`, () => {
+        const preset = getTeamPreset(name)!
+        for (const member of preset.members) {
+          expect(VALID_ROLES).toContain(member.role)
+        }
+      })
+    }
   })
 
   describe('leader role presence', () => {
-    it.each(ALL_PRESET_NAMES)('%s should have at least one leader role', (name) => {
-      const preset = getTeamPreset(name)!
-      const hasLeader = preset.members.some((m) => LEADER_ROLES.includes(m.role))
-      expect(hasLeader).toBe(true)
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should have at least one leader role`, () => {
+        const preset = getTeamPreset(name)!
+        const hasLeader = preset.members.some((m) => LEADER_ROLES.includes(m.role))
+        expect(hasLeader).toBe(true)
+      })
+    }
 
     it('SMALL_TEAM leader should be coordinator', () => {
       const preset = getTeamPreset('SMALL_TEAM')!
@@ -240,13 +262,15 @@ describe('team-presets', () => {
   })
 
   describe('no duplicate roles where inappropriate', () => {
-    it.each(ALL_PRESET_NAMES)('%s should not have duplicate unique roles', (name) => {
-      const preset = getTeamPreset(name)!
-      for (const uniqueRole of UNIQUE_ROLES) {
-        const count = preset.members.filter((m) => m.role === uniqueRole).length
-        expect(count).toBeLessThanOrEqual(1)
-      }
-    })
+    for (const name of ALL_PRESET_NAMES) {
+      it(`${name} should not have duplicate unique roles`, () => {
+        const preset = getTeamPreset(name)!
+        for (const uniqueRole of UNIQUE_ROLES) {
+          const count = preset.members.filter((m) => m.role === uniqueRole).length
+          expect(count).toBeLessThanOrEqual(1)
+        }
+      })
+    }
 
     it('SMALL_TEAM should have exactly one coordinator', () => {
       const preset = getTeamPreset('SMALL_TEAM')!

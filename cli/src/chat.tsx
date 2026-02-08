@@ -1,6 +1,9 @@
 import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
 import { isStandaloneMode } from '@levelcode/sdk'
 import open from 'open'
+import { ProviderWizard } from './components/provider-wizard'
+import { ModelPicker } from './components/model-picker'
+import { SettingsPanel } from './components/settings-panel'
 import {
   useCallback,
   useEffect,
@@ -124,6 +127,9 @@ export const Chat = ({
   onSwitchToGitRoot?: () => void
 }) => {
   const [forceFileOnlyMentions, setForceFileOnlyMentions] = useState(false)
+  const [providerWizardMode, setProviderWizardMode] = useState(false)
+  const [modelPickerMode, setModelPickerMode] = useState(false)
+  const [providerSettingsMode, setProviderSettingsMode] = useState(false)
 
   const { validate: validateAgents } = useAgentValidation()
 
@@ -692,6 +698,18 @@ export const Chat = ({
 
       if (result.openTeamSettings) {
         useTeamSettingsStore.getState().openSettingsScreen()
+      }
+
+      if (result.openProviderWizard) {
+        setProviderWizardMode(true)
+      }
+
+      if (result.openModelPicker) {
+        setModelPickerMode(true)
+      }
+
+      if (result.openSettings) {
+        setProviderSettingsMode(true)
       }
     },
     [
@@ -1415,8 +1433,7 @@ export const Chat = ({
         <box
           style={{
             flexShrink: 0,
-            borderTop: true,
-            borderBottom: true,
+            border: ['top', 'bottom'],
             borderColor: theme.border,
           }}
         >
@@ -1443,6 +1460,18 @@ export const Chat = ({
 
         {teamSettingsMode && (
           <TeamSettingsScreen onClose={closeTeamSettings} />
+        )}
+
+        {providerWizardMode && (
+          <ProviderWizard onClose={() => setProviderWizardMode(false)} />
+        )}
+
+        {modelPickerMode && (
+          <ModelPicker onClose={() => setModelPickerMode(false)} />
+        )}
+
+        {providerSettingsMode && (
+          <SettingsPanel onClose={() => setProviderSettingsMode(false)} />
         )}
 
         {reviewMode ? (

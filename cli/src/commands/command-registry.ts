@@ -34,6 +34,17 @@ import {
 import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
 import { dispatchTeamHookEvent } from '@levelcode/common/utils/team-hook-emitter'
 import { trackEvent } from '../utils/analytics'
+import { useProviderStore } from '../state/provider-store'
+import {
+  loadProviderConfig,
+  removeProvider as removeProviderFromConfig,
+  setActiveModel as setActiveModelInConfig,
+} from '@levelcode/common/providers/provider-fs'
+import { testProvider } from '@levelcode/common/providers/provider-test'
+import {
+  getProviderDefinition,
+  PROVIDER_DEFINITIONS,
+} from '@levelcode/common/providers/provider-registry'
 
 import type { PhaseTransitionHookEvent } from '@levelcode/common/types/team-hook-events'
 import type { DevPhase, TeamConfig } from '@levelcode/common/types/team-config'
@@ -79,6 +90,9 @@ export type CommandResult = {
   openChatHistory?: boolean
   openReviewScreen?: boolean
   openTeamSettings?: boolean
+  openProviderWizard?: boolean
+  openModelPicker?: boolean
+  openSettings?: boolean
   preSelectAgents?: string[]
 } | void
 
@@ -838,6 +852,224 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
       return { openTeamSettings: true }
+    },
+  }),
+  // ── Provider & model commands ──────────────────────────────────────────
+  defineCommand({
+    name: 'provider:add',
+    aliases: ['connect'],
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openProviderWizard: true }
+    },
+  }),
+  defineCommand({
+    name: 'provider:list',
+    handler: async (params) => {
+      const config = await loadProviderConfig()
+      const providerIds = Object.keys(config.providers)
+
+      if (providerIds.length === 0) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No providers configured. Use /provider:add to add one.'),
+        ])
+      } else {
+        const lines = providerIds.map((id) => {
+          const entry = config.providers[id]!
+          const def = getProviderDefinition(id)
+          const name = def?.name ?? entry.displayName ?? id
+          const status = entry.enabled ? '●' : '○'
+          const models = [...entry.models, ...entry.customModelIds]
+          const modelCount = models.length > 0 ? ` (${models.length} models)` : ''
+          const auto = entry.autoDetected ? ' [auto]' : ''
+          return `  ${status} ${name}${modelCount}${auto}`
+        })
+
+        const active = config.activeProvider
+          ? `Active: ${config.activeProvider}/${config.activeModel ?? 'none'}`
+          : 'No active model set'
+
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Providers:\n${lines.join('\n')}\n\n${active}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'provider:remove',
+    handler: async (params, args) => {
+      const providerId = args.trim()
+      if (!providerId) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /provider:remove <provider-id>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      try {
+        await removeProviderFromConfig(providerId)
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Provider "${providerId}" removed.`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to remove provider: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'provider:test',
+    handler: async (params, args) => {
+      const providerId = args.trim()
+      if (!providerId) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /provider:test <provider-id>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(`Testing ${providerId}...`),
+      ])
+
+      const config = await loadProviderConfig()
+      const entry = config.providers[providerId]
+      const result = await testProvider(providerId, entry?.apiKey, entry?.baseUrl)
+
+      const statusIcon = result.success ? '●' : '○'
+      const latency = result.latencyMs.toFixed(0)
+      const modelInfo = result.models ? ` (${result.models.length} models)` : ''
+      const errorInfo = result.error ? `\nError: ${result.error}` : ''
+
+      params.setMessages((prev) => [
+        ...prev,
+        getSystemMessage(`${statusIcon} ${result.providerName}: ${latency}ms${modelInfo}${errorInfo}`),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'model:list',
+    aliases: ['models'],
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openModelPicker: true }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'model:set',
+    handler: async (params, args) => {
+      const modelSpec = args.trim()
+      if (!modelSpec) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /model:set <provider/model> (e.g., /model:set anthropic/claude-sonnet-4.5)'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      const parts = modelSpec.split('/')
+      let providerId: string
+      let modelId: string
+
+      if (parts.length >= 2) {
+        providerId = parts[0]!
+        modelId = parts.slice(1).join('/')
+      } else {
+        // Try to find provider from active config
+        const config = await loadProviderConfig()
+        providerId = config.activeProvider ?? 'openrouter'
+        modelId = modelSpec
+      }
+
+      try {
+        await setActiveModelInConfig(providerId, modelId)
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Active model set to ${providerId}/${modelId}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to set model: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'model:info',
+    handler: async (params) => {
+      const config = await loadProviderConfig()
+
+      if (!config.activeModel || !config.activeProvider) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No active model set. Use /model:set <provider/model> to set one.'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      const def = getProviderDefinition(config.activeProvider)
+      const providerName = def?.name ?? config.activeProvider
+
+      const lines = [
+        `Model: ${config.activeModel}`,
+        `Provider: ${providerName}`,
+        `API Format: ${def?.apiFormat ?? 'unknown'}`,
+        `Base URL: ${def?.baseUrl ?? 'custom'}`,
+      ]
+
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(lines.join('\n')),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'settings',
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openSettings: true }
     },
   }),
   // Mode commands generated from AGENT_MODES

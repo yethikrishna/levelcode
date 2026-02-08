@@ -13,6 +13,7 @@ import {
 import { listAllTeams } from '@levelcode/common/utils/team-discovery'
 
 import type { TeamConfig, TeamMember, DevPhase } from '@levelcode/common/types/team-config'
+import type { CreateTeamOptions } from '../team'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,6 +48,25 @@ function makeTeamConfig(overrides?: Partial<TeamConfig>): TeamConfig {
     },
     ...overrides,
   }
+}
+
+/** Convert a TeamConfig into the (name, options) args expected by client.createTeam */
+function toCreateArgs(config: TeamConfig): [string, CreateTeamOptions] {
+  return [
+    config.name,
+    {
+      description: config.description,
+      phase: config.phase,
+      members: config.members.map((m) => ({
+        name: m.name,
+        role: m.role,
+        agentType: m.agentType,
+        model: m.model,
+        cwd: m.cwd,
+      })),
+      settings: config.settings,
+    },
+  ]
 }
 
 function createClient(): LevelCodeClient {
@@ -92,7 +112,7 @@ describe('LevelCodeClient team API', () => {
       const client = createClient()
       const config = makeTeamConfig()
 
-      client.createTeam(config)
+      client.createTeam(...toCreateArgs(config))
 
       const teamsDir = getTeamsDir()
       const teamDir = path.join(teamsDir, 'sdk-test-team')
@@ -108,7 +128,7 @@ describe('LevelCodeClient team API', () => {
       const client = createClient()
       const config = makeTeamConfig({ description: 'Persisted description' })
 
-      client.createTeam(config)
+      client.createTeam(...toCreateArgs(config))
 
       const loaded = loadTeamConfig('sdk-test-team')
       expect(loaded).not.toBeNull()
@@ -122,8 +142,8 @@ describe('LevelCodeClient team API', () => {
 
     test('creates multiple teams without conflicts', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig({ name: 'team-alpha' }))
-      client.createTeam(makeTeamConfig({ name: 'team-beta' }))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'team-alpha' })))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'team-beta' })))
 
       expect(loadTeamConfig('team-alpha')).not.toBeNull()
       expect(loadTeamConfig('team-beta')).not.toBeNull()
@@ -131,8 +151,8 @@ describe('LevelCodeClient team API', () => {
 
     test('overwrites existing team when created with the same name', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig({ description: 'version 1' }))
-      client.createTeam(makeTeamConfig({ description: 'version 2' }))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ description: 'version 1' })))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ description: 'version 2' })))
 
       const loaded = loadTeamConfig('sdk-test-team')
       expect(loaded!.description).toBe('version 2')
@@ -146,7 +166,7 @@ describe('LevelCodeClient team API', () => {
   describe('deleteTeam', () => {
     test('removes team directory and tasks directory', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig())
+      client.createTeam(...toCreateArgs(makeTeamConfig()))
 
       const teamsDir = getTeamsDir()
       const teamDir = path.join(teamsDir, 'sdk-test-team')
@@ -162,7 +182,7 @@ describe('LevelCodeClient team API', () => {
 
     test('config is no longer loadable after deletion', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig())
+      client.createTeam(...toCreateArgs(makeTeamConfig()))
       expect(loadTeamConfig('sdk-test-team')).not.toBeNull()
 
       client.deleteTeam('sdk-test-team')
@@ -176,8 +196,8 @@ describe('LevelCodeClient team API', () => {
 
     test('does not affect other teams', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig({ name: 'keep-me' }))
-      client.createTeam(makeTeamConfig({ name: 'remove-me' }))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'keep-me' })))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'remove-me' })))
 
       client.deleteTeam('remove-me')
 
@@ -218,13 +238,13 @@ describe('LevelCodeClient team API', () => {
           },
         ],
       })
-      client.createTeam(config)
+      client.createTeam(...toCreateArgs(config))
 
       const status = client.getTeamStatus('sdk-test-team')
 
       expect(status).not.toBeNull()
-      expect(status!.name).toBe('sdk-test-team')
-      expect(status!.phase).toBe('alpha')
+      expect(status!.config.name).toBe('sdk-test-team')
+      expect(status!.config.phase).toBe('alpha')
       expect(status!.memberCount).toBe(2)
     })
 
@@ -236,14 +256,14 @@ describe('LevelCodeClient team API', () => {
 
     test('reflects updated member count after deletion and re-creation', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig())
+      client.createTeam(...toCreateArgs(makeTeamConfig()))
 
       let status = client.getTeamStatus('sdk-test-team')
       expect(status!.memberCount).toBe(1)
 
       // Re-create with more members
       client.createTeam(
-        makeTeamConfig({
+        ...toCreateArgs(makeTeamConfig({
           members: [
             {
               agentId: 'lead-sdk-001',
@@ -276,7 +296,7 @@ describe('LevelCodeClient team API', () => {
               cwd: '/tmp',
             },
           ],
-        }),
+        })),
       )
 
       status = client.getTeamStatus('sdk-test-team')
@@ -297,9 +317,9 @@ describe('LevelCodeClient team API', () => {
 
     test('lists all created teams', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig({ name: 'team-a' }))
-      client.createTeam(makeTeamConfig({ name: 'team-b' }))
-      client.createTeam(makeTeamConfig({ name: 'team-c' }))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'team-a' })))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'team-b' })))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'team-c' })))
 
       const teams = client.listTeams()
       expect(teams).toHaveLength(3)
@@ -312,8 +332,8 @@ describe('LevelCodeClient team API', () => {
 
     test('reflects deletions in the listing', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig({ name: 'stay' }))
-      client.createTeam(makeTeamConfig({ name: 'go-away' }))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'stay' })))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'go-away' })))
 
       expect(client.listTeams()).toHaveLength(2)
 
@@ -327,7 +347,7 @@ describe('LevelCodeClient team API', () => {
     test('includes phase and memberCount for each team', () => {
       const client = createClient()
       client.createTeam(
-        makeTeamConfig({
+        ...toCreateArgs(makeTeamConfig({
           name: 'production-team',
           phase: 'production',
           members: [
@@ -352,7 +372,7 @@ describe('LevelCodeClient team API', () => {
               cwd: '/tmp',
             },
           ],
-        }),
+        })),
       )
 
       const teams = client.listTeams()
@@ -375,7 +395,7 @@ describe('LevelCodeClient team API', () => {
 
     test('deleteTeam is safe to call on already-deleted team', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig())
+      client.createTeam(...toCreateArgs(makeTeamConfig()))
       client.deleteTeam('sdk-test-team')
       expect(() => client.deleteTeam('sdk-test-team')).not.toThrow()
     })
@@ -392,7 +412,7 @@ describe('LevelCodeClient team API', () => {
 
     test('getTeamStatus handles corrupted config gracefully', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig())
+      client.createTeam(...toCreateArgs(makeTeamConfig()))
 
       // Corrupt the config file
       const configPath = path.join(getTeamsDir(), 'sdk-test-team', 'config.json')
@@ -405,8 +425,8 @@ describe('LevelCodeClient team API', () => {
 
     test('listTeams skips teams with corrupted config files', () => {
       const client = createClient()
-      client.createTeam(makeTeamConfig({ name: 'good-team' }))
-      client.createTeam(makeTeamConfig({ name: 'bad-team' }))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'good-team' })))
+      client.createTeam(...toCreateArgs(makeTeamConfig({ name: 'bad-team' })))
 
       // Corrupt one config
       const configPath = path.join(getTeamsDir(), 'bad-team', 'config.json')

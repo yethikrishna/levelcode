@@ -166,6 +166,49 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'team:settings',
     description: 'Open swarm / team settings',
   },
+  // Provider & model commands
+  {
+    id: 'provider:add',
+    label: 'provider:add',
+    description: 'Add a new AI provider',
+    aliases: ['connect'],
+  },
+  {
+    id: 'provider:list',
+    label: 'provider:list',
+    description: 'List configured providers',
+  },
+  {
+    id: 'provider:remove',
+    label: 'provider:remove',
+    description: 'Remove a provider',
+  },
+  {
+    id: 'provider:test',
+    label: 'provider:test',
+    description: 'Test provider connection',
+  },
+  {
+    id: 'model:list',
+    label: 'model:list',
+    description: 'Browse and select models',
+    aliases: ['models'],
+  },
+  {
+    id: 'model:set',
+    label: 'model:set',
+    description: 'Set the active model',
+  },
+  {
+    id: 'model:info',
+    label: 'model:info',
+    description: 'Show current model details',
+  },
+  {
+    id: 'settings',
+    label: 'settings',
+    description: 'Open provider & model settings',
+  },
   ...MODE_COMMANDS,
   {
     id: 'referral',

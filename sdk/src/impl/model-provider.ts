@@ -210,6 +210,17 @@ export async function getModelForRequest(params: ModelRequestParams): Promise<Mo
     }
   }
 
+  // NEW: Check providers.json for configured multi-provider routing
+  try {
+    const { getProviderModelForRequest } = await import('./multi-provider')
+    const providerResult = await getProviderModelForRequest(model)
+    if (providerResult) {
+      return { model: providerResult.model, isClaudeOAuth: false }
+    }
+  } catch {
+    // providers.json not configured or error — fall through to legacy routing
+  }
+
   if (isStandaloneMode()) {
     // Standalone mode: route directly to providers, bypass backend
 

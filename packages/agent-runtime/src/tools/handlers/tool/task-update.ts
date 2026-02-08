@@ -15,6 +15,7 @@ import type {
   LevelCodeToolOutput,
 } from '@levelcode/common/tools/list'
 import type { TrackEventFn } from '@levelcode/common/types/contracts/analytics'
+import type { JSONValue } from '@levelcode/common/types/json'
 import type { Logger } from '@levelcode/common/types/contracts/logger'
 
 const VALID_STATUSES = ['pending', 'in_progress', 'completed', 'blocked', 'deleted'] as const
@@ -186,7 +187,7 @@ export const handleTaskUpdate = (async (params: {
   return {
     output: jsonToolResult({
       message: `Task "${taskId}" updated successfully`,
-      task: updatedTask as unknown as Record<string, unknown>,
+      task: updatedTask as unknown as Record<string, JSONValue>,
     }),
   }
 }) satisfies LevelCodeToolHandlerFunction<ToolName>

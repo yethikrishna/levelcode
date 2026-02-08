@@ -61,6 +61,7 @@ function makeTask(overrides?: Partial<TeamTask>): TeamTask {
     subject: 'Test task',
     description: 'A test task description',
     status: 'pending',
+    priority: 'medium' as const,
     blockedBy: [],
     blocks: [],
     phase: 'planning',

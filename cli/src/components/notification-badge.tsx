@@ -94,7 +94,7 @@ export const NotificationBadge = () => {
         <box
           style={{
             flexDirection: 'column',
-            borderStyle: 'round',
+            borderStyle: 'rounded',
             borderColor: theme.border,
             padding: 0,
             marginTop: 1,

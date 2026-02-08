@@ -65,6 +65,7 @@ export const teamTaskSchema = z.object({
   subject: z.string(),
   description: z.string(),
   status: z.enum(['pending', 'in_progress', 'completed', 'blocked']),
+  priority: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
   owner: z.string().optional(),
   blockedBy: z.array(z.string()),
   blocks: z.array(z.string()),

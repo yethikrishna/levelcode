@@ -2,8 +2,9 @@ import z from 'zod/v4'
 
 import {
   $getNativeToolCallExampleString,
-  textToolResultSchema,
+  jsonToolResultSchema,
 } from '../utils'
+import { jsonValueSchema } from '../../../types/json'
 
 import type { $ToolParams } from '../../constants'
 
@@ -61,5 +62,5 @@ export const taskCreateParams = {
   endsAgentStep,
   description,
   inputSchema,
-  outputSchema: textToolResultSchema(),
+  outputSchema: jsonToolResultSchema(jsonValueSchema),
 } satisfies $ToolParams

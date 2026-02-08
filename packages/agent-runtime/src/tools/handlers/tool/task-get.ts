@@ -1,4 +1,5 @@
 import { jsonToolResult } from '@levelcode/common/util/messages'
+import type { JSONValue } from '@levelcode/common/types/json'
 import { getTask } from '@levelcode/common/utils/team-fs'
 import { findCurrentTeam } from '@levelcode/common/utils/team-discovery'
 
@@ -64,6 +65,6 @@ export const handleTaskGet = (async (params: {
   }
 
   return {
-    output: jsonToolResult(task),
+    output: jsonToolResult(task as unknown as JSONValue),
   }
 }) satisfies LevelCodeToolHandlerFunction<ToolName>

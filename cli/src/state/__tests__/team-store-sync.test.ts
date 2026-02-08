@@ -12,7 +12,7 @@ import type { TeamConfig, TeamTask } from '@levelcode/common/types/team-config'
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
-const mockLoadTeamConfig = mock(() => null as TeamConfig | null)
+const mockLoadTeamConfig = mock((_name: string) => null as TeamConfig | null)
 const mockSaveTeamConfig = mock((_name: string, _config: TeamConfig) => {})
 const mockListTasks = mock(() => [] as TeamTask[])
 
@@ -42,6 +42,7 @@ function makeTasks(): TeamTask[] {
     blockedBy: [],
     blocks: [],
     phase: 'planning' as const,
+    priority: 'medium' as const,
     createdAt: 1000,
     updatedAt: 1000,
   }

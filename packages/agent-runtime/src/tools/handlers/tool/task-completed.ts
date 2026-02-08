@@ -18,6 +18,7 @@ import type {
   LevelCodeToolCall,
   LevelCodeToolOutput,
 } from '@levelcode/common/tools/list'
+import type { AgentTemplate } from '@levelcode/common/types/agent-template'
 import type { TrackEventFn } from '@levelcode/common/types/contracts/analytics'
 import type { Logger } from '@levelcode/common/types/contracts/logger'
 import type { TaskCompletedMessage } from '@levelcode/common/types/team-protocol'
@@ -95,7 +96,7 @@ export const handleTaskCompleted = (async ({
   trackEvent: TrackEventFn
   userId: string | undefined
   logger: Logger
-  agentTemplate: { name: string }
+  agentTemplate: AgentTemplate
 }): Promise<{ output: LevelCodeToolOutput<'task_completed'> }> => {
   await previousToolCallFinished
 
@@ -108,7 +109,7 @@ export const handleTaskCompleted = (async ({
   }
 
   const config = loadTeamConfig(teamName)
-  const agentName = agentTemplate.name
+  const agentName = agentTemplate.displayName
 
   // 1. Find the agent's current task and mark it completed
   const task = findAgentTask(teamName, agentName)
