@@ -5,6 +5,7 @@ import {
   getTasksDir,
   loadTeamConfig,
 } from '@levelcode/common/utils/team-fs'
+import { setLastActiveTeam } from '@levelcode/common/utils/team-discovery'
 import { trackTeamCreated } from '@levelcode/common/utils/team-analytics'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
@@ -99,6 +100,10 @@ export const handleTeamCreate = (async (params: {
       error instanceof Error ? error.message : String(error)
     return errorResult(`Failed to create team "${team_name}": ${errorMessage}`)
   }
+
+  // Persist the team name so subsequent tool calls (whose agentStepId differs)
+  // can locate this team via the last-active-team fallback.
+  setLastActiveTeam(team_name)
 
   trackTeamCreated(
     { trackEvent, userId: userId ?? '', logger },

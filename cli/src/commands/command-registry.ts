@@ -25,6 +25,7 @@ import {
   listTasks,
   saveTeamConfig,
 } from '@levelcode/common/utils/team-fs'
+import { listAllTeams } from '@levelcode/common/utils/team-discovery'
 import {
   canTransition,
   transitionPhase,
@@ -458,7 +459,20 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:delete',
     handler: (params) => {
-      const { activeTeam, reset } = useTeamStore.getState()
+      const { reset } = useTeamStore.getState()
+      // Try the Zustand store first; if empty, discover teams from disk.
+      let activeTeam = useTeamStore.getState().activeTeam
+      if (!activeTeam) {
+        const teams = listAllTeams()
+        if (teams.length > 0) {
+          const diskConfig = loadTeamConfig(teams[0]!.name)
+          if (diskConfig) {
+            useTeamStore.getState().setActiveTeam(diskConfig)
+            activeTeam = diskConfig
+          }
+        }
+      }
+
       if (!activeTeam) {
         params.setMessages((prev) => [
           ...prev,
@@ -494,7 +508,20 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:status',
     handler: (params) => {
-      const { activeTeam } = useTeamStore.getState()
+      // Try the Zustand store first; if empty, discover teams from disk.
+      let activeTeam = useTeamStore.getState().activeTeam
+      if (!activeTeam) {
+        const teams = listAllTeams()
+        if (teams.length > 0) {
+          // Auto-load the first (or only) team from disk into the store.
+          const diskConfig = loadTeamConfig(teams[0]!.name)
+          if (diskConfig) {
+            useTeamStore.getState().setActiveTeam(diskConfig)
+            activeTeam = diskConfig
+          }
+        }
+      }
+
       if (!activeTeam) {
         params.setMessages((prev) => [
           ...prev,
@@ -589,7 +616,19 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
         return
       }
 
-      const { activeTeam } = useTeamStore.getState()
+      // Try the Zustand store first; if empty, discover teams from disk.
+      let activeTeam = useTeamStore.getState().activeTeam
+      if (!activeTeam) {
+        const teams = listAllTeams()
+        if (teams.length > 0) {
+          const diskConfig = loadTeamConfig(teams[0]!.name)
+          if (diskConfig) {
+            useTeamStore.getState().setActiveTeam(diskConfig)
+            activeTeam = diskConfig
+          }
+        }
+      }
+
       if (!activeTeam) {
         params.setMessages((prev) => [
           ...prev,
@@ -718,7 +757,19 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:members',
     handler: (params) => {
-      const { activeTeam } = useTeamStore.getState()
+      // Try the Zustand store first; if empty, discover teams from disk.
+      let activeTeam = useTeamStore.getState().activeTeam
+      if (!activeTeam) {
+        const teams = listAllTeams()
+        if (teams.length > 0) {
+          const diskConfig = loadTeamConfig(teams[0]!.name)
+          if (diskConfig) {
+            useTeamStore.getState().setActiveTeam(diskConfig)
+            activeTeam = diskConfig
+          }
+        }
+      }
+
       if (!activeTeam) {
         params.setMessages((prev) => [
           ...prev,
@@ -838,6 +889,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   }),
   defineCommand({
     name: 'gpt-5-agent',
+    aliases: ['titan-agent', 'titan'],
     handler: (params) => {
       // Insert @ Titan Agent into the input field (UI shortcut, not a real command)
       params.setInputValue({

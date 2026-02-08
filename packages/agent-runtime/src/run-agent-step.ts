@@ -13,6 +13,7 @@ import { getMCPToolData } from './mcp'
 import { getAgentStreamFromTemplate } from './prompt-agent-stream'
 import { runProgrammaticStep } from './run-programmatic-step'
 import { findTeamContext } from './team-context'
+import { checkIdleAfterTurn } from './team-lifecycle'
 import { additionalSystemPrompts } from './system-prompt/prompts'
 import { generateTeamPromptSection } from './system-prompt/team-prompt'
 import { getAgentTemplate } from './templates/agent-registry'
@@ -944,6 +945,96 @@ export async function loopAgentSteps(
 
       currentPrompt = undefined
       currentParams = undefined
+    }
+
+    // --- GAP 4: Notify team lead that this agent is idle after its turn ---
+    const postLoopTeamContext = findTeamContext(userInputId)
+    if (postLoopTeamContext && !signal.aborted) {
+      try {
+        await checkIdleAfterTurn({
+          teamName: postLoopTeamContext.teamName,
+          agentId: currentAgentState.agentId,
+          agentName: postLoopTeamContext.agentName,
+          producedOutput: totalSteps > 0,
+          trackEvent: params.trackEvent,
+          userId: userId ?? '',
+          logger,
+        })
+      } catch (idleErr) {
+        logger.debug(
+          { error: idleErr },
+          'checkIdleAfterTurn failed (non-fatal)',
+        )
+      }
+    }
+
+    // --- GAP 5: Post-loop inbox wake check ---
+    // If the agent is part of a team, wait briefly and check for new
+    // messages. If messages arrived while the agent was wrapping up,
+    // re-enter the loop for one more iteration so the agent can respond.
+    if (postLoopTeamContext && !signal.aborted) {
+      try {
+        await new Promise<void>((resolve) => setTimeout(resolve, 2000))
+
+        if (!signal.aborted) {
+          const wakeInbox = drainInbox({
+            teamName: postLoopTeamContext.teamName,
+            agentName: postLoopTeamContext.agentName,
+            logger,
+          })
+
+          if (wakeInbox.formattedContent) {
+            logger.debug(
+              {
+                teamName: postLoopTeamContext.teamName,
+                agentName: postLoopTeamContext.agentName,
+                messageCount: wakeInbox.messages.length,
+              },
+              'Post-loop wake: new messages detected, running one more step',
+            )
+
+            currentAgentState.messageHistory = [
+              ...currentAgentState.messageHistory,
+              userMessage(
+                withSystemTags(wakeInbox.formattedContent),
+              ),
+            ]
+
+            // Reset stepsRemaining to allow at least one more step
+            currentAgentState.stepsRemaining = Math.max(
+              currentAgentState.stepsRemaining,
+              1,
+            )
+
+            const wakeStep = await runAgentStep({
+              ...params,
+              agentState: currentAgentState,
+              agentTemplate,
+              prompt: undefined,
+              runId,
+              spawnParams: undefined,
+              system,
+              tools,
+              additionalToolDefinitions: async () => {
+                if (!cachedAdditionalToolDefinitions) {
+                  cachedAdditionalToolDefinitions = await additionalToolDefinitions({
+                    ...params,
+                    agentTemplate,
+                  })
+                }
+                return cachedAdditionalToolDefinitions
+              },
+            })
+            totalSteps++
+            currentAgentState = wakeStep.agentState
+          }
+        }
+      } catch (wakeErr) {
+        logger.debug(
+          { error: wakeErr },
+          'Post-loop wake check failed (non-fatal)',
+        )
+      }
     }
 
     if (clearUserPromptMessagesAfterResponse) {
