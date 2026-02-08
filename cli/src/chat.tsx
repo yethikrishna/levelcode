@@ -1209,7 +1209,7 @@ export const Chat = ({
   useChatKeyboard({
     state: chatKeyboardState,
     handlers: chatKeyboardHandlers,
-    disabled: askUserState !== null || reviewMode,
+    disabled: askUserState !== null || reviewMode || providerWizardMode || modelPickerMode || providerSettingsMode,
   })
 
   // Sync message block context to zustand store for child components
