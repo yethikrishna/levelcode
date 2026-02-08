@@ -1,10 +1,57 @@
+import { execSync } from 'child_process'
 import { existsSync } from 'fs'
+import os from 'os'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 import { getSdkEnv } from '../env'
 
 import type { SdkEnv } from '../types/env'
+
+/**
+ * Try to find ripgrep on the system PATH using `where` (Windows) or `which` (Unix).
+ * Returns the path if found, undefined otherwise.
+ */
+function findRgOnPath(): string | undefined {
+  try {
+    const cmd = process.platform === 'win32' ? 'where rg.exe' : 'which rg'
+    const result = execSync(cmd, { encoding: 'utf8', timeout: 3000 }).trim()
+    // `where` on Windows can return multiple lines; take the first
+    const firstLine = result.split('\n')[0]?.trim()
+    if (firstLine && existsSync(firstLine)) {
+      return firstLine
+    }
+  } catch {
+    // Not found on PATH
+  }
+  return undefined
+}
+
+/**
+ * Try common install locations for ripgrep on Windows.
+ */
+function findRgCommonLocations(): string | undefined {
+  if (process.platform !== 'win32') return undefined
+
+  const home = os.homedir()
+  const candidates = [
+    // Scoop
+    join(home, 'scoop', 'shims', 'rg.exe'),
+    // Chocolatey
+    join('C:', 'ProgramData', 'chocolatey', 'bin', 'rg.exe'),
+    // Cargo
+    join(home, '.cargo', 'bin', 'rg.exe'),
+    // Winget / Program Files
+    join('C:', 'Program Files', 'ripgrep', 'rg.exe'),
+  ]
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate
+    }
+  }
+  return undefined
+}
 
 /**
  * Get the path to the bundled ripgrep binary based on the current platform
@@ -132,10 +179,42 @@ export function getBundledRgPath(
     return distVendorPath
   }
 
-  // No fallback available - bundled binaries are required
+  // Try monorepo root vendor path (when running from cli/ or sdk/ subdirectory)
+  const metaUrl2 = importMetaUrl || import.meta.url
+  if (metaUrl2) {
+    const currentFile2 = fileURLToPath(metaUrl2)
+    const currentDir2 = dirname(currentFile2)
+    // Walk up looking for a vendor/ripgrep directory
+    let searchDir = currentDir2
+    for (let i = 0; i < 6; i++) {
+      const candidate = join(searchDir, 'vendor', 'ripgrep', platformDir, binaryName)
+      if (existsSync(candidate)) {
+        return candidate
+      }
+      const parentDir = dirname(searchDir)
+      if (parentDir === searchDir) break
+      searchDir = parentDir
+    }
+  }
+
+  // Try finding ripgrep on system PATH
+  const pathRg = findRgOnPath()
+  if (pathRg) {
+    return pathRg
+  }
+
+  // Try common install locations (Windows: scoop, chocolatey, cargo)
+  const commonRg = findRgCommonLocations()
+  if (commonRg) {
+    return commonRg
+  }
+
+  // No fallback available
   throw new Error(
     `Ripgrep binary not found for ${platform}-${arch}. ` +
-      `Expected at: ${vendorPath} or ${distVendorPath}. ` +
-      `Please run 'npm run fetch-ripgrep' or set LEVELCODE_RG_PATH environment variable.`,
+      `Expected at: ${vendorPath || 'vendor/'} or ${distVendorPath}. ` +
+      `Install ripgrep: https://github.com/BurntSushi/ripgrep#installation\n` +
+      `  Windows: scoop install ripgrep  OR  choco install ripgrep  OR  cargo install ripgrep\n` +
+      `  Or set LEVELCODE_RG_PATH environment variable to the rg binary path.`,
   )
 }

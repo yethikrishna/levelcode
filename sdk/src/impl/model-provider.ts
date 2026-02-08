@@ -210,12 +210,26 @@ export async function getModelForRequest(params: ModelRequestParams): Promise<Mo
     }
   }
 
-  // NEW: Check providers.json for configured multi-provider routing
+  // Check providers.json for configured multi-provider routing
   try {
-    const { getProviderModelForRequest } = await import('./multi-provider')
+    const { getProviderModelForRequest, getDefaultModel, createProviderModel } = await import('./multi-provider')
     const providerResult = await getProviderModelForRequest(model)
     if (providerResult) {
       return { model: providerResult.model, isClaudeOAuth: false }
+    }
+
+    // Model not found in any configured provider — try auto-fallback to default model
+    const defaultModel = await getDefaultModel()
+    if (defaultModel) {
+      const oauthAccessToken = defaultModel.providerEntry.oauthToken?.accessToken
+      const fallbackModel = createProviderModel(
+        defaultModel.providerId,
+        defaultModel.modelId,
+        defaultModel.providerEntry.apiKey,
+        defaultModel.providerEntry.baseUrl,
+        oauthAccessToken,
+      )
+      return { model: fallbackModel, isClaudeOAuth: false }
     }
   } catch {
     // providers.json not configured or error — fall through to legacy routing
@@ -230,9 +244,9 @@ export async function getModelForRequest(params: ModelRequestParams): Promise<Mo
       return { model: createDirectOpenRouterModel(openRouterKey, model), isClaudeOAuth: false }
     }
 
-    // Try Anthropic API key
+    // Try Anthropic API key (only for Claude/Anthropic models)
     const anthropicKey = getAnthropicApiKeyFromEnv()
-    if (anthropicKey) {
+    if (anthropicKey && isClaudeModel(model)) {
       return { model: createDirectAnthropicModel(anthropicKey, model), isClaudeOAuth: false }
     }
   }

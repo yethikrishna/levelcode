@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { ScrollToBottomButton } from './scroll-to-bottom-button'
 import { ShimmerText } from './shimmer-text'
 import { useTheme } from '../hooks/use-theme'
+import { useProviderStore } from '../state/provider-store'
 import { useTeamStore } from '../state/team-store'
 import { formatElapsedTime } from '../utils/format-elapsed-time'
 
@@ -137,12 +138,25 @@ export const StatusBar = ({
     )
   }
 
+  const activeProvider = useProviderStore((s) => s.config.activeProvider)
+  const activeModel = useProviderStore((s) => s.config.activeModel)
+
+  const renderProviderIndicator = () => {
+    if (!activeProvider || !activeModel) return null
+    return (
+      <span fg={theme.muted}>
+        {activeProvider}/{activeModel}
+      </span>
+    )
+  }
+
   const statusIndicatorContent = renderStatusIndicator()
   const elapsedTimeContent = renderElapsedTime()
   const teamIndicatorContent = renderTeamIndicator()
+  const providerIndicatorContent = renderProviderIndicator()
 
   // Only show gray background when there's status indicator or timer
-  const hasContent = statusIndicatorContent || elapsedTimeContent || teamIndicatorContent
+  const hasContent = statusIndicatorContent || elapsedTimeContent || teamIndicatorContent || providerIndicatorContent
 
   return (
     <box
@@ -173,6 +187,12 @@ export const StatusBar = ({
       {teamIndicatorContent && (
         <box style={{ flexShrink: 0 }}>
           <text style={{ wrapMode: 'none' }}>{teamIndicatorContent}</text>
+        </box>
+      )}
+
+      {providerIndicatorContent && (
+        <box style={{ flexShrink: 0 }}>
+          <text style={{ wrapMode: 'none' }}>{providerIndicatorContent}</text>
         </box>
       )}
 

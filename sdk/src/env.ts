@@ -51,7 +51,11 @@ export const getClaudeOAuthTokenFromEnv = (): string | undefined => {
 }
 
 export const getOpenRouterApiKeyFromEnv = (): string | undefined => {
-  return process.env.OPENROUTER_API_KEY
+  return (
+    process.env.OPENROUTER_API_KEY ??
+    process.env.OPEN_ROUTER_API_KEY ??
+    process.env.CODEBUFF_BYOK_OPENROUTER
+  )
 }
 
 export const getOpenRouterBaseUrlFromEnv = (): string | undefined => {

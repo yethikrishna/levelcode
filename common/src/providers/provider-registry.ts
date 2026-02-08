@@ -52,7 +52,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     id: 'openrouter',
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1',
-    envVars: ['OPENROUTER_API_KEY'],
+    envVars: ['OPENROUTER_API_KEY', 'OPEN_ROUTER_API_KEY'],
     apiFormat: 'openai-compatible',
     authType: 'bearer',
     category: 'aggregators',

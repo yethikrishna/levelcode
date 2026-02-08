@@ -93,3 +93,4 @@ export {
   promptAiSdkStructured,
 } from './impl/llm'
 export { resetClaudeOAuthRateLimit } from './impl/model-provider'
+export { startOAuthRefreshManager, stopOAuthRefreshManager } from './impl/oauth-refresh-manager'

@@ -166,12 +166,23 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: 'team:settings',
     description: 'Open swarm / team settings',
   },
+  // OAuth commands
+  {
+    id: 'connect',
+    label: 'connect',
+    description: 'Connect an OAuth provider (e.g., /connect google)',
+    aliases: ['oauth'],
+  },
+  {
+    id: 'disconnect',
+    label: 'disconnect',
+    description: 'Disconnect an OAuth provider',
+  },
   // Provider & model commands
   {
     id: 'provider:add',
     label: 'provider:add',
     description: 'Add a new AI provider',
-    aliases: ['connect'],
   },
   {
     id: 'provider:list',

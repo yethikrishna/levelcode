@@ -49,6 +49,11 @@ export interface TeamMember {
   status: AgentStatus
   currentTaskId?: string
   cwd: string
+  /** Tool permissions override. If set, these tools are allowed regardless of phase. Commander can grant/revoke. */
+  toolOverrides?: {
+    allowed?: string[]   // Extra tools this member can use beyond phase defaults
+    blocked?: string[]   // Tools blocked for this member even if phase allows
+  }
 }
 
 export interface TeamConfig {

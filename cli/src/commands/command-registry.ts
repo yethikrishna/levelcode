@@ -2,7 +2,7 @@ import open from 'open'
 
 import { handleAdsEnable, handleAdsDisable } from './ads'
 import { useThemeStore } from '../hooks/use-theme'
-import { handleHelpCommand } from './help'
+
 import { handleImageCommand } from './image'
 import { handleInitializationFlowLocally } from './init'
 import { runBashCommand } from './router'
@@ -15,7 +15,7 @@ import { useTeamStore } from '../state/team-store'
 import { AGENT_MODES } from '../utils/constants'
 import { getSystemMessage, getUserMessage } from '../utils/message-history'
 import { capturePendingAttachments } from '../utils/pending-attachments'
-import { saveSwarmPreference } from '../utils/settings'
+import { saveSwarmPreference, loadSwarmSettings } from '../utils/settings'
 import { useTeamSettingsStore } from '../state/team-settings-store'
 import { getSkillByName } from '../utils/skill-registry'
 import {
@@ -25,7 +25,7 @@ import {
   listTasks,
   saveTeamConfig,
 } from '@levelcode/common/utils/team-fs'
-import { listAllTeams } from '@levelcode/common/utils/team-discovery'
+import { listAllTeams, getLastActiveTeam, setLastActiveTeam } from '@levelcode/common/utils/team-discovery'
 import {
   canTransition,
   transitionPhase,
@@ -93,6 +93,9 @@ export type CommandResult = {
   openProviderWizard?: boolean
   openModelPicker?: boolean
   openSettings?: boolean
+  openHelpModal?: boolean
+  openProviderOAuth?: boolean
+  oauthProviderId?: string
   preSelectAgents?: string[]
 } | void
 
@@ -197,6 +200,38 @@ const clearInput = (params: RouterParams) => {
   params.setInputValue({ text: '', cursorPosition: 0, lastEditDueToNav: false })
 }
 
+/**
+ * Find the active team, preferring Zustand store → last-active-team marker → first team on disk.
+ * Returns null if no teams exist.
+ */
+function resolveActiveTeam(): import('@levelcode/common/types/team-config').TeamConfig | null {
+  // 1. Zustand store (set by /team:create or previous commands)
+  const storeTeam = useTeamStore.getState().activeTeam
+  if (storeTeam) return storeTeam
+
+  // 2. Last-active team marker (most recently used team)
+  const lastActiveName = getLastActiveTeam()
+  if (lastActiveName) {
+    const config = loadTeamConfig(lastActiveName)
+    if (config) {
+      useTeamStore.getState().setActiveTeam(config)
+      return config
+    }
+  }
+
+  // 3. First team on disk (fallback)
+  const teams = listAllTeams()
+  if (teams.length > 0) {
+    const config = loadTeamConfig(teams[0]!.name)
+    if (config) {
+      useTeamStore.getState().setActiveTeam(config)
+      return config
+    }
+  }
+
+  return null
+}
+
 export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'ads:enable',
@@ -219,11 +254,10 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'help',
     aliases: ['h', '?'],
-    handler: async (params) => {
-      const { postUserMessage } = await handleHelpCommand()
-      params.setMessages((prev) => postUserMessage(prev))
+    handler: (params) => {
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
+      return { openHelpModal: true }
     },
   }),
   defineCommandWithArgs({
@@ -439,14 +473,16 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       }
 
       try {
+        // Use user's swarm settings for defaults
+        const swarmSettings = loadSwarmSettings()
         const config: TeamConfig = {
           name: teamName,
           description: '',
           createdAt: Date.now(),
           leadAgentId: 'user',
-          phase: 'planning',
+          phase: (swarmSettings.swarmDefaultPhase ?? 'planning') as import('@levelcode/common/types/team-config').DevPhase,
           members: [],
-          settings: { maxMembers: 10, autoAssign: false },
+          settings: { maxMembers: swarmSettings.swarmMaxMembers ?? 999, autoAssign: swarmSettings.swarmAutoAssign ?? true },
         }
         createTeam(config)
 
@@ -474,18 +510,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
     name: 'team:delete',
     handler: (params) => {
       const { reset } = useTeamStore.getState()
-      // Try the Zustand store first; if empty, discover teams from disk.
-      let activeTeam = useTeamStore.getState().activeTeam
-      if (!activeTeam) {
-        const teams = listAllTeams()
-        if (teams.length > 0) {
-          const diskConfig = loadTeamConfig(teams[0]!.name)
-          if (diskConfig) {
-            useTeamStore.getState().setActiveTeam(diskConfig)
-            activeTeam = diskConfig
-          }
-        }
-      }
+      const activeTeam = resolveActiveTeam()
 
       if (!activeTeam) {
         params.setMessages((prev) => [
@@ -630,18 +655,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
         return
       }
 
-      // Try the Zustand store first; if empty, discover teams from disk.
-      let activeTeam = useTeamStore.getState().activeTeam
-      if (!activeTeam) {
-        const teams = listAllTeams()
-        if (teams.length > 0) {
-          const diskConfig = loadTeamConfig(teams[0]!.name)
-          if (diskConfig) {
-            useTeamStore.getState().setActiveTeam(diskConfig)
-            activeTeam = diskConfig
-          }
-        }
-      }
+      const activeTeam = resolveActiveTeam()
 
       if (!activeTeam) {
         params.setMessages((prev) => [
@@ -685,6 +699,9 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
         const updated = transitionPhase(config, targetPhase)
         await saveTeamConfig(activeTeam.name, updated)
 
+        // Update last-active-team marker so subsequent tool calls resolve correctly
+        setLastActiveTeam(activeTeam.name)
+
         const { setActiveTeam, setPhase } = useTeamStore.getState()
         setActiveTeam(updated)
         setPhase(targetPhase)
@@ -706,10 +723,24 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           toPhase: hookEvent.toPhase,
         })
 
+        // Build informative message so the agent knows what's now available
+        const phaseInfo = [
+          `Phase transitioned: ${fromPhase} -> ${targetPhase}`,
+          '',
+          `IMPORTANT: The team is now in "${targetPhase}" phase. All tools for this phase are now unlocked.`,
+        ]
+        if (targetPhase === 'alpha' || targetPhase === 'beta' || targetPhase === 'production' || targetPhase === 'mature') {
+          phaseInfo.push('You can now spawn agents, send messages, and perform all team operations.')
+          phaseInfo.push('Available tools: spawn_agents, send_message, task_create, task_update, task_list, task_get, team_delete, and all standard tools.')
+        } else if (targetPhase === 'pre-alpha') {
+          phaseInfo.push('You can now send messages and use research agents.')
+          phaseInfo.push('Available tools: send_message, task_create, task_update, task_list, task_get, and research tools.')
+        }
+
         params.setMessages((prev) => [
           ...prev,
           getUserMessage(params.inputValue.trim()),
-          getSystemMessage(`Phase transitioned: ${fromPhase} -> ${targetPhase}`),
+          getSystemMessage(phaseInfo.join('\n')),
         ])
       } catch (error) {
         params.setMessages((prev) => [
@@ -771,18 +802,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommand({
     name: 'team:members',
     handler: (params) => {
-      // Try the Zustand store first; if empty, discover teams from disk.
-      let activeTeam = useTeamStore.getState().activeTeam
-      if (!activeTeam) {
-        const teams = listAllTeams()
-        if (teams.length > 0) {
-          const diskConfig = loadTeamConfig(teams[0]!.name)
-          if (diskConfig) {
-            useTeamStore.getState().setActiveTeam(diskConfig)
-            activeTeam = diskConfig
-          }
-        }
-      }
+      const activeTeam = resolveActiveTeam()
 
       if (!activeTeam) {
         params.setMessages((prev) => [
@@ -854,10 +874,53 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       return { openTeamSettings: true }
     },
   }),
+  // ── OAuth commands ────────────────────────────────────────────────────
+  defineCommandWithArgs({
+    name: 'connect',
+    aliases: ['oauth'],
+    handler: (params, args) => {
+      const providerId = args.trim()
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+
+      if (providerId) {
+        return { openProviderOAuth: true, oauthProviderId: providerId }
+      }
+      // No args: show OAuth provider selector
+      return { openProviderOAuth: true }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'disconnect',
+    handler: async (params, args) => {
+      const providerId = args.trim()
+      if (!providerId) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /disconnect <provider-id>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      // Import dynamically to avoid circular deps
+      const { clearOAuthToken } = await import('@levelcode/common/providers/oauth-storage')
+      await clearOAuthToken(providerId)
+
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(`Disconnected OAuth for "${providerId}".`),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
   // ── Provider & model commands ──────────────────────────────────────────
   defineCommand({
     name: 'provider:add',
-    aliases: ['connect'],
     handler: (params) => {
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)

@@ -193,14 +193,49 @@ export async function executeToolCall<T extends ToolName>(
   ) {
     const teamContext = findTeamContext(userInputId)
     if (teamContext) {
-      const { phase } = teamContext.config
-      if (!isToolAllowedInPhase(toolName, phase)) {
-        const requiredPhase = getMinimumPhaseForTool(toolName)
-        onResponseChunk({
-          type: 'error',
-          message: `Tool \`${toolName}\` is not available in the "${phase}" phase. ${requiredPhase ? `This tool requires the "${requiredPhase}" phase or later.` : ''} Use /team:phase to advance the team phase.`,
-        })
-        return previousToolCallFinished
+      // Team lead/commander bypasses ALL phase restrictions
+      const isTeamLead = teamContext.agentName === 'team-lead' ||
+        teamContext.config.leadAgentId === `lead-${userInputId}` ||
+        teamContext.config.leadAgentId === 'user'
+
+      if (!isTeamLead) {
+        // Check per-member tool overrides (set by commander)
+        const member = teamContext.config.members.find(
+          (m) => m.agentId === userInputId || m.name === teamContext.agentName,
+        )
+        if (member?.toolOverrides) {
+          if (member.toolOverrides.blocked?.includes(toolName)) {
+            onResponseChunk({
+              type: 'error',
+              message: `Tool \`${toolName}\` has been blocked for your role by the team lead.`,
+            })
+            return previousToolCallFinished
+          }
+          if (!member.toolOverrides.allowed?.includes(toolName)) {
+            // No explicit allow override — fall through to normal phase check
+            const { phase } = teamContext.config
+            if (!isToolAllowedInPhase(toolName, phase)) {
+              const requiredPhase = getMinimumPhaseForTool(toolName)
+              onResponseChunk({
+                type: 'error',
+                message: `Tool \`${toolName}\` is not available in the "${phase}" phase. ${requiredPhase ? `This tool requires the "${requiredPhase}" phase or later.` : ''} Use /team:phase to advance the team phase.`,
+              })
+              return previousToolCallFinished
+            }
+          }
+          // If allowed by override, skip phase check (fall through)
+        } else {
+          // No overrides — normal phase check
+          const { phase } = teamContext.config
+          if (!isToolAllowedInPhase(toolName, phase)) {
+            const requiredPhase = getMinimumPhaseForTool(toolName)
+            onResponseChunk({
+              type: 'error',
+              message: `Tool \`${toolName}\` is not available in the "${phase}" phase. ${requiredPhase ? `This tool requires the "${requiredPhase}" phase or later.` : ''} Use /team:phase to advance the team phase.`,
+            })
+            return previousToolCallFinished
+          }
+        }
       }
     }
   }

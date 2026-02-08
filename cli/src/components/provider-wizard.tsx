@@ -1,16 +1,27 @@
+import { TextAttributes } from '@opentui/core'
 import { useKeyboard } from '@opentui/react'
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { useTheme } from '../hooks/use-theme'
 import { useProviderStore } from '../state/provider-store'
-import { BORDER_CHARS } from '../utils/ui-constants'
 import {
   getProvidersByCategory,
   PROVIDER_CATEGORY_LABELS,
 } from '@levelcode/common/providers/provider-registry'
 import { testProvider } from '@levelcode/common/providers/provider-test'
+import {
+  Panel,
+  ListNavigator,
+  StatusBadge,
+  KeyHint,
+  BreadcrumbNav,
+  TextInput,
+  Spinner,
+  Divider,
+} from './primitives'
 
 import type { KeyEvent } from '@opentui/core'
+import type { ListNavigatorItem, BreadcrumbStep } from './primitives'
 import type {
   ProviderDefinition,
   ProviderCategory,
@@ -18,6 +29,37 @@ import type {
 } from '@levelcode/common/providers/provider-types'
 
 type WizardStep = 'category' | 'provider' | 'apikey' | 'test' | 'done'
+
+/** Breadcrumb steps shown at the top of every wizard panel */
+const WIZARD_STEPS: BreadcrumbStep[] = [
+  { key: 'category', label: 'Category' },
+  { key: 'provider', label: 'Provider' },
+  { key: 'apikey', label: 'API Key' },
+  { key: 'test', label: 'Test' },
+  { key: 'done', label: 'Done' },
+]
+
+/** Step titles with numbering for the Panel header */
+const STEP_TITLES: Record<WizardStep, string> = {
+  category: 'Step 1/5 \u2014 Select Category',
+  provider: 'Step 2/5 \u2014 Select Provider',
+  apikey: 'Step 3/5 \u2014 Configure',
+  test: 'Step 4/5 \u2014 Test Connection',
+  done: 'Step 5/5 \u2014 Complete',
+}
+
+/** Icons for each provider category */
+const CATEGORY_ICONS: Record<string, string> = {
+  'major-paid': '$',
+  aggregators: '\u2295',
+  specialized: '\u25C6',
+  chinese: '\u2605',
+  enterprise: '\u2302',
+  'free-local': '\u2302',
+  'gpu-cloud': '\u2601',
+  'coding-tools': '\u276F',
+  custom: '\u2699',
+}
 
 interface ProviderWizardProps {
   onClose: () => void
@@ -35,12 +77,28 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
   const [selectedProvider, setSelectedProvider] = useState<ProviderDefinition | null>(null)
   const [apiKey, setApiKey] = useState('')
   const [testResult, setTestResult] = useState<ProviderTestResult | null>(null)
-  const [selectedIndex, setSelectedIndex] = useState(0)
   const [isTesting, setIsTesting] = useState(false)
 
   const categoryProviders = getProvidersByCategory()[selectedCategory] ?? []
 
+  // ---------------------------------------------------------------------------
+  // Back navigation
+  // ---------------------------------------------------------------------------
+  const goBack = useCallback(() => {
+    if (step === 'provider') {
+      setStep('category')
+    } else if (step === 'apikey') {
+      setStep('provider')
+    } else if (step === 'test') {
+      setStep('apikey')
+      setTestResult(null)
+      setIsTesting(false)
+    }
+  }, [step])
+
+  // ---------------------------------------------------------------------------
   // Auto-test when entering test step
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (step !== 'test' || !selectedProvider || isTesting || testResult) return
 
@@ -51,72 +109,118 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
         setIsTesting(false)
       })
       .catch(() => {
-        setTestResult({ success: false, latencyMs: 0, error: 'Test failed', providerName: selectedProvider.name })
+        setTestResult({
+          success: false,
+          latencyMs: 0,
+          error: 'Test failed',
+          providerName: selectedProvider.name,
+        })
         setIsTesting(false)
       })
   }, [step, selectedProvider, apiKey, isTesting, testResult])
 
+  // ---------------------------------------------------------------------------
+  // Save provider configuration
+  // ---------------------------------------------------------------------------
   const handleSave = useCallback(async () => {
     if (!selectedProvider) return
+    const models = testResult?.models ?? []
     await useProviderStore.getState().addProvider(selectedProvider.id, {
       enabled: true,
       apiKey: apiKey || undefined,
-      models: testResult?.models ?? [],
+      models,
       customModelIds: [],
     })
+    // Auto-set first model as active if no active model is set
+    const { activeModel, activeProvider: currentActive } = useProviderStore.getState().config
+    if (!activeModel && !currentActive && models.length > 0) {
+      await useProviderStore.getState().setActiveModel(selectedProvider.id, models[0]!)
+    }
     setStep('done')
   }, [selectedProvider, apiKey, testResult])
 
+  // ---------------------------------------------------------------------------
+  // List items
+  // ---------------------------------------------------------------------------
+  const categoryItems: ListNavigatorItem[] = CATEGORIES.map((cat) => ({
+    key: cat,
+    label: PROVIDER_CATEGORY_LABELS[cat],
+    icon: CATEGORY_ICONS[cat] ?? '\u25CB',
+  }))
+
+  const providerItems: ListNavigatorItem[] = categoryProviders.map((p) => ({
+    key: p.id,
+    label: p.name,
+    secondary: p.authType === 'none' ? 'No auth required' : undefined,
+  }))
+
+  // ---------------------------------------------------------------------------
+  // Selection handlers
+  // ---------------------------------------------------------------------------
+  const handleCategorySelect = useCallback(
+    (item: ListNavigatorItem) => {
+      setSelectedCategory(item.key as ProviderCategory)
+      setStep('provider')
+    },
+    [],
+  )
+
+  const handleProviderSelect = useCallback(
+    (item: ListNavigatorItem) => {
+      const provider = categoryProviders.find((p) => p.id === item.key)
+      if (provider) {
+        setSelectedProvider(provider)
+        setStep(provider.authType === 'none' ? 'test' : 'apikey')
+      }
+    },
+    [categoryProviders],
+  )
+
+  // ---------------------------------------------------------------------------
+  // API key input callbacks (used by TextInput primitive)
+  // ---------------------------------------------------------------------------
+  const handleApiKeySubmit = useCallback(() => {
+    setStep('test')
+  }, [])
+
+  const handleApiKeyCancel = useCallback(() => {
+    goBack()
+  }, [goBack])
+
+  // ---------------------------------------------------------------------------
+  // Keyboard handler for test, done, and back-navigation via Left arrow
+  // Note: apikey step keyboard is handled entirely by TextInput.
+  //       category/provider keyboard is handled by ListNavigator.
+  // ---------------------------------------------------------------------------
   useKeyboard(
     useCallback(
       (key: KeyEvent) => {
-        if (key.name === 'escape') {
+        // Global escape to close the wizard (unless in apikey step -- TextInput handles that)
+        if (key.name === 'escape' && step !== 'apikey') {
           onClose()
           return
         }
 
-        if (step === 'category') {
-          if (key.name === 'up') setSelectedIndex((p) => Math.max(0, p - 1))
-          else if (key.name === 'down') setSelectedIndex((p) => Math.min(CATEGORIES.length - 1, p + 1))
-          else if (key.name === 'return' || key.name === 'enter') {
-            setSelectedCategory(CATEGORIES[selectedIndex]!)
-            setSelectedIndex(0)
-            setStep('provider')
-          }
+        // Left arrow for back navigation (not during apikey -- TextInput is active)
+        if (key.name === 'left' && step !== 'apikey' && step !== 'done') {
+          goBack()
           return
         }
 
-        if (step === 'provider') {
-          if (key.name === 'up') setSelectedIndex((p) => Math.max(0, p - 1))
-          else if (key.name === 'down') setSelectedIndex((p) => Math.min(categoryProviders.length - 1, p + 1))
-          else if (key.name === 'return' || key.name === 'enter') {
-            const provider = categoryProviders[selectedIndex]
-            if (provider) {
-              setSelectedProvider(provider)
-              setStep(provider.authType === 'none' ? 'test' : 'apikey')
-            }
-          }
-          return
-        }
-
-        if (step === 'apikey') {
-          if (key.name === 'return' || key.name === 'enter') {
-            setStep('test')
-          } else if (key.name === 'backspace' || key.name === 'delete') {
-            setApiKey((p) => p.slice(0, -1))
-          } else if (key.sequence && key.sequence.length === 1 && !key.ctrl && !key.meta) {
-            setApiKey((p) => p + key.sequence)
-          }
-          return
-        }
-
-        if (step === 'test' && testResult) {
-          if (key.name === 'return' || key.name === 'enter') {
+        // Test step: Enter saves, Backspace goes back
+        if (step === 'test') {
+          if (testResult && (key.name === 'return' || key.name === 'enter')) {
             handleSave()
+            return
+          }
+          if (key.name === 'backspace' || key.name === 'delete') {
+            goBack()
+            return
           }
           return
         }
 
+        // Done step: Enter closes
         if (step === 'done') {
           if (key.name === 'return' || key.name === 'enter') {
             onClose()
@@ -124,93 +228,193 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
           return
         }
       },
-      [step, selectedIndex, categoryProviders, testResult, onClose, handleSave],
+      [step, testResult, onClose, handleSave, goBack],
     ),
   )
 
+  // ---------------------------------------------------------------------------
+  // Dynamic step title (appends provider name where relevant)
+  // ---------------------------------------------------------------------------
+  const getPanelTitle = (): string => {
+    if (step === 'apikey' && selectedProvider) {
+      return `Step 3/5 \u2014 Configure ${selectedProvider.name}`
+    }
+    if (step === 'test' && selectedProvider) {
+      return `Step 4/5 \u2014 Test ${selectedProvider.name}`
+    }
+    return STEP_TITLES[step]
+  }
+
+  // ---------------------------------------------------------------------------
+  // Key hints per step
+  // ---------------------------------------------------------------------------
+  const getStepHints = () => {
+    switch (step) {
+      case 'category':
+        return [
+          { key: 'Up/Down', label: 'Navigate' },
+          { key: 'Enter', label: 'Select' },
+          { key: 'Esc', label: 'Cancel' },
+        ]
+      case 'provider':
+        return [
+          { key: 'Up/Down', label: 'Navigate' },
+          { key: 'Enter', label: 'Select' },
+          { key: 'Backspace', label: 'Back' },
+          { key: 'Esc', label: 'Cancel' },
+        ]
+      case 'apikey':
+        return [
+          { key: 'Enter', label: 'Test' },
+          { key: 'Esc', label: 'Back' },
+        ]
+      case 'test':
+        if (isTesting) {
+          return [
+            { key: 'Backspace', label: 'Back' },
+          ]
+        }
+        return testResult?.success
+          ? [
+              { key: 'Enter', label: 'Save' },
+              { key: 'Backspace', label: 'Back' },
+            ]
+          : [
+              { key: 'Backspace', label: 'Back' },
+              { key: 'Esc', label: 'Cancel' },
+            ]
+      case 'done':
+        return [{ key: 'Enter', label: 'Close' }]
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
   return (
-    <box
-      style={{
-        width: '100%',
-        borderStyle: 'single',
-        borderColor: theme.primary,
-        customBorderChars: BORDER_CHARS,
-        paddingLeft: 1,
-        paddingRight: 1,
-        flexDirection: 'column',
-      }}
-    >
+    <Panel title={getPanelTitle()} borderColor={theme.primary}>
+      {/* Breadcrumb trail at the top of every step */}
+      <BreadcrumbNav steps={WIZARD_STEPS} currentStep={step} />
+      <Divider />
+
+      {/* ── Step 1: Category Selection ─────────────────────────────── */}
       {step === 'category' && (
-        <>
-          <text style={{ fg: theme.primary }}>{'Add Provider - Select Category'}</text>
-          {CATEGORIES.map((cat, i) => (
-            <text
-              key={cat}
-              style={{ fg: i === selectedIndex ? theme.primary : theme.foreground }}
-            >
-              {i === selectedIndex ? '> ' : '  '}{PROVIDER_CATEGORY_LABELS[cat]}
-            </text>
-          ))}
-        </>
+        <ListNavigator
+          items={categoryItems}
+          onSelect={handleCategorySelect}
+          onCancel={onClose}
+          maxHeight={10}
+        />
       )}
+
+      {/* ── Step 2: Provider Selection ─────────────────────────────── */}
       {step === 'provider' && (
-        <>
-          <text style={{ fg: theme.primary }}>
-            {'Add Provider - '}{PROVIDER_CATEGORY_LABELS[selectedCategory]}
-          </text>
-          {categoryProviders.map((p, i) => (
-            <text
-              key={p.id}
-              style={{ fg: i === selectedIndex ? theme.primary : theme.foreground }}
-            >
-              {i === selectedIndex ? '> ' : '  '}{p.name}
-            </text>
-          ))}
-        </>
+        <ListNavigator
+          items={providerItems}
+          onSelect={handleProviderSelect}
+          onCancel={goBack}
+          searchable
+          maxHeight={10}
+        />
       )}
+
+      {/* ── Step 3: API Key Entry ──────────────────────────────────── */}
       {step === 'apikey' && (
-        <>
-          <text style={{ fg: theme.primary }}>
-            {'Configure '}{selectedProvider?.name ?? ''}
-          </text>
-          <text style={{ fg: theme.foreground }}>
-            {'API Key: '}{apiKey.length > 0
-              ? '*'.repeat(Math.max(0, apiKey.length - 4)) + apiKey.slice(-4)
-              : '(type your API key)'}
-          </text>
+        <box style={{ flexDirection: 'column', gap: 0 }}>
+          <TextInput
+            value={apiKey}
+            onChange={setApiKey}
+            onSubmit={handleApiKeySubmit}
+            onCancel={handleApiKeyCancel}
+            label="API Key"
+            mask={true}
+            placeholder="Paste your API key here..."
+          />
           {selectedProvider?.envVars && selectedProvider.envVars.length > 0 && (
-            <text style={{ fg: theme.info }}>
-              {'Env var: '}{selectedProvider.envVars.join(', ')}
-            </text>
+            <box style={{ paddingTop: 1 }}>
+              <text style={{ fg: theme.info }}>
+                {'Tip: Set '}{selectedProvider.envVars.join(' or ')}{' environment variable instead'}
+              </text>
+            </box>
           )}
-          <text style={{ fg: theme.muted }}>{'Enter to test connection'}</text>
-        </>
+          {selectedProvider?.authType === 'oauth' && (
+            <box style={{ flexDirection: 'column', paddingTop: 1 }}>
+              <text style={{ fg: theme.muted }}>
+                {'This provider also supports OAuth. Use /connect after setup.'}
+              </text>
+            </box>
+          )}
+        </box>
       )}
+
+      {/* ── Step 4: Connection Test ────────────────────────────────── */}
       {step === 'test' && (
-        <>
-          <text style={{ fg: theme.primary }}>
-            {'Testing '}{selectedProvider?.name ?? ''}
-          </text>
-          {isTesting && <text style={{ fg: theme.warning }}>{'Testing connection...'}</text>}
+        <box style={{ flexDirection: 'column', gap: 0 }}>
+          {isTesting && <Spinner text="Testing connection..." />}
           {testResult && testResult.success && (
-            <text style={{ fg: theme.success }}>
-              {'Connected! '}{Math.round(testResult.latencyMs)}{'ms'}
-              {testResult.models ? ` (${testResult.models.length} models)` : ''}
-            </text>
+            <box style={{ flexDirection: 'column', gap: 0 }}>
+              <StatusBadge
+                variant="success"
+                label={`Connected! ${Math.round(testResult.latencyMs)}ms`}
+              />
+              {testResult.models && (
+                <text style={{ fg: theme.muted }}>
+                  {testResult.models.length}{' models available'}
+                </text>
+              )}
+            </box>
           )}
           {testResult && !testResult.success && (
-            <text style={{ fg: theme.error }}>{'Failed: '}{testResult.error ?? 'Unknown error'}</text>
+            <box style={{ flexDirection: 'column', gap: 0 }}>
+              <StatusBadge
+                variant="error"
+                label={`Failed: ${testResult.error ?? 'Unknown error'}`}
+              />
+              <box style={{ paddingTop: 1 }}>
+                <text style={{ fg: theme.muted, attributes: TextAttributes.DIM }}>
+                  {'Press \u2039Backspace\u203A to go back and update your API key.'}
+                </text>
+              </box>
+            </box>
           )}
-          {testResult && <text style={{ fg: theme.muted }}>{'Enter to save'}</text>}
-        </>
+        </box>
       )}
+
+      {/* ── Step 5: Summary / Done ─────────────────────────────────── */}
       {step === 'done' && (
-        <>
-          <text style={{ fg: theme.success }}>{'Provider added!'}</text>
-          <text style={{ fg: theme.foreground }}>{selectedProvider?.name ?? ''}{' is now configured.'}</text>
-        </>
+        <box style={{ flexDirection: 'column', gap: 0 }}>
+          <StatusBadge
+            variant="success"
+            label={`${selectedProvider?.name ?? 'Provider'} added successfully`}
+          />
+          <box style={{ flexDirection: 'column', paddingTop: 1 }}>
+            <text style={{ fg: theme.foreground }}>
+              {'Provider: '}{selectedProvider?.name ?? ''}
+            </text>
+            <text style={{ fg: theme.foreground }}>
+              {'Category: '}{PROVIDER_CATEGORY_LABELS[selectedCategory]}
+            </text>
+            {testResult?.models && (
+              <text style={{ fg: theme.foreground }}>
+                {'Models:   '}{testResult.models.length}{' available'}
+              </text>
+            )}
+            {testResult?.latencyMs !== undefined && testResult.latencyMs > 0 && (
+              <text style={{ fg: theme.foreground }}>
+                {'Latency:  '}{Math.round(testResult.latencyMs)}{'ms'}
+              </text>
+            )}
+          </box>
+          <box style={{ paddingTop: 1 }}>
+            <text style={{ fg: theme.muted }}>
+              {'Use /models to browse and select a model.'}
+            </text>
+          </box>
+        </box>
       )}
-      <text style={{ fg: theme.muted }}>{'Esc cancel'}</text>
-    </box>
+
+      {/* Key hints always at the bottom */}
+      <KeyHint hints={getStepHints()} />
+    </Panel>
   )
 }

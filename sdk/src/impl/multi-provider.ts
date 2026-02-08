@@ -21,11 +21,12 @@ export function createProviderModel(
   modelId: string,
   apiKey?: string,
   baseUrl?: string,
+  oauthAccessToken?: string,
 ): LanguageModel {
   const definition = getProviderDefinition(providerId)
 
   const effectiveBaseUrl = baseUrl ?? definition?.baseUrl ?? ''
-  const effectiveApiKey = apiKey
+  const effectiveApiKey = oauthAccessToken ?? apiKey
 
   if (definition?.apiFormat === 'anthropic') {
     const anthropic = createAnthropic({ apiKey: effectiveApiKey })
@@ -66,6 +67,7 @@ export async function resolveModelFromProviders(modelId: string): Promise<Resolv
   const config = await loadProviderConfig()
 
   // Case 1: Explicit provider prefix (e.g. "anthropic/claude-sonnet-4.5")
+  // Only treat as provider/model split if the prefix matches a known configured provider
   if (modelId.includes('/')) {
     const [providerId, ...rest] = modelId.split('/')
     const actualModelId = rest.join('/')
@@ -82,6 +84,8 @@ export async function resolveModelFromProviders(modelId: string): Promise<Resolv
   }
 
   // Case 2: Search all enabled providers for a matching model
+  // This also handles OpenRouter-style model IDs like "moonshotai/kimi-k2.5"
+  // where the slash is part of the model ID, not a provider separator
   const allProviderIds = Object.keys(config.providers)
   const preferredOrder = config.settings.preferredProviderOrder ?? []
 
@@ -102,6 +106,7 @@ export async function resolveModelFromProviders(modelId: string): Promise<Resolv
     const entry = config.providers[providerId]
     if (!entry || !entry.enabled) continue
 
+    // Check if the provider has this exact model ID (including slash-formatted IDs like "moonshotai/kimi-k2.5")
     const hasModel =
       entry.models.includes(modelId) || entry.customModelIds.includes(modelId)
 
@@ -111,6 +116,27 @@ export async function resolveModelFromProviders(modelId: string): Promise<Resolv
         modelId,
         providerEntry: entry,
         providerDefinition: getProviderDefinition(providerId),
+      }
+    }
+  }
+
+  // Case 3: For OpenRouter-style model IDs (org/model), try aggregator providers
+  // These providers (openrouter, together, etc.) accept model IDs with slashes as-is
+  if (modelId.includes('/')) {
+    const aggregatorProviders = ['openrouter', 'together', 'deepinfra', 'fireworks-ai']
+    for (const providerId of aggregatorProviders) {
+      const entry = config.providers[providerId]
+      if (!entry?.enabled) continue
+      // Aggregators can route any model — they have thousands of models
+      // If the provider is configured, assume it can handle the model
+      const definition = getProviderDefinition(providerId)
+      if (definition) {
+        return {
+          providerId,
+          modelId, // Pass the full model ID including slash
+          providerEntry: entry,
+          providerDefinition: definition,
+        }
       }
     }
   }
@@ -130,12 +156,97 @@ export async function getProviderModelForRequest(
     return null
   }
 
+  const oauthAccessToken = resolved.providerEntry.oauthToken?.accessToken
   const model = createProviderModel(
     resolved.providerId,
     resolved.modelId,
     resolved.providerEntry.apiKey,
     resolved.providerEntry.baseUrl,
+    oauthAccessToken,
   )
 
   return { model, providerId: resolved.providerId }
+}
+
+/**
+ * Get the default (best available) model from configured providers.
+ * Priority: activeModel from config > first model from preferred provider > first model from any provider.
+ * Returns null if no providers are configured with models.
+ */
+export async function getDefaultModel(): Promise<ResolvedModel | null> {
+  const config = await loadProviderConfig()
+
+  // 1. Try the user's active model
+  if (config.activeProvider && config.activeModel) {
+    const entry = config.providers[config.activeProvider]
+    if (entry?.enabled) {
+      return {
+        providerId: config.activeProvider,
+        modelId: config.activeModel,
+        providerEntry: entry,
+        providerDefinition: getProviderDefinition(config.activeProvider),
+      }
+    }
+  }
+
+  // 2. Try first model from preferred providers
+  const preferredOrder = config.settings.preferredProviderOrder ?? []
+  for (const providerId of preferredOrder) {
+    const entry = config.providers[providerId]
+    if (!entry?.enabled) continue
+    const firstModel = entry.models[0] ?? entry.customModelIds[0]
+    if (firstModel) {
+      return {
+        providerId,
+        modelId: firstModel,
+        providerEntry: entry,
+        providerDefinition: getProviderDefinition(providerId),
+      }
+    }
+  }
+
+  // 3. Try any enabled provider with models
+  for (const [providerId, entry] of Object.entries(config.providers)) {
+    if (!entry.enabled) continue
+    const firstModel = entry.models[0] ?? entry.customModelIds[0]
+    if (firstModel) {
+      return {
+        providerId,
+        modelId: firstModel,
+        providerEntry: entry,
+        providerDefinition: getProviderDefinition(providerId),
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Get all available models from configured and enabled providers.
+ * Returns a flat list of { providerId, modelId } pairs.
+ */
+export async function getAvailableModels(): Promise<Array<{ providerId: string; modelId: string }>> {
+  const config = await loadProviderConfig()
+  const models: Array<{ providerId: string; modelId: string }> = []
+
+  for (const [providerId, entry] of Object.entries(config.providers)) {
+    if (!entry.enabled) continue
+    for (const modelId of entry.models) {
+      models.push({ providerId, modelId })
+    }
+    for (const modelId of entry.customModelIds) {
+      models.push({ providerId, modelId })
+    }
+  }
+
+  return models
+}
+
+/**
+ * Check if a specific model is available from any configured provider.
+ */
+export async function isModelAvailable(modelId: string): Promise<boolean> {
+  const resolved = await resolveModelFromProviders(modelId)
+  return resolved !== null
 }

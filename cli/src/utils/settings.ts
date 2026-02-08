@@ -192,7 +192,7 @@ export const loadSwarmSettings = (): {
   const settings = loadSettings()
   return {
     swarmEnabled: settings.swarmEnabled ?? false,
-    swarmMaxMembers: settings.swarmMaxMembers ?? 20,
+    swarmMaxMembers: settings.swarmMaxMembers ?? 999,
     swarmAutoAssign: settings.swarmAutoAssign ?? false,
     swarmDefaultPhase: settings.swarmDefaultPhase ?? 'planning',
   }

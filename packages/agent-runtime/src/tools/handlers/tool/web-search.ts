@@ -1,6 +1,8 @@
 import { jsonToolResult } from '@levelcode/common/util/messages'
 
 import { callWebSearchAPI } from '../../../llm-api/levelcode-web-api'
+import { formatSearchResults } from '../../../llm-api/search-providers'
+import { searchWithFallback } from '../../../llm-api/search/index'
 
 import type { LevelCodeToolHandlerFunction } from '../handler-function-type'
 import type {
@@ -68,6 +70,32 @@ export const handleWebSearch = (async (params: {
 
   let creditsUsed = 0
 
+  // Check if backend API is available (has base URL and API key)
+  const hasBackend = Boolean(
+    clientEnv.NEXT_PUBLIC_LEVELCODE_APP_URL && ciEnv.LEVELCODE_API_KEY,
+  )
+
+  // If no backend available, use local search providers with automatic fallback
+  if (!hasBackend) {
+    logger.info(
+      { ...searchContext, method: 'local-search-providers' },
+      'No LevelCode backend, using local search providers',
+    )
+    const searchResult = await searchWithFallback({
+      query,
+      depth,
+      fetch,
+      logger,
+    })
+    const searchDuration = Date.now() - searchStartTime
+    const formattedResult = formatSearchResults(searchResult)
+    logger.info(
+      { ...searchContext, searchDuration, provider: searchResult.provider, resultCount: searchResult.results.length },
+      `Local search completed via ${searchResult.provider}`,
+    )
+    return { output: jsonToolResult({ result: formattedResult }), creditsUsed: 0 }
+  }
+
   try {
     const webApi = await callWebSearchAPI({
       query,
@@ -89,8 +117,16 @@ export const handleWebSearch = (async (params: {
           success: false,
           error: webApi.error,
         },
-        'Web API search returned error',
+        'Web API search returned error, falling back to local search',
       )
+
+      // Fallback to local search providers when backend fails
+      const fallbackResult = await searchWithFallback({ query, depth, fetch, logger })
+      if (fallbackResult.results.length > 0 || fallbackResult.answer) {
+        const formattedResult = formatSearchResults(fallbackResult)
+        return { output: jsonToolResult({ result: formattedResult }), creditsUsed: 0 }
+      }
+
       return {
         output: jsonToolResult({
           errorMessage: webApi.error,
@@ -127,6 +163,33 @@ export const handleWebSearch = (async (params: {
     }
   } catch (error) {
     const searchDuration = Date.now() - searchStartTime
+    logger.warn(
+      {
+        ...searchContext,
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message }
+            : error,
+        searchDuration,
+      },
+      'Backend web search failed, trying local search providers fallback',
+    )
+
+    // Fallback to local search providers
+    try {
+      const fallbackResult = await searchWithFallback({ query, depth, fetch, logger })
+      if (fallbackResult.results.length > 0 || fallbackResult.answer) {
+        const formattedResult = formatSearchResults(fallbackResult)
+        logger.info(
+          { ...searchContext, method: 'local-providers-fallback', provider: fallbackResult.provider },
+          'Local fallback search succeeded',
+        )
+        return { output: jsonToolResult({ result: formattedResult }), creditsUsed: 0 }
+      }
+    } catch {
+      // Local fallback also failed
+    }
+
     const errorMessage = `Error performing web search for "${query}": ${
       error instanceof Error ? error.message : 'Unknown error'
     }`
@@ -144,7 +207,7 @@ export const handleWebSearch = (async (params: {
         searchDuration,
         success: false,
       },
-      'Search failed with error',
+      'All search methods failed',
     )
     return { output: jsonToolResult({ errorMessage }), creditsUsed }
   }

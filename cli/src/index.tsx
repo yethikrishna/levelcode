@@ -24,8 +24,9 @@ import { runPlainLogin } from './login/plain-login'
 import { initializeApp } from './init/init-app'
 import { getProjectRoot, setProjectRoot } from './project-files'
 import { initAnalytics, trackEvent } from './utils/analytics'
-import { isStandaloneMode } from '@levelcode/sdk'
+import { isStandaloneMode, startOAuthRefreshManager } from '@levelcode/sdk'
 
+import { useOAuthStore } from './state/oauth-store'
 import { getAuthTokenDetails } from './utils/auth'
 import { resetLevelCodeClient } from './utils/levelcode-client'
 import { getCliEnv } from './utils/env'
@@ -213,6 +214,14 @@ async function main(): Promise<void> {
 
   // Initialize skill registry (loads skills from .agents/skills)
   await initializeSkillRegistry()
+
+  // Initialize OAuth connection statuses and start background token refresh
+  try {
+    await useOAuthStore.getState().loadConnectionStatuses()
+    startOAuthRefreshManager()
+  } catch {
+    // OAuth initialization is optional
+  }
 
   // Handle publish command before rendering the app
   if (isPublishCommand) {

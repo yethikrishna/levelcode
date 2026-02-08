@@ -1,6 +1,10 @@
 import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
 import { isStandaloneMode } from '@levelcode/sdk'
+import { useKeyboard } from '@opentui/react'
 import open from 'open'
+import { HelpModal } from './components/help-modal'
+import { OAuthConnectFlow } from './components/oauth-connect-flow'
+import { ProviderStatusList } from './components/provider-status-list'
 import { ProviderWizard } from './components/provider-wizard'
 import { ModelPicker } from './components/model-picker'
 import { SettingsPanel } from './components/settings-panel'
@@ -56,11 +60,14 @@ import { useChatStore } from './state/chat-store'
 import { useReviewStore } from './state/review-store'
 import { useTeamSettingsStore } from './state/team-settings-store'
 import { useTeamStore } from './state/team-store'
+import { useOAuthStore } from './state/oauth-store'
 import { useFeedbackStore } from './state/feedback-store'
 import { useMessageBlockStore } from './state/message-block-store'
 import { usePublishStore } from './state/publish-store'
 import { reportActivity } from './utils/activity-tracker'
 import { trackEvent } from './utils/analytics'
+import { OAUTH_CONFIGS } from '@levelcode/common/providers/oauth-configs'
+import { getProviderDefinition } from '@levelcode/common/providers/provider-registry'
 import { getClaudeOAuthStatus } from './utils/claude-oauth'
 import { showClipboardMessage } from './utils/clipboard'
 import { readClipboardImage } from './utils/clipboard-image'
@@ -91,7 +98,7 @@ import type { MatchedSlashCommand } from './hooks/use-suggestion-engine'
 import type { User } from './utils/auth'
 import type { AgentMode } from './utils/constants'
 import type { FileTreeNode } from '@levelcode/common/util/file'
-import type { ScrollBoxRenderable } from '@opentui/core'
+import type { KeyEvent, ScrollBoxRenderable } from '@opentui/core'
 import type { UseMutationResult } from '@tanstack/react-query'
 import type { Dispatch, SetStateAction } from 'react'
 
@@ -130,6 +137,9 @@ export const Chat = ({
   const [providerWizardMode, setProviderWizardMode] = useState(false)
   const [modelPickerMode, setModelPickerMode] = useState(false)
   const [providerSettingsMode, setProviderSettingsMode] = useState(false)
+  const [helpModalMode, setHelpModalMode] = useState(false)
+  const [oauthFlowMode, setOauthFlowMode] = useState(false)
+  const [oauthProviderId, setOauthProviderId] = useState<string | null>(null)
 
   const { validate: validateAgents } = useAgentValidation()
 
@@ -711,6 +721,17 @@ export const Chat = ({
       if (result.openSettings) {
         setProviderSettingsMode(true)
       }
+
+      if (result.openHelpModal) {
+        setHelpModalMode(true)
+      }
+
+      if (result.openProviderOAuth) {
+        if (result.oauthProviderId) {
+          setOauthProviderId(result.oauthProviderId)
+        }
+        setOauthFlowMode(true)
+      }
     },
     [
       saveCurrentInput,
@@ -1209,8 +1230,28 @@ export const Chat = ({
   useChatKeyboard({
     state: chatKeyboardState,
     handlers: chatKeyboardHandlers,
-    disabled: askUserState !== null || reviewMode || providerWizardMode || modelPickerMode || providerSettingsMode,
+    disabled: askUserState !== null || reviewMode || providerWizardMode || modelPickerMode || providerSettingsMode || helpModalMode || oauthFlowMode,
   })
+
+  // F1 opens help modal (separate handler since it's not in the chat keyboard action system)
+  useKeyboard(
+    useCallback(
+      (key: KeyEvent) => {
+        if (
+          key.name === 'f1' &&
+          !askUserState &&
+          !reviewMode &&
+          !providerWizardMode &&
+          !modelPickerMode &&
+          !providerSettingsMode &&
+          !helpModalMode
+        ) {
+          setHelpModalMode(true)
+        }
+      },
+      [askUserState, reviewMode, providerWizardMode, modelPickerMode, providerSettingsMode, helpModalMode],
+    ),
+  )
 
   // Sync message block context to zustand store for child components
   const setMessageBlockContext = useMessageBlockStore(
@@ -1472,6 +1513,26 @@ export const Chat = ({
 
         {providerSettingsMode && (
           <SettingsPanel onClose={() => setProviderSettingsMode(false)} />
+        )}
+
+        {helpModalMode && (
+          <HelpModal onClose={() => setHelpModalMode(false)} />
+        )}
+
+        {oauthFlowMode && oauthProviderId && OAUTH_CONFIGS[oauthProviderId] && (
+          <OAuthConnectFlow
+            providerId={oauthProviderId}
+            providerName={getProviderDefinition(oauthProviderId)?.name ?? oauthProviderId}
+            config={OAUTH_CONFIGS[oauthProviderId]}
+            onSuccess={() => { setOauthFlowMode(false); setOauthProviderId(null) }}
+            onCancel={() => { setOauthFlowMode(false); setOauthProviderId(null) }}
+          />
+        )}
+        {oauthFlowMode && !oauthProviderId && (
+          <ProviderStatusList
+            onConnect={(id) => setOauthProviderId(id)}
+            onClose={() => setOauthFlowMode(false)}
+          />
         )}
 
         {reviewMode ? (

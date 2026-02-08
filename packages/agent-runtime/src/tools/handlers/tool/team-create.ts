@@ -1,3 +1,6 @@
+import fs from 'fs'
+import path from 'path'
+import { homedir } from 'os'
 import { jsonToolResult } from '@levelcode/common/util/messages'
 import {
   createTeam,
@@ -15,7 +18,22 @@ import type {
 } from '@levelcode/common/tools/list'
 import type { TrackEventFn } from '@levelcode/common/types/contracts/analytics'
 import type { Logger } from '@levelcode/common/types/contracts/logger'
-import type { TeamConfig } from '@levelcode/common/types/team-config'
+import type { TeamConfig, DevPhase } from '@levelcode/common/types/team-config'
+
+/** Read the user's default phase from settings.json */
+function getDefaultPhase(): DevPhase {
+  try {
+    const settingsPath = path.join(homedir(), '.config', 'levelcode', 'settings.json')
+    const raw = fs.readFileSync(settingsPath, 'utf-8')
+    const settings = JSON.parse(raw) as { swarmDefaultPhase?: string }
+    if (settings.swarmDefaultPhase) {
+      return settings.swarmDefaultPhase as DevPhase
+    }
+  } catch {
+    // Settings file doesn't exist or is invalid
+  }
+  return 'planning'
+}
 
 type ToolName = 'team_create'
 
@@ -74,7 +92,7 @@ export const handleTeamCreate = (async (params: {
     description: description ?? '',
     createdAt: now,
     leadAgentId,
-    phase: 'planning',
+    phase: getDefaultPhase(),
     members: [
       {
         agentId: leadAgentId,
@@ -88,7 +106,7 @@ export const handleTeamCreate = (async (params: {
       },
     ],
     settings: {
-      maxMembers: 20,
+      maxMembers: 999, // No practical limit — teams can grow as needed
       autoAssign: true,
     },
   }

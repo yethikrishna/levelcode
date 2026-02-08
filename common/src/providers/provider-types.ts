@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+import { OAuthTokenSchema } from './oauth-types'
+
+import type { OAuthProviderConfig } from './oauth-types'
+
 // ============================================================================
 // API Format & Auth Types
 // ============================================================================
@@ -43,6 +47,8 @@ export interface ProviderDefinition {
   description?: string
   /** Default headers to include in requests */
   defaultHeaders?: Record<string, string>
+  /** OAuth configuration for browser-based auth (if supported) */
+  oauthConfig?: OAuthProviderConfig
 }
 
 // ============================================================================
@@ -57,6 +63,7 @@ export const ProviderEntrySchema = z.object({
   models: z.array(z.string()),
   customModelIds: z.array(z.string()),
   displayName: z.string().optional(),
+  oauthToken: OAuthTokenSchema.optional(),
 })
 export type ProviderEntry = z.infer<typeof ProviderEntrySchema>
 

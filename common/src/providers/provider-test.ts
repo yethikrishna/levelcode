@@ -11,8 +11,10 @@ export async function testProvider(
   providerId: string,
   apiKey?: string,
   baseUrl?: string,
+  oauthAccessToken?: string,
 ): Promise<ProviderTestResult> {
   const startTime = performance.now()
+  const effectiveApiKey = oauthAccessToken ?? apiKey
 
   // 1. Look up definition; create a minimal one for custom/unknown providers.
   let definition: ProviderDefinition | undefined = getProviderDefinition(providerId)
@@ -24,7 +26,7 @@ export async function testProvider(
       baseUrl: baseUrl ?? '',
       envVars: [],
       apiFormat: 'openai-compatible',
-      authType: apiKey ? 'bearer' : 'none',
+      authType: effectiveApiKey ? 'bearer' : 'none',
       category: 'custom',
     }
   }
@@ -47,7 +49,7 @@ export async function testProvider(
       response = await globalThis.fetch(`${effectiveBaseUrl}/messages`, {
         method: 'POST',
         headers: {
-          'x-api-key': apiKey ?? '',
+          'x-api-key': effectiveApiKey ?? '',
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json',
         },
@@ -72,10 +74,10 @@ export async function testProvider(
 
       switch (definition.authType) {
         case 'bearer':
-          headers['Authorization'] = `Bearer ${apiKey}`
+          headers['Authorization'] = `Bearer ${effectiveApiKey}`
           break
         case 'x-api-key':
-          headers['x-api-key'] = apiKey ?? ''
+          headers['x-api-key'] = effectiveApiKey ?? ''
           break
         case 'none':
         default:

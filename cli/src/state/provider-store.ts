@@ -18,7 +18,13 @@ import {
   autoDetectLocalProviders,
   mergeAutoDetectedProviders,
 } from '@levelcode/common/providers/auto-detect'
+import {
+  saveOAuthToken,
+  clearOAuthToken,
+  getOAuthToken,
+} from '@levelcode/common/providers/oauth-storage'
 
+import type { OAuthToken } from '@levelcode/common/providers/oauth-types'
 import type {
   ProvidersConfig,
   ProviderEntry,
@@ -42,6 +48,9 @@ interface ProviderStoreActions {
   updateSettings: (patch: Partial<UserSettings>) => Promise<void>
   refreshCatalog: () => Promise<void>
   runAutoDetect: () => Promise<void>
+  connectOAuth: (providerId: string, token: OAuthToken) => Promise<void>
+  disconnectOAuth: (providerId: string) => Promise<void>
+  getOAuthStatus: (providerId: string) => Promise<'connected' | 'disconnected' | 'expired'>
 }
 
 type ProviderStore = ProviderStoreState & ProviderStoreActions
@@ -166,6 +175,31 @@ export const useProviderStore = create<ProviderStore>()(
       })
 
       await saveProviderConfig(get().config)
+    },
+
+    connectOAuth: async (providerId, token) => {
+      await saveOAuthToken(providerId, token)
+      set((state) => {
+        if (state.config.providers[providerId]) {
+          state.config.providers[providerId]!.oauthToken = token
+        }
+      })
+    },
+
+    disconnectOAuth: async (providerId) => {
+      await clearOAuthToken(providerId)
+      set((state) => {
+        if (state.config.providers[providerId]) {
+          delete state.config.providers[providerId]!.oauthToken
+        }
+      })
+    },
+
+    getOAuthStatus: async (providerId) => {
+      const token = await getOAuthToken(providerId)
+      if (!token) return 'disconnected'
+      const bufferMs = 5 * 60 * 1000
+      return token.expiresAt > Date.now() + bufferMs ? 'connected' : 'expired'
     },
   })),
 )
