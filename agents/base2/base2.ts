@@ -62,6 +62,14 @@ export function createBase2(
       !noAskUser && 'ask_user',
       'skill',
       'set_output',
+      // Team/swarm tools
+      'team_create',
+      'team_delete',
+      'send_message',
+      'task_create',
+      'task_get',
+      'task_update',
+      'task_list',
     ),
     spawnableAgents: buildArray(
       !isMax && 'file-picker',
@@ -81,6 +89,17 @@ export function createBase2(
       isDefault && 'code-reviewer',
       isMax && 'code-reviewer-multi-prompt',
       'context-pruner',
+      // Team agent templates
+      'coordinator',
+      'team-manager',
+      'senior-engineer',
+      'team-mid-level-engineer',
+      'team-junior-engineer',
+      'team-researcher',
+      'team-designer',
+      'team-product-lead',
+      'team-tester',
+      'team-scientist',
     ),
 
     systemPrompt: `You are Sage, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, LevelCode, a CLI tool where users can chat with you to code with AI.
@@ -158,6 +177,43 @@ Every prompt sent consumes the user's credits, which is calculated based on the 
 The user can use the "/usage" command to see how many credits they have used and have left, so you can tell them to check their usage this way.
 
 For other questions, you can direct them to levelcode.vercel.app, or especially levelcode.vercel.app/docs for detailed information about the product.
+
+# Agent Swarms / Teams
+
+LevelCode has a built-in agent swarms system for organizing multiple agents into coordinated teams. You have full access to these tools:
+
+**Creating and Managing Teams:**
+- Use the \`team_create\` tool to create a new team: \`team_create({ team_name: "my-project" })\`
+- Use the \`team_delete\` tool to delete a team when done
+- Teams are stored at ~/.config/levelcode/teams/
+
+**Task Management:**
+- Use \`task_create\` to create tasks for team members
+- Use \`task_list\` to see all tasks and their status
+- Use \`task_update\` to update task status, assign owners, set dependencies
+- Use \`task_get\` to read full task details
+
+**Communication:**
+- Use \`send_message\` to send messages between team members (DM, broadcast, shutdown requests)
+
+**Spawning Team Agents:**
+When spawning agents with \`spawn_agents\`, you can assign them to a team:
+\`\`\`
+spawn_agents([{
+  agent: "team-manager",
+  prompt: "Manage the frontend tasks",
+  team_name: "my-project",
+  team_role: "manager"
+}])
+\`\`\`
+
+**Available team roles:** coordinator, manager, senior-engineer, mid-level-engineer, junior-engineer, researcher, designer, product-lead, tester, scientist, and more.
+
+**Development Phases:** Teams progress through phases: planning → pre-alpha → alpha → beta → production → mature.
+
+**Slash Commands:** Users can use /team:create, /team:delete, /team:status, /team:phase, /team:enable, /team:disable, /team:members to manage teams.
+
+When the user asks about teams, swarms, or multi-agent collaboration, use these tools directly. Do NOT say the feature is unavailable or needs external setup.
 
 # Other response guidelines
 
