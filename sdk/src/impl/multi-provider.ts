@@ -28,6 +28,14 @@ export function createProviderModel(
   const effectiveBaseUrl = baseUrl ?? definition?.baseUrl ?? ''
   const effectiveApiKey = oauthAccessToken ?? apiKey
 
+  // Guard against empty baseUrl (e.g., Azure OpenAI requires user-provided endpoint)
+  if (!effectiveBaseUrl && definition?.apiFormat !== 'anthropic') {
+    throw new Error(
+      `Provider "${providerId}" requires a custom baseUrl. ` +
+      (definition?.description ?? `Set baseUrl in /provider:add or providers.json.`),
+    )
+  }
+
   if (definition?.apiFormat === 'anthropic') {
     const anthropic = createAnthropic({ apiKey: effectiveApiKey })
     return anthropic(modelId) as unknown as LanguageModel
@@ -43,6 +51,10 @@ export function createProviderModel(
         h['Authorization'] = `Bearer ${effectiveApiKey}`
       } else if (definition?.authType === 'x-api-key' && effectiveApiKey) {
         h['x-api-key'] = effectiveApiKey
+      } else if (definition?.authType === 'aws-credentials' && effectiveApiKey) {
+        // AWS Bedrock: pass the API key as Bearer token for OpenAI-compatible proxy endpoints
+        // For native SigV4, users should configure a custom baseUrl with their signed endpoint
+        h['Authorization'] = `Bearer ${effectiveApiKey}`
       }
       // Add default headers from definition
       if (definition?.defaultHeaders) {
@@ -123,7 +135,7 @@ export async function resolveModelFromProviders(modelId: string): Promise<Resolv
   // Case 3: For OpenRouter-style model IDs (org/model), try aggregator providers
   // These providers (openrouter, together, etc.) accept model IDs with slashes as-is
   if (modelId.includes('/')) {
-    const aggregatorProviders = ['openrouter', 'together', 'deepinfra', 'fireworks-ai']
+    const aggregatorProviders = ['openrouter', 'together', 'deepinfra', 'fireworks', 'groq', 'aihubmix']
     for (const providerId of aggregatorProviders) {
       const entry = config.providers[providerId]
       if (!entry?.enabled) continue

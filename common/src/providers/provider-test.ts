@@ -74,6 +74,7 @@ export async function testProvider(
 
       switch (definition.authType) {
         case 'bearer':
+        case 'aws-credentials':
           headers['Authorization'] = `Bearer ${effectiveApiKey}`
           break
         case 'x-api-key':

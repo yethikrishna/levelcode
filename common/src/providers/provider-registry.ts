@@ -140,7 +140,7 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   perplexity: {
     id: 'perplexity',
     name: 'Perplexity',
-    baseUrl: 'https://api.perplexity.ai',
+    baseUrl: 'https://api.perplexity.ai/v1',
     envVars: ['PERPLEXITY_API_KEY'],
     apiFormat: 'openai-compatible',
     authType: 'bearer',
@@ -238,11 +238,12 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   'azure-openai': {
     id: 'azure-openai',
     name: 'Azure OpenAI',
-    baseUrl: '',
-    envVars: ['AZURE_OPENAI_API_KEY'],
+    baseUrl: '', // User MUST provide via baseUrl in provider config — Azure uses custom deployment endpoints
+    envVars: ['AZURE_OPENAI_API_KEY', 'AZURE_API_KEY'],
     apiFormat: 'openai-compatible',
     authType: 'bearer',
     category: 'enterprise',
+    description: 'Requires custom baseUrl: https://<resource>.openai.azure.com/openai/deployments/<deployment>/v1',
   },
   'github-models': {
     id: 'github-models',
