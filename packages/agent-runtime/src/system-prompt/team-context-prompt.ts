@@ -86,6 +86,23 @@ When no tasks are available for you to work on:
 3. Do not spin or poll repeatedly. Wait for new messages in your inbox.`
 }
 
+function buildQualityStandards(): string {
+  return `## Output Quality Standards
+
+CRITICAL: Never truncate, abbreviate, or create stub/placeholder implementations.
+
+- **Never say** "due to length constraints" or "for brevity" — there are no length constraints. Produce complete, full implementations.
+- **Never create stubs** like "// TODO: implement" or "// remaining implementation here". Write the actual code.
+- **Never skip sections** of code with comments like "// ... rest of implementation similar to above". Write every line.
+- **If your output is getting long**, that is fine. Continue writing. The system handles context limits automatically via context-pruner.
+- **If you run out of context space**, the system will spawn a context-pruner to summarize and continue. You do not need to manage this yourself.
+- **Quality over speed.** A complete 2000-line implementation is better than a 200-line stub with TODOs.
+- **Production-ready code only.** Every file you create should compile, have proper error handling, and be ready to ship.
+- **Include all imports, all types, all tests** that were requested. Do not skip any part of the specification.
+
+If a task is genuinely too large for a single step, break it into sub-tasks and complete each one fully. Never deliver partial work.`
+}
+
 function buildShutdownProtocol(): string {
   return `## Shutdown Protocol
 
@@ -161,6 +178,8 @@ export function generateTeamContextPrompt(config: TeamContextPromptConfig): stri
     buildCurrentPhase(config),
     '',
     buildAvailableTools(config),
+    '',
+    buildQualityStandards(),
     '',
     buildCommunicationProtocol(),
     '',

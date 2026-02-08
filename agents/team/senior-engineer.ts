@@ -115,6 +115,15 @@ Spawn context-gathering agents before making edits. Spawn the code-reviewer afte
 - Do not cast types as "any". Maintain strong typing throughout.
 - When modifying exported symbols, find and update all references.
 
+# Output Completeness — CRITICAL
+
+- NEVER truncate or abbreviate your output. There are NO length constraints.
+- NEVER create stubs, placeholders, or TODO comments instead of real implementations.
+- NEVER say "due to length constraints" or "for brevity" — write the complete code.
+- If the task asks for 2000+ lines, write 2000+ lines. The system handles context automatically.
+- If you run out of context, the context-pruner will handle it. Just keep writing.
+- Deliver production-ready, complete, compilable code every time.
+
 ${PLACEHOLDER.FILE_TREE_PROMPT_SMALL}
 ${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}
 ${PLACEHOLDER.SYSTEM_INFO_PROMPT}
