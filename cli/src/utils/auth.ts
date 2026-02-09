@@ -4,7 +4,7 @@ import path from 'path'
 
 import { env } from '@levelcode/common/env'
 import { getCiEnv } from '@levelcode/common/env-ci'
-import { isStandaloneMode } from '@levelcode/sdk'
+import { isStandaloneMode, getOpenRouterApiKeyFromEnv, getAnthropicApiKeyFromEnv } from '@levelcode/sdk'
 import { z } from 'zod'
 
 
@@ -177,11 +177,11 @@ export const getAuthTokenDetails = (
 
   // In standalone mode, accept direct provider API keys as valid auth
   if (isStandaloneMode()) {
-    const openRouterKey = env.OPENROUTER_API_KEY ?? env.OPEN_ROUTER_API_KEY
+    const openRouterKey = getOpenRouterApiKeyFromEnv()
     if (openRouterKey) {
       return { token: openRouterKey, source: 'environment' }
     }
-    const anthropicKey = env.ANTHROPIC_API_KEY
+    const anthropicKey = getAnthropicApiKeyFromEnv()
     if (anthropicKey) {
       return { token: anthropicKey, source: 'environment' }
     }

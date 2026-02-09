@@ -34,7 +34,7 @@ export { ToolHelpers } from './tools'
 export * from './constants'
 
 export { getUserInfoFromApiKey } from './impl/database'
-export { isStandaloneMode, getOpenRouterApiKeyFromEnv } from './env'
+export { isStandaloneMode, getOpenRouterApiKeyFromEnv, getAnthropicApiKeyFromEnv } from './env'
 export * from './credentials'
 export { loadLocalAgents } from './agents/load-agents'
 export { loadMCPConfig, loadMCPConfigSync } from './agents/load-mcp-config'
