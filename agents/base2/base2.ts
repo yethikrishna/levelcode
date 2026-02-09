@@ -71,24 +71,41 @@ export function createBase2(
       'task_update',
       'task_list',
     ),
-    spawnableAgents: buildArray(
-      !isMax && 'file-picker',
-      isMax && 'file-picker-max',
+    // Main agent has FULL access to ALL agents — no mode restrictions
+    spawnableAgents: [
+      // Utility agents
+      'file-picker',
+      'file-picker-max',
       'code-searcher',
       'directory-lister',
       'glob-matcher',
+      'file-lister',
       'researcher-web',
       'researcher-docs',
-      isFree ? 'commander-lite' : 'commander',
-      isDefault && 'thinker',
-      (isDefault || isMax) && ['opus-agent', 'gpt-5-agent'],
-      isMax && 'thinker-best-of-n-opus',
-      isFree && 'editor-glm',
-      isDefault && 'editor',
-      isMax && 'editor-multi-prompt',
-      isDefault && 'code-reviewer',
-      isMax && 'code-reviewer-multi-prompt',
+      'commander',
+      'commander-lite',
       'context-pruner',
+      // Thinkers
+      'thinker',
+      'thinker-best-of-n',
+      'thinker-best-of-n-opus',
+      'thinker-selector',
+      'thinker-selector-opus',
+      // Editors
+      'editor',
+      'editor-glm',
+      'editor-gpt-5',
+      'editor-multi-prompt',
+      'editor-implementor',
+      'editor-implementor-opus',
+      'editor-implementor-gpt-5',
+      'best-of-n-selector2',
+      // Reviewers
+      'code-reviewer',
+      'code-reviewer-multi-prompt',
+      // General purpose agents
+      'opus-agent',
+      'gpt-5-agent',
       // Team agent templates — ALL 21 roles
       'team-cto',
       'team-vp-engineering',
@@ -111,7 +128,7 @@ export function createBase2(
       'team-tester',
       'team-intern',
       'team-apprentice',
-    ),
+    ],
 
     systemPrompt: `You are Sage, a strategic assistant that orchestrates complex coding tasks through specialized sub-agents. You are the AI agent behind the product, LevelCode, a CLI tool where users can chat with you to code with AI.
 

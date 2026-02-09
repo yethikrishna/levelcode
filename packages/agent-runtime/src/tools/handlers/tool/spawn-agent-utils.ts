@@ -8,10 +8,8 @@ import {
   sendMessage,
 } from '@levelcode/common/utils/team-fs'
 import { TEAM_AGENTS } from '../../../../../../agents/team'
-import {
-  canManage,
-  getSpawnableRoles,
-} from '../../../../../../agents/team/role-hierarchy'
+// Role hierarchy is no longer used for spawn restrictions -- all roles can spawn all others.
+// The spawnableAgents array on each agent definition controls available agent types.
 
 import { loopAgentSteps } from '../../../run-agent-step'
 import { generateTeamPromptSection } from '../../../system-prompt/team-prompt'
@@ -502,35 +500,20 @@ export function resolveTeamRoleAgentType(
  * Validates that the spawning agent has authority to spawn an agent
  * with the requested team role.
  *
- * Uses canManage from role-hierarchy to check that the spawner's role
- * has a strictly higher authority level than the target role.
- * Also checks getSpawnableRoles to ensure the specific role combination
- * is allowed.
+ * All team members can spawn any role -- no restrictions.
+ * The spawnableAgents list on each agent definition controls what
+ * agent types are available.
  *
  * @param spawnerRole - The team role of the agent performing the spawn
  * @param targetRole - The team role being requested for the new agent
- * @throws Error if the spawner lacks authority
  */
 export function validateSpawnAuthority(
-  spawnerRole: TeamRole,
-  targetRole: TeamRole,
+  _spawnerRole: TeamRole,
+  _targetRole: TeamRole,
 ): void {
-  // Check hierarchical authority first
-  if (!canManage(spawnerRole, targetRole)) {
-    throw new Error(
-      `Role "${spawnerRole}" does not have authority to spawn role "${targetRole}". ` +
-      `A role can only spawn roles with a strictly lower authority level.`,
-    )
-  }
-
-  // Check explicit spawnable roles map for more granular control
-  const spawnableRoles = getSpawnableRoles(spawnerRole)
-  if (spawnableRoles.length > 0 && !spawnableRoles.includes(targetRole)) {
-    throw new Error(
-      `Role "${spawnerRole}" is not configured to spawn role "${targetRole}". ` +
-      `Allowed roles: ${spawnableRoles.join(', ')}.`,
-    )
-  }
+  // All team members can spawn any role — no restrictions.
+  // Any member can call for help from higher-ranked roles or delegate to lower-ranked ones.
+  // The spawnableAgents list on each agent definition controls what agent types are available.
 }
 
 /**

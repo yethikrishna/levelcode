@@ -108,55 +108,25 @@ export function canManage(
 }
 
 /**
- * Defines which roles a given role is allowed to spawn.
- * Management roles can spawn the IC/management roles below them.
- * IC roles generally cannot spawn team agents (they spawn utility sub-agents).
+ * All team roles — every role can spawn every other role.
+ * No hierarchy restrictions on spawning.
  */
-const SPAWNABLE_ROLES_MAP: Partial<Record<TeamRole, TeamRole[]>> = {
-  'cto': [
-    'vp-engineering',
-    'coordinator',
-    'director',
-    'fellow',
-    'distinguished-engineer',
-    'principal-engineer',
-    'manager',
-  ],
-  'vp-engineering': [
-    'director',
-    'manager',
-    'senior-staff-engineer',
-    'principal-engineer',
-  ],
-  'coordinator': [
-    'manager',
-    'senior-engineer',
-    'researcher',
-    'designer',
-    'product-lead',
-    'scientist',
-  ],
-  'director': [
-    'manager',
-    'senior-engineer',
-    'researcher',
-    'product-lead',
-  ],
-  'fellow': ['senior-engineer', 'staff-engineer'],
-  'distinguished-engineer': ['senior-engineer', 'staff-engineer'],
-  'principal-engineer': ['senior-engineer', 'staff-engineer'],
-  'senior-staff-engineer': ['senior-engineer', 'mid-level-engineer'],
-  'staff-engineer': ['mid-level-engineer', 'junior-engineer'],
-  'manager': ['senior-engineer', 'mid-level-engineer', 'sub-manager'],
-  'sub-manager': ['mid-level-engineer', 'junior-engineer'],
-  'senior-engineer': ['junior-engineer', 'intern', 'apprentice'],
-}
+const ALL_TEAM_ROLES: TeamRole[] = [
+  'cto', 'vp-engineering', 'coordinator', 'director',
+  'fellow', 'distinguished-engineer', 'principal-engineer',
+  'senior-staff-engineer', 'staff-engineer',
+  'manager', 'sub-manager',
+  'senior-engineer', 'super-senior', 'reviewer',
+  'mid-level-engineer', 'junior-engineer',
+  'researcher', 'scientist', 'designer', 'product-lead',
+  'tester', 'intern', 'apprentice',
+]
 
 /**
  * Get the team roles that a given role is allowed to spawn as sub-agents.
- * Returns an empty array for roles that cannot spawn other team agents.
+ * All roles can spawn all other roles — no restrictions.
  */
-export function getSpawnableRoles(role: TeamRole): TeamRole[] {
-  return SPAWNABLE_ROLES_MAP[role] ?? []
+export function getSpawnableRoles(_role: TeamRole): TeamRole[] {
+  return ALL_TEAM_ROLES
 }
 

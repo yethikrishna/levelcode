@@ -47,7 +47,25 @@ const productLead: AgentDefinition = {
     'set_output',
   ],
 
-  spawnableAgents: [],
+  spawnableAgents: [
+    // Utility agents
+    'file-picker', 'file-picker-max', 'code-searcher', 'directory-lister',
+    'glob-matcher', 'file-lister', 'researcher-web', 'researcher-docs',
+    'commander', 'commander-lite', 'context-pruner',
+    // Thinkers & Editors & Reviewers
+    'thinker', 'thinker-best-of-n', 'thinker-best-of-n-opus',
+    'editor', 'editor-glm', 'editor-multi-prompt',
+    'code-reviewer', 'code-reviewer-multi-prompt',
+    'opus-agent', 'gpt-5-agent',
+    // ALL team roles (can call up or down for help)
+    'team-cto', 'team-vp-engineering', 'team-director', 'coordinator',
+    'team-fellow', 'team-distinguished-engineer', 'team-principal-engineer',
+    'team-senior-staff-engineer', 'team-staff-engineer',
+    'team-manager', 'team-sub-manager',
+    'senior-engineer', 'team-mid-level-engineer', 'team-junior-engineer',
+    'team-researcher', 'team-scientist', 'team-designer', 'team-product-lead',
+    'team-tester', 'team-intern', 'team-apprentice',
+  ],
 
   systemPrompt: `You are a Product Lead Agent responsible for requirements, prioritization, and product decision-making within a LevelCode swarm team.
 
