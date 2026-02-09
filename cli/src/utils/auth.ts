@@ -177,11 +177,11 @@ export const getAuthTokenDetails = (
 
   // In standalone mode, accept direct provider API keys as valid auth
   if (isStandaloneMode()) {
-    const openRouterKey = process.env.OPENROUTER_API_KEY
+    const openRouterKey = env.OPENROUTER_API_KEY ?? env.OPEN_ROUTER_API_KEY
     if (openRouterKey) {
       return { token: openRouterKey, source: 'environment' }
     }
-    const anthropicKey = process.env.ANTHROPIC_API_KEY
+    const anthropicKey = env.ANTHROPIC_API_KEY
     if (anthropicKey) {
       return { token: anthropicKey, source: 'environment' }
     }

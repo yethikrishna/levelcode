@@ -3,6 +3,7 @@ import path from 'path'
 
 import { getConfigDir } from './auth'
 import { AGENT_MODES } from './constants'
+import { getCliEnv } from './env'
 import { logger } from './logger'
 
 import type { AgentMode } from './constants'
@@ -165,7 +166,7 @@ export const saveModePreference = (mode: AgentMode): void => {
  * Enabled when the setting is true OR the LEVELCODE_ENABLE_SWARMS env var is set.
  */
 export const getSwarmEnabled = (): boolean => {
-  const envFlag = process.env.LEVELCODE_ENABLE_SWARMS
+  const envFlag = getCliEnv().LEVELCODE_ENABLE_SWARMS
   if (envFlag === '1' || envFlag === 'true') {
     return true
   }
