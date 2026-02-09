@@ -66,6 +66,7 @@ function makeTask(overrides?: Partial<TeamTask>): TeamTask {
     subject: 'Test task',
     description: 'A test task description',
     status: 'pending',
+    priority: 'medium',
     blockedBy: [],
     blocks: [],
     phase: 'planning',
@@ -251,7 +252,7 @@ describe('task-assignment', () => {
   // autoAssignTasks
   // -----------------------------------------------------------------------
   describe('autoAssignTasks', () => {
-    it('should match idle agents to available tasks by role suitability', () => {
+    it('should match idle agents to available tasks by role suitability', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'senior-dev', agentId: 'a1', status: 'idle', role: 'senior-engineer' }),
@@ -263,7 +264,7 @@ describe('task-assignment', () => {
       createTask('test-team', makeTask({ id: '1', status: 'pending', metadata: { seniority: 'senior' } }))
       createTask('test-team', makeTask({ id: '2', status: 'pending', metadata: { seniority: 'junior' } }))
 
-      const assignments = autoAssignTasks('test-team')
+      const assignments = await autoAssignTasks('test-team')
       expect(assignments).toHaveLength(2)
 
       // Task 1 requires senior (seniority >= 6), only senior-dev qualifies
@@ -277,7 +278,7 @@ describe('task-assignment', () => {
       expect(task2Assignment!.agentName).toBe('junior-dev')
     })
 
-    it('should not assign when autoAssign is disabled', () => {
+    it('should not assign when autoAssign is disabled', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
         settings: { maxMembers: 20, autoAssign: false },
@@ -285,11 +286,11 @@ describe('task-assignment', () => {
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
-      const assignments = autoAssignTasks('test-team')
+      const assignments = await autoAssignTasks('test-team')
       expect(assignments).toEqual([])
     })
 
-    it('should assign at most one task per agent', () => {
+    it('should assign at most one task per agent', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle', role: 'senior-engineer' }),
@@ -300,13 +301,13 @@ describe('task-assignment', () => {
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
       createTask('test-team', makeTask({ id: '2', status: 'pending' }))
 
-      const assignments = autoAssignTasks('test-team')
+      const assignments = await autoAssignTasks('test-team')
       expect(assignments).toHaveLength(1)
       expect(assignments[0]!.agentName).toBe('dev-1')
       expect(assignments[0]!.taskId).toBe('1')
     })
 
-    it('should update task owner and status to in_progress', () => {
+    it('should update task owner and status to in_progress', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
         settings: { maxMembers: 20, autoAssign: true },
@@ -314,14 +315,14 @@ describe('task-assignment', () => {
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
-      autoAssignTasks('test-team')
+      await autoAssignTasks('test-team')
 
       const task = getTask('test-team', '1')
       expect(task!.owner).toBe('dev-1')
       expect(task!.status).toBe('in_progress')
     })
 
-    it('should update member status to active in team config', () => {
+    it('should update member status to active in team config', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
         settings: { maxMembers: 20, autoAssign: true },
@@ -329,7 +330,7 @@ describe('task-assignment', () => {
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
-      autoAssignTasks('test-team')
+      await autoAssignTasks('test-team')
 
       const updatedConfig = loadTeamConfig('test-team')
       const member = updatedConfig!.members.find((m) => m.name === 'dev-1')
@@ -337,12 +338,12 @@ describe('task-assignment', () => {
       expect(member!.currentTaskId).toBe('1')
     })
 
-    it('should return empty array for nonexistent team', () => {
-      const assignments = autoAssignTasks('nonexistent-team')
+    it('should return empty array for nonexistent team', async () => {
+      const assignments = await autoAssignTasks('nonexistent-team')
       expect(assignments).toEqual([])
     })
 
-    it('should skip tasks that no idle agent is senior enough for', () => {
+    it('should skip tasks that no idle agent is senior enough for', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'intern', agentId: 'a1', status: 'idle', role: 'intern' }),
@@ -352,7 +353,7 @@ describe('task-assignment', () => {
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending', metadata: { seniority: 'senior' } }))
 
-      const assignments = autoAssignTasks('test-team')
+      const assignments = await autoAssignTasks('test-team')
       expect(assignments).toEqual([])
     })
   })
@@ -361,14 +362,14 @@ describe('task-assignment', () => {
   // claimTask
   // -----------------------------------------------------------------------
   describe('claimTask', () => {
-    it('should set owner and mark task as in_progress', () => {
+    it('should set owner and mark task as in_progress', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
       })
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
-      const result = claimTask('test-team', 'dev-1', '1')
+      const result = await claimTask('test-team', 'dev-1', '1')
       expect(result.success).toBe(true)
       expect(result.error).toBeUndefined()
 
@@ -377,14 +378,14 @@ describe('task-assignment', () => {
       expect(task!.status).toBe('in_progress')
     })
 
-    it('should update member status in team config', () => {
+    it('should update member status in team config', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
       })
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
-      claimTask('test-team', 'dev-1', '1')
+      await claimTask('test-team', 'dev-1', '1')
 
       const updatedConfig = loadTeamConfig('test-team')
       const member = updatedConfig!.members.find((m) => m.name === 'dev-1')
@@ -392,42 +393,42 @@ describe('task-assignment', () => {
       expect(member!.currentTaskId).toBe('1')
     })
 
-    it('should fail if task does not exist', () => {
+    it('should fail if task does not exist', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
-      const result = claimTask('test-team', 'dev-1', 'nonexistent')
+      const result = await claimTask('test-team', 'dev-1', 'nonexistent')
       expect(result.success).toBe(false)
       expect(result.error).toContain('not found')
     })
 
-    it('should fail if task is not pending', () => {
+    it('should fail if task is not pending', async () => {
       const config = makeTeamConfig()
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'in_progress' }))
 
-      const result = claimTask('test-team', 'dev-1', '1')
+      const result = await claimTask('test-team', 'dev-1', '1')
       expect(result.success).toBe(false)
       expect(result.error).toContain('not pending')
     })
 
-    it('should fail if task already has an owner', () => {
+    it('should fail if task already has an owner', async () => {
       const config = makeTeamConfig()
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending', owner: 'other-dev' }))
 
-      const result = claimTask('test-team', 'dev-1', '1')
+      const result = await claimTask('test-team', 'dev-1', '1')
       expect(result.success).toBe(false)
       expect(result.error).toContain('already owned')
     })
 
-    it('should fail if task is blocked by unresolved dependencies', () => {
+    it('should fail if task is blocked by unresolved dependencies', async () => {
       const config = makeTeamConfig()
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
       createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
 
-      const result = claimTask('test-team', 'dev-1', '2')
+      const result = await claimTask('test-team', 'dev-1', '2')
       expect(result.success).toBe(false)
       expect(result.error).toContain('blocked')
     })
@@ -437,14 +438,14 @@ describe('task-assignment', () => {
   // releaseTask
   // -----------------------------------------------------------------------
   describe('releaseTask', () => {
-    it('should remove owner and set task back to pending', () => {
+    it('should remove owner and set task back to pending', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
-      const result = releaseTask('test-team', '1')
+      const result = await releaseTask('test-team', '1')
       expect(result.success).toBe(true)
 
       const task = getTask('test-team', '1')
@@ -452,14 +453,14 @@ describe('task-assignment', () => {
       expect(task!.status).toBe('pending')
     })
 
-    it('should update member status back to idle', () => {
+    it('should update member status back to idle', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
-      releaseTask('test-team', '1')
+      await releaseTask('test-team', '1')
 
       const updatedConfig = loadTeamConfig('test-team')
       const member = updatedConfig!.members.find((m) => m.name === 'dev-1')
@@ -467,21 +468,21 @@ describe('task-assignment', () => {
       expect(member!.currentTaskId).toBeUndefined()
     })
 
-    it('should fail if task does not exist', () => {
+    it('should fail if task does not exist', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
-      const result = releaseTask('test-team', 'nonexistent')
+      const result = await releaseTask('test-team', 'nonexistent')
       expect(result.success).toBe(false)
       expect(result.error).toContain('not found')
     })
 
-    it('should succeed even if task has no owner', () => {
+    it('should succeed even if task has no owner', async () => {
       const config = makeTeamConfig()
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
-      const result = releaseTask('test-team', '1')
+      const result = await releaseTask('test-team', '1')
       expect(result.success).toBe(true)
 
       const task = getTask('test-team', '1')
@@ -493,28 +494,28 @@ describe('task-assignment', () => {
   // completeTask
   // -----------------------------------------------------------------------
   describe('completeTask', () => {
-    it('should mark a task as completed', () => {
+    it('should mark a task as completed', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
-      const result = completeTask('test-team', '1')
+      const result = await completeTask('test-team', '1')
       expect(result.success).toBe(true)
 
       const task = getTask('test-team', '1')
       expect(task!.status).toBe('completed')
     })
 
-    it('should update member status back to idle', () => {
+    it('should update member status back to idle', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
-      completeTask('test-team', '1')
+      await completeTask('test-team', '1')
 
       const updatedConfig = loadTeamConfig('test-team')
       const member = updatedConfig!.members.find((m) => m.name === 'dev-1')
@@ -522,7 +523,7 @@ describe('task-assignment', () => {
       expect(member!.currentTaskId).toBeUndefined()
     })
 
-    it('should send a TaskCompleted protocol message to the team lead', () => {
+    it('should send a TaskCompleted protocol message to the team lead', async () => {
       const config = makeTeamConfig({
         members: [
           {
@@ -541,7 +542,7 @@ describe('task-assignment', () => {
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1', subject: 'Fix bug' }))
 
-      completeTask('test-team', '1')
+      await completeTask('test-team', '1')
 
       const inbox = readInbox('test-team', 'team-lead')
       expect(inbox).toHaveLength(1)
@@ -552,26 +553,26 @@ describe('task-assignment', () => {
       expect(msg.taskSubject).toBe('Fix bug')
     })
 
-    it('should fail if task does not exist', () => {
+    it('should fail if task does not exist', async () => {
       const config = makeTeamConfig()
       createTeam(config)
 
-      const result = completeTask('test-team', 'nonexistent')
+      const result = await completeTask('test-team', 'nonexistent')
       expect(result.success).toBe(false)
       expect(result.error).toContain('not found')
     })
 
-    it('should fail if task is already completed', () => {
+    it('should fail if task is already completed', async () => {
       const config = makeTeamConfig()
       createTeam(config)
       createTask('test-team', makeTask({ id: '1', status: 'completed' }))
 
-      const result = completeTask('test-team', '1')
+      const result = await completeTask('test-team', '1')
       expect(result.success).toBe(false)
       expect(result.error).toContain('already completed')
     })
 
-    it('should return unblocked task IDs when completing a task unblocks others', () => {
+    it('should return unblocked task IDs when completing a task unblocks others', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
@@ -580,12 +581,12 @@ describe('task-assignment', () => {
       createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
       createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1'] }))
 
-      const result = completeTask('test-team', '1')
+      const result = await completeTask('test-team', '1')
       expect(result.success).toBe(true)
       expect(result.unblockedTaskIds.sort()).toEqual(['2', '3'])
     })
 
-    it('should not return tasks that are still blocked by other incomplete tasks', () => {
+    it('should not return tasks that are still blocked by other incomplete tasks', async () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
@@ -595,7 +596,7 @@ describe('task-assignment', () => {
       // Task 3 is blocked by both 1 and 2; completing 1 alone does not unblock it
       createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1', '2'] }))
 
-      const result = completeTask('test-team', '1')
+      const result = await completeTask('test-team', '1')
       expect(result.success).toBe(true)
       expect(result.unblockedTaskIds).toEqual([])
     })
@@ -721,7 +722,7 @@ describe('task-assignment', () => {
   // Completing a task unblocks dependent tasks (integration)
   // -----------------------------------------------------------------------
   describe('completing a task unblocks dependent tasks', () => {
-    it('should make previously blocked tasks available after their blocker completes', () => {
+    it('should make previously blocked tasks available after their blocker completes', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' }),
@@ -738,7 +739,7 @@ describe('task-assignment', () => {
       expect(findAvailableTasks('test-team')).toEqual([])
 
       // Complete task 1
-      const result = completeTask('test-team', '1')
+      const result = await completeTask('test-team', '1')
       expect(result.success).toBe(true)
       expect(result.unblockedTaskIds.sort()).toEqual(['2', '3'])
 
@@ -750,7 +751,7 @@ describe('task-assignment', () => {
       expect(available.map((t) => t.id)).toEqual(['2', '3'])
     })
 
-    it('should handle chain of dependencies: A -> B -> C', () => {
+    it('should handle chain of dependencies: A -> B -> C', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' }),
@@ -762,13 +763,13 @@ describe('task-assignment', () => {
       createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['2'] }))
 
       // Complete task 1 -> unblocks task 2 but NOT task 3
-      const result1 = completeTask('test-team', '1')
+      const result1 = await completeTask('test-team', '1')
       expect(result1.unblockedTaskIds).toEqual(['2'])
       expect(isTaskBlocked('test-team', '3')).toBe(true)
 
       // Claim and complete task 2 -> unblocks task 3
-      claimTask('test-team', 'dev-1', '2')
-      const result2 = completeTask('test-team', '2')
+      await claimTask('test-team', 'dev-1', '2')
+      const result2 = await completeTask('test-team', '2')
       expect(result2.unblockedTaskIds).toEqual(['3'])
       expect(isTaskBlocked('test-team', '3')).toBe(false)
     })

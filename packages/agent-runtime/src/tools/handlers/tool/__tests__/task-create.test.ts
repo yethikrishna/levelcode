@@ -154,6 +154,7 @@ describe('handleTaskCreate', () => {
       subject: 'Pre-existing',
       description: 'Already here',
       status: 'completed',
+      priority: 'medium',
       blockedBy: [],
       blocks: [],
       phase: 'planning',
