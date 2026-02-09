@@ -41,6 +41,7 @@ const researcher: AgentDefinition = {
   includeMessageHistory: true,
 
   toolNames: [
+    'spawn_agents',
     'web_search',
     'read_docs',
     'read_files',

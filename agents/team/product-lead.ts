@@ -36,6 +36,7 @@ const productLead: AgentDefinition = {
   includeMessageHistory: true,
 
   toolNames: [
+    'spawn_agents',
     'write_todos',
     'read_files',
     'read_subtree',

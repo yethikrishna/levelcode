@@ -31,6 +31,7 @@ const intern: AgentDefinition = {
   includeMessageHistory: false,
 
   toolNames: [
+    'spawn_agents',
     'read_files',
     'read_subtree',
     'find_files',

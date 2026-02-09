@@ -36,6 +36,7 @@ const designer: AgentDefinition = {
   includeMessageHistory: true,
 
   toolNames: [
+    'spawn_agents',
     'read_files',
     'read_subtree',
     'code_search',
