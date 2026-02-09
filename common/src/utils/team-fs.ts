@@ -130,12 +130,44 @@ export function loadTeamConfig(teamName: string): TeamConfig | null {
   const raw = fs.readFileSync(configPath, 'utf-8')
   const parsed = JSON.parse(raw)
   const result = teamConfigSchema.safeParse(parsed)
-  if (!result.success) {
-    throw new Error(
-      `Corrupted team config for "${teamName}": ${result.error.message}`
-    )
+  if (result.success) {
+    return result.data
   }
-  return result.data
+
+  // Auto-repair: try to fix common issues like invalid roles, then re-validate
+  try {
+    const VALID_ROLES = [
+      'coordinator', 'cto', 'vp-engineering', 'director', 'fellow',
+      'distinguished-engineer', 'principal-engineer', 'senior-staff-engineer',
+      'staff-engineer', 'manager', 'sub-manager', 'senior-engineer',
+      'super-senior', 'mid-level-engineer', 'junior-engineer', 'researcher',
+      'scientist', 'designer', 'product-lead', 'tester', 'reviewer',
+      'intern', 'apprentice',
+    ]
+    if (Array.isArray(parsed?.members)) {
+      for (const member of parsed.members) {
+        if (member?.role && !VALID_ROLES.includes(member.role)) {
+          // Map to closest valid role
+          if (member.role.includes('director')) member.role = 'director'
+          else if (member.role.includes('manager')) member.role = 'manager'
+          else if (member.role.includes('engineer')) member.role = 'senior-engineer'
+          else if (member.role.includes('lead')) member.role = 'product-lead'
+          else member.role = 'mid-level-engineer'
+        }
+      }
+    }
+    const retryResult = teamConfigSchema.safeParse(parsed)
+    if (retryResult.success) {
+      // Save the repaired config back to disk
+      fs.writeFileSync(configPath, JSON.stringify(retryResult.data, null, 2))
+      return retryResult.data
+    }
+  } catch {
+    // Auto-repair failed
+  }
+
+  // If still can't parse, return null instead of crashing
+  return null
 }
 
 export async function saveTeamConfig(teamName: string, config: TeamConfig): Promise<void> {
