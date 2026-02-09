@@ -5,12 +5,12 @@ import {
   getRoleLevel,
   canManage,
   getSpawnableRoles,
-  TEAM_ROLE_DESCRIPTIONS,
 } from '../role-hierarchy'
 
-import { getAllTeamAgents, getTeamAgent } from '../index'
+import { getAllTeamAgents, getTeamAgent, TEAM_ROLE_DESCRIPTIONS } from '../index'
 
 import type { AgentDefinition } from '../../types/agent-definition'
+import type { TeamRole } from '@levelcode/common/types/team-config'
 
 // ---------------------------------------------------------------------------
 // 1. ROLE_HIERARCHY
@@ -59,7 +59,7 @@ describe('ROLE_HIERARCHY', () => {
   })
 
   test('every expected IC role is present', () => {
-    const icRoles = [
+    const icRoles: TeamRole[] = [
       'intern',
       'apprentice',
       'junior-engineer',
@@ -77,7 +77,7 @@ describe('ROLE_HIERARCHY', () => {
   })
 
   test('every expected management role is present', () => {
-    const mgmtRoles = [
+    const mgmtRoles: TeamRole[] = [
       'sub-manager',
       'manager',
       'coordinator',
@@ -91,7 +91,7 @@ describe('ROLE_HIERARCHY', () => {
   })
 
   test('every expected specialist role is present', () => {
-    const specialistRoles = [
+    const specialistRoles: TeamRole[] = [
       'tester',
       'researcher',
       'designer',
@@ -104,7 +104,7 @@ describe('ROLE_HIERARCHY', () => {
   })
 
   test('IC roles are ordered from lowest to highest seniority', () => {
-    const orderedIC = [
+    const orderedIC: TeamRole[] = [
       'intern',
       'apprentice',
       'junior-engineer',
@@ -126,7 +126,7 @@ describe('ROLE_HIERARCHY', () => {
   })
 
   test('management roles are ordered from lowest to highest authority', () => {
-    const orderedMgmt = [
+    const orderedMgmt: TeamRole[] = [
       'sub-manager',
       'manager',
       'coordinator',
@@ -386,7 +386,7 @@ describe('team agent templates', () => {
     for (const agent of agents) {
       expect(agent.outputMode).toBeDefined()
       expect(['last_message', 'all_messages', 'structured_output']).toContain(
-        agent.outputMode,
+        agent.outputMode!,
       )
     }
   })
@@ -484,7 +484,7 @@ describe('getTeamAgent', () => {
       const role = agent.id.startsWith('team-')
         ? agent.id.slice('team-'.length)
         : agent.id
-      const fetched = getTeamAgent(role)
+      const fetched = getTeamAgent(role as TeamRole)
       if (fetched) {
         expect(fetched.id).toBe(agent.id)
       }
@@ -561,12 +561,12 @@ describe('TEAM_ROLE_DESCRIPTIONS', () => {
     for (const role of ROLE_HIERARCHY) {
       expect(TEAM_ROLE_DESCRIPTIONS[role]).toBeDefined()
       expect(typeof TEAM_ROLE_DESCRIPTIONS[role]).toBe('string')
-      expect(TEAM_ROLE_DESCRIPTIONS[role].length).toBeGreaterThan(0)
+      expect(TEAM_ROLE_DESCRIPTIONS[role]!.length).toBeGreaterThan(0)
     }
   })
 
   test('intern description mentions entry-level or simple tasks', () => {
-    const desc = TEAM_ROLE_DESCRIPTIONS['intern'].toLowerCase()
+    const desc = TEAM_ROLE_DESCRIPTIONS['intern']!.toLowerCase()
     const relevant =
       desc.includes('entry') ||
       desc.includes('simple') ||
@@ -576,7 +576,7 @@ describe('TEAM_ROLE_DESCRIPTIONS', () => {
   })
 
   test('cto description mentions strategy or technical leadership', () => {
-    const desc = TEAM_ROLE_DESCRIPTIONS['cto'].toLowerCase()
+    const desc = TEAM_ROLE_DESCRIPTIONS['cto']!.toLowerCase()
     const relevant =
       desc.includes('strategy') ||
       desc.includes('technical') ||
@@ -587,7 +587,7 @@ describe('TEAM_ROLE_DESCRIPTIONS', () => {
 
   test('no description is empty string', () => {
     for (const role of ROLE_HIERARCHY) {
-      expect(TEAM_ROLE_DESCRIPTIONS[role].trim().length).toBeGreaterThan(0)
+      expect(TEAM_ROLE_DESCRIPTIONS[role]!.trim().length).toBeGreaterThan(0)
     }
   })
 })

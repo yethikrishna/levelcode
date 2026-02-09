@@ -9,6 +9,13 @@ export type AllToolNames =
   | 'create_plan'
   | 'spawn_agent_inline'
   | 'update_subgoal'
+  | 'task_create'
+  | 'task_update'
+  | 'task_list'
+  | 'task_get'
+  | 'team_create'
+  | 'team_delete'
+  | 'send_message'
 
 export interface SecretAgentDefinition
   extends Omit<AgentDefinition, 'toolNames'> {

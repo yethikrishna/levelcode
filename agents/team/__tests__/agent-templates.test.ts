@@ -32,6 +32,9 @@ const ALL_ROLES = [
   'scientist',
 ] as const
 
+// Mutable copy for test.each (Bun's overloads don't accept readonly tuples)
+const ALL_ROLES_MUTABLE = [...ALL_ROLES] as string[]
+
 // Expected id for each role (most are "team-{role}", two exceptions)
 const EXPECTED_IDS: Record<string, string> = {
   'coordinator': 'coordinator',
@@ -84,7 +87,7 @@ describe('agent templates: all 21 roles present', () => {
     expect(agents.length).toBe(21)
   })
 
-  test.each(ALL_ROLES)('getTeamAgent("%s") returns a defined template', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('getTeamAgent("%s") returns a defined template', (role) => {
     const agent = getTeamAgent(role as any)
     expect(agent).toBeDefined()
   })
@@ -95,25 +98,25 @@ describe('agent templates: all 21 roles present', () => {
 // ---------------------------------------------------------------------------
 
 describe('agent templates: required fields', () => {
-  test.each(ALL_ROLES)('%s has a non-empty id string', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a non-empty id string', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(typeof agent.id).toBe('string')
     expect(agent.id.length).toBeGreaterThan(0)
   })
 
-  test.each(ALL_ROLES)('%s has a non-empty displayName string', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a non-empty displayName string', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(typeof agent.displayName).toBe('string')
     expect(agent.displayName.length).toBeGreaterThan(0)
   })
 
-  test.each(ALL_ROLES)('%s has a non-empty model string', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a non-empty model string', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(typeof agent.model).toBe('string')
     expect(agent.model.length).toBeGreaterThan(0)
   })
 
-  test.each(ALL_ROLES)('%s has toolNames as a non-empty array', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has toolNames as a non-empty array', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(Array.isArray(agent.toolNames)).toBe(true)
     expect(agent.toolNames!.length).toBeGreaterThan(0)
@@ -125,7 +128,7 @@ describe('agent templates: required fields', () => {
 // ---------------------------------------------------------------------------
 
 describe('agent templates: model validation', () => {
-  test.each(ALL_ROLES)('%s model has a valid provider prefix', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s model has a valid provider prefix', (role) => {
     const agent = getTeamAgent(role as any)!
     const hasValidPrefix = VALID_MODEL_PREFIXES.some((prefix) =>
       agent.model.startsWith(prefix),
@@ -133,7 +136,7 @@ describe('agent templates: model validation', () => {
     expect(hasValidPrefix).toBe(true)
   })
 
-  test.each(ALL_ROLES)('%s model contains a slash separator', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s model contains a slash separator', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(agent.model).toContain('/')
   })
@@ -144,7 +147,7 @@ describe('agent templates: model validation', () => {
 // ---------------------------------------------------------------------------
 
 describe('agent templates: toolNames validation', () => {
-  test.each(ALL_ROLES)('%s toolNames contains only strings', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s toolNames contains only strings', (role) => {
     const agent = getTeamAgent(role as any)!
     for (const toolName of agent.toolNames!) {
       expect(typeof toolName).toBe('string')
@@ -152,13 +155,13 @@ describe('agent templates: toolNames validation', () => {
     }
   })
 
-  test.each(ALL_ROLES)('%s toolNames has no duplicates', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s toolNames has no duplicates', (role) => {
     const agent = getTeamAgent(role as any)!
     const unique = new Set(agent.toolNames)
     expect(unique.size).toBe(agent.toolNames!.length)
   })
 
-  test.each(ALL_ROLES)('%s toolNames includes set_output', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s toolNames includes set_output', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(agent.toolNames).toContain('set_output')
   })
@@ -169,30 +172,30 @@ describe('agent templates: toolNames validation', () => {
 // ---------------------------------------------------------------------------
 
 describe('agent templates: prompts', () => {
-  test.each(ALL_ROLES)('%s has a non-empty systemPrompt', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a non-empty systemPrompt', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(typeof agent.systemPrompt).toBe('string')
     expect(agent.systemPrompt!.trim().length).toBeGreaterThan(0)
   })
 
-  test.each(ALL_ROLES)('%s has a non-empty instructionsPrompt', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a non-empty instructionsPrompt', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(typeof agent.instructionsPrompt).toBe('string')
     expect(agent.instructionsPrompt!.trim().length).toBeGreaterThan(0)
   })
 
-  test.each(ALL_ROLES)('%s has a non-empty spawnerPrompt', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a non-empty spawnerPrompt', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(typeof agent.spawnerPrompt).toBe('string')
     expect(agent.spawnerPrompt!.trim().length).toBeGreaterThan(0)
   })
 
-  test.each(ALL_ROLES)('%s systemPrompt is at least 50 characters', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s systemPrompt is at least 50 characters', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(agent.systemPrompt!.length).toBeGreaterThanOrEqual(50)
   })
 
-  test.each(ALL_ROLES)('%s instructionsPrompt is at least 20 characters', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s instructionsPrompt is at least 20 characters', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(agent.instructionsPrompt!.length).toBeGreaterThanOrEqual(20)
   })
@@ -203,13 +206,13 @@ describe('agent templates: prompts', () => {
 // ---------------------------------------------------------------------------
 
 describe('agent templates: id pattern', () => {
-  test.each(ALL_ROLES)('%s id matches expected value', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s id matches expected value', (role) => {
     const agent = getTeamAgent(role as any)!
     const expectedId = EXPECTED_IDS[role]
     expect(agent.id).toBe(expectedId)
   })
 
-  test.each(ALL_ROLES)('%s id contains only lowercase, numbers, hyphens', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s id contains only lowercase, numbers, hyphens', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(agent.id).toMatch(/^[a-z0-9-]+$/)
   })
@@ -234,25 +237,25 @@ describe('agent templates: id pattern', () => {
 // ---------------------------------------------------------------------------
 
 describe('agent templates: structural integrity', () => {
-  test.each(ALL_ROLES)('%s has a valid outputMode', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a valid outputMode', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(agent.outputMode).toBeDefined()
     expect(['last_message', 'all_messages', 'structured_output']).toContain(
-      agent.outputMode,
+      agent.outputMode!,
     )
   })
 
-  test.each(ALL_ROLES)('%s has a spawnableAgents array', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a spawnableAgents array', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(Array.isArray(agent.spawnableAgents)).toBe(true)
   })
 
-  test.each(ALL_ROLES)('%s has a handleSteps function', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s has a handleSteps function', (role) => {
     const agent = getTeamAgent(role as any)!
     expect(typeof agent.handleSteps).toBe('function')
   })
 
-  test.each(ALL_ROLES)('%s handleSteps returns a generator', (role) => {
+  test.each(ALL_ROLES_MUTABLE)('%s handleSteps returns a generator', (role) => {
     const agent = getTeamAgent(role as any)!
     const mockContext = {
       agentState: {

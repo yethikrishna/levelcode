@@ -159,3 +159,4 @@ const SPAWNABLE_ROLES_MAP: Partial<Record<TeamRole, TeamRole[]>> = {
 export function getSpawnableRoles(role: TeamRole): TeamRole[] {
   return SPAWNABLE_ROLES_MAP[role] ?? []
 }
+
