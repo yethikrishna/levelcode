@@ -274,25 +274,37 @@ describe('getSpawnableRoles', () => {
     expect(Array.isArray(roles)).toBe(true)
   })
 
-  test('cto can spawn the most roles', () => {
+  test('all roles return the same spawnable set (no restrictions)', () => {
     const ctoRoles = getSpawnableRoles('cto')
+    const internRoles = getSpawnableRoles('intern')
     const managerRoles = getSpawnableRoles('manager')
-    expect(ctoRoles.length).toBeGreaterThanOrEqual(managerRoles.length)
+    expect(ctoRoles.length).toBe(internRoles.length)
+    expect(ctoRoles.length).toBe(managerRoles.length)
   })
 
-  test('intern cannot spawn any roles', () => {
-    const roles = getSpawnableRoles('intern')
-    expect(roles.length).toBe(0)
-  })
-
-  test('spawnable roles are all lower than the spawning role', () => {
+  test('every role can spawn every other role', () => {
     for (const role of ROLE_HIERARCHY) {
       const spawnable = getSpawnableRoles(role)
-      const level = getRoleLevel(role)
-      for (const s of spawnable) {
-        expect(getRoleLevel(s)).toBeLessThan(level)
+      expect(spawnable.length).toBeGreaterThan(0)
+      // Every role in the hierarchy should be spawnable
+      for (const target of ROLE_HIERARCHY) {
+        expect(spawnable).toContain(target)
       }
     }
+  })
+
+  test('intern can spawn any role (no restrictions)', () => {
+    const roles = getSpawnableRoles('intern')
+    expect(roles.length).toBeGreaterThan(0)
+    expect(roles).toContain('cto')
+    expect(roles).toContain('manager')
+  })
+
+  test('apprentice can spawn any role (no restrictions)', () => {
+    const roles = getSpawnableRoles('apprentice')
+    expect(roles.length).toBeGreaterThan(0)
+    expect(roles).toContain('cto')
+    expect(roles).toContain('manager')
   })
 
   test('manager can spawn junior and mid-level engineers', () => {
@@ -304,27 +316,6 @@ describe('getSpawnableRoles', () => {
   test('coordinator can spawn manager', () => {
     const roles = getSpawnableRoles('coordinator')
     expect(roles).toContain('manager')
-  })
-
-  test('every spawnable role is a valid role in the hierarchy', () => {
-    for (const role of ROLE_HIERARCHY) {
-      const spawnable = getSpawnableRoles(role)
-      for (const s of spawnable) {
-        expect(ROLE_HIERARCHY).toContain(s)
-      }
-    }
-  })
-
-  test('apprentice cannot spawn any roles', () => {
-    const roles = getSpawnableRoles('apprentice')
-    expect(roles.length).toBe(0)
-  })
-
-  test('higher roles can spawn at least as many roles as lower roles in the same track', () => {
-    // principal should be able to spawn at least as many as staff
-    const principalRoles = getSpawnableRoles('principal-engineer')
-    const staffRoles = getSpawnableRoles('staff-engineer')
-    expect(principalRoles.length).toBeGreaterThanOrEqual(staffRoles.length)
   })
 })
 

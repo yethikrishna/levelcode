@@ -341,7 +341,7 @@ describe('agent templates: individual imports', () => {
     expect(agent.id).toBe('team-intern')
     expect(agent.displayName).toContain('Intern')
     expect(agent.model).toBe('anthropic/claude-haiku-3.5')
-    expect(agent.spawnableAgents).toEqual([])
+    expect(agent.spawnableAgents!.length).toBeGreaterThan(0)
   })
 
   test('apprentice template', async () => {
@@ -485,11 +485,14 @@ describe('agent templates: cross-template consistency', () => {
     }
   })
 
-  test('intern and apprentice have empty spawnableAgents', () => {
+  test('intern and apprentice have full spawning access', () => {
     const agent1 = getTeamAgent('intern' as any)!
     const agent2 = getTeamAgent('apprentice' as any)!
-    expect(agent1.spawnableAgents).toEqual([])
-    expect(agent2.spawnableAgents).toEqual([])
+    expect(agent1.spawnableAgents!.length).toBeGreaterThan(0)
+    expect(agent2.spawnableAgents!.length).toBeGreaterThan(0)
+    // They can spawn team roles and utility agents
+    expect(agent1.spawnableAgents).toContain('team-cto')
+    expect(agent2.spawnableAgents).toContain('team-cto')
   })
 
   test('coordinator can spawn managers', () => {
