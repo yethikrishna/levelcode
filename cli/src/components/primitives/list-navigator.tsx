@@ -1,6 +1,6 @@
 import { TextAttributes } from '@opentui/core'
 import { useKeyboard } from '@opentui/react'
-import React, { useState, useCallback, useRef, useEffect, memo } from 'react'
+import React, { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react'
 
 import { useTheme } from '../../hooks/use-theme'
 import { Button } from '../button'
@@ -162,8 +162,20 @@ export const ListNavigator = memo(function ListNavigator({
     ),
   )
 
-  // Track which group we've seen to render group headers
-  let lastGroup: string | undefined
+  // Pre-compute which items start a new group (safe for concurrent rendering)
+  const groupStarts = useMemo(() => {
+    const starts = new Set<number>()
+    let prevGroup: string | undefined
+    for (let i = 0; i < filteredItems.length; i++) {
+      if (filteredItems[i]!.group && filteredItems[i]!.group !== prevGroup) {
+        starts.add(i)
+        prevGroup = filteredItems[i]!.group
+      } else {
+        prevGroup = filteredItems[i]!.group
+      }
+    }
+    return starts
+  }, [filteredItems])
 
   return (
     <box style={{ flexDirection: 'column', width: '100%' }}>
@@ -233,10 +245,9 @@ export const ListNavigator = memo(function ListNavigator({
           // Active item badge
           const activeBadge = isActive ? ' \u2726' : ''
 
-          // Render group header if group changed
+          // Render group header if this item starts a new group
           let groupHeader: React.ReactNode = null
-          if (item.group && item.group !== lastGroup) {
-            lastGroup = item.group
+          if (item.group && groupStarts.has(idx)) {
             const groupItemCount = filteredItems.filter((i) => i.group === item.group).length
             groupHeader = groupHeaderRenderer ? (
               <box key={`group-${item.group}`}>

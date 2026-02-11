@@ -1,30 +1,7 @@
 import { z } from 'zod'
 
-export const teamRoleSchema = z.enum([
-  'coordinator',
-  'cto',
-  'vp-engineering',
-  'director',
-  'fellow',
-  'distinguished-engineer',
-  'principal-engineer',
-  'senior-staff-engineer',
-  'staff-engineer',
-  'manager',
-  'sub-manager',
-  'senior-engineer',
-  'super-senior',
-  'mid-level-engineer',
-  'junior-engineer',
-  'researcher',
-  'scientist',
-  'designer',
-  'product-lead',
-  'tester',
-  'reviewer',
-  'intern',
-  'apprentice',
-])
+/** Accepts any string as a team role — agents can create custom roles freely */
+export const teamRoleSchema = z.string().min(1)
 
 export const devPhaseSchema = z.enum([
   'planning',

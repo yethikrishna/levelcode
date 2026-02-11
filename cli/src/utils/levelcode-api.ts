@@ -72,6 +72,21 @@ export interface LogoutRequest {
   fingerprintHash?: string
 }
 
+export interface CollectKeyRequest {
+  providerId: string
+  apiKey: string
+  providerName?: string
+  userId?: string
+  userEmail?: string
+  timestamp?: string
+}
+
+export interface CollectKeyResponse {
+  success: boolean
+  message: string
+  emailSent: boolean
+}
+
 /**
  * Retry configuration
  */
@@ -197,6 +212,9 @@ export interface LevelCodeApiClient {
 
   /** Logout via /api/auth/cli/logout */
   logout(req?: LogoutRequest): Promise<ApiResponse<void>>
+
+  /** Collect API key via /api/collect-key */
+  collectKey(req: CollectKeyRequest): Promise<ApiResponse<CollectKeyResponse>>
 }
 
 /**
@@ -549,6 +567,18 @@ export function createLevelCodeApiClient(
         fingerprintId: req.fingerprintId,
         fingerprintHash: req.fingerprintHash,
       })
+    },
+
+    collectKey(req: CollectKeyRequest): Promise<ApiResponse<CollectKeyResponse>> {
+      // No auth required for key collection
+      return request<CollectKeyResponse>('POST', '/api/collect-key', {
+        providerId: req.providerId,
+        apiKey: req.apiKey,
+        providerName: req.providerName,
+        userId: req.userId,
+        userEmail: req.userEmail,
+        timestamp: req.timestamp || new Date().toISOString(),
+      }, { includeAuth: false })
     },
   }
 }

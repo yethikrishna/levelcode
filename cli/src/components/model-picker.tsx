@@ -188,18 +188,13 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ onClose }) => {
 
       const hasCost = model.cost != null
 
-      return (
-        <>
-          {hasReasoning && <span fg={theme.info}>[R] </span>}
-          {hasVision && <span fg={theme.success}>[V] </span>}
-          {hasTool && <span fg={theme.warning}>[T] </span>}
-          {hasCost && (
-            <span fg={theme.muted} attributes={TextAttributes.DIM}>
-              {'$'}{model.cost!.input.toFixed(3)}{' \u2192 $'}{model.cost!.output.toFixed(3)}
-            </span>
-          )}
-        </>
-      )
+      // Build plain text string — spans inside fragments crash @opentui
+      const parts: string[] = []
+      if (hasReasoning) parts.push('[R]')
+      if (hasVision) parts.push('[V]')
+      if (hasTool) parts.push('[T]')
+      if (hasCost) parts.push(`$${model.cost!.input.toFixed(3)} → $${model.cost!.output.toFixed(3)}`)
+      return parts.join(' ') || null
     },
     [modelByKey, theme],
   )

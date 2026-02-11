@@ -1,27 +1,19 @@
-export type TeamRole =
-  | 'coordinator'
-  | 'cto'
-  | 'vp-engineering'
-  | 'director'
-  | 'fellow'
-  | 'distinguished-engineer'
-  | 'principal-engineer'
-  | 'senior-staff-engineer'
-  | 'staff-engineer'
-  | 'manager'
-  | 'sub-manager'
-  | 'senior-engineer'
-  | 'super-senior'
-  | 'mid-level-engineer'
-  | 'junior-engineer'
-  | 'researcher'
-  | 'scientist'
-  | 'designer'
-  | 'product-lead'
-  | 'tester'
-  | 'reviewer'
-  | 'intern'
-  | 'apprentice'
+/**
+ * Team role. Built-in roles have dedicated agent templates, but agents can create
+ * any custom role (e.g., "director-core", "lead-architect", "devops-engineer").
+ * Custom roles use the closest built-in template or a generic senior-engineer template.
+ */
+export type TeamRole = string
+
+/** Built-in roles that have dedicated agent templates */
+export const BUILT_IN_ROLES = [
+  'coordinator', 'cto', 'vp-engineering', 'director', 'fellow',
+  'distinguished-engineer', 'principal-engineer', 'senior-staff-engineer',
+  'staff-engineer', 'manager', 'sub-manager', 'senior-engineer',
+  'super-senior', 'mid-level-engineer', 'junior-engineer', 'researcher',
+  'scientist', 'designer', 'product-lead', 'tester', 'reviewer',
+  'intern', 'apprentice',
+] as const
 
 export type DevPhase =
   | 'planning'
