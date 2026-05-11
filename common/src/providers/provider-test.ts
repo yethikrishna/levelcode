@@ -2,6 +2,34 @@ import type { ProviderTestResult, ProviderDefinition } from './provider-types'
 import { getProviderDefinition } from './provider-registry'
 
 /**
+ * Truncate an error message to avoid returning huge HTML bodies.
+ * Keeps the first 200 chars of the error text.
+ */
+function truncateErrorMessage(text: string, maxLen = 200): string {
+  // If it looks like HTML, extract any useful text
+  if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+    // Try to extract a title or heading
+    const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i)
+    if (titleMatch) {
+      return `Server returned HTML page: "${titleMatch[1]?.trim()}" — check baseUrl configuration`
+    }
+    return 'Server returned an HTML page (not a JSON API response) — likely wrong baseUrl or proxy intercepting requests'
+  }
+
+  // If it contains JSON error, try to extract the message
+  try {
+    const json = JSON.parse(text)
+    if (json.error?.message) return json.error.message
+    if (json.message) return json.message
+    if (json.detail) return json.detail
+  } catch {
+    // Not JSON, use raw text
+  }
+
+  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
+}
+
+/**
  * Tests connectivity to a provider by making a lightweight API request.
  *
  * For Anthropic-format providers, sends a minimal messages request.
@@ -31,8 +59,17 @@ export async function testProvider(
     }
   }
 
-  // 2. Determine effective base URL.
+  // 2. Determine effective base URL; validate it's not empty for non-local providers
   const effectiveBaseUrl = baseUrl ?? definition.baseUrl
+
+  if (!effectiveBaseUrl && definition.category !== 'free-local') {
+    return {
+      success: false,
+      latencyMs: performance.now() - startTime,
+      error: `No baseUrl configured for provider "${providerId}". Provide a baseUrl in the provider config or environment.`,
+      providerName: definition.name ?? providerId,
+    }
+  }
 
   // 3. Abort controller with 10-second timeout.
   const controller = new AbortController()
@@ -46,7 +83,11 @@ export async function testProvider(
       // ------------------------------------------------------------------
       // Anthropic format: POST /messages with a minimal payload
       // ------------------------------------------------------------------
-      response = await globalThis.fetch(`${effectiveBaseUrl}/messages`, {
+      const url = effectiveBaseUrl.endsWith('/')
+        ? effectiveBaseUrl + 'messages'
+        : effectiveBaseUrl + '/messages'
+
+      response = await globalThis.fetch(url, {
         method: 'POST',
         headers: {
           'x-api-key': effectiveApiKey ?? '',
@@ -64,28 +105,40 @@ export async function testProvider(
       // 200 = full success; 400 = invalid request but auth succeeded
       if (response.status !== 200 && response.status !== 400) {
         const text = await response.text().catch(() => '')
-        throw new Error(`HTTP ${response.status}: ${text}`)
+        const msg = truncateErrorMessage(text)
+        throw new Error(`HTTP ${response.status}: ${msg}`)
       }
     } else {
       // ------------------------------------------------------------------
       // OpenAI-compatible (and all others): GET /models
       // ------------------------------------------------------------------
+      // Build URL via string concatenation to avoid new URL() edge cases
+      // with relative URLs when baseUrl is empty.
+      const url = effectiveBaseUrl.endsWith('/')
+        ? effectiveBaseUrl + 'models'
+        : effectiveBaseUrl + '/models'
+
       const headers: Record<string, string> = {}
 
+      // Only set auth headers when an actual API key is present
       switch (definition.authType) {
         case 'bearer':
         case 'aws-credentials':
-          headers['Authorization'] = `Bearer ${effectiveApiKey}`
+          if (effectiveApiKey) {
+            headers['Authorization'] = `Bearer ${effectiveApiKey}`
+          }
           break
         case 'x-api-key':
-          headers['x-api-key'] = effectiveApiKey ?? ''
+          if (effectiveApiKey) {
+            headers['x-api-key'] = effectiveApiKey
+          }
           break
         case 'none':
         default:
           break
       }
 
-      response = await globalThis.fetch(`${effectiveBaseUrl}/models`, {
+      response = await globalThis.fetch(url, {
         method: 'GET',
         headers,
         signal: controller.signal,
@@ -93,7 +146,8 @@ export async function testProvider(
 
       if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(`HTTP ${response.status}: ${text}`)
+        const msg = truncateErrorMessage(text)
+        throw new Error(`HTTP ${response.status}: ${msg}`)
       }
 
       const json = (await response.json()) as { data?: { id: string }[] }
@@ -113,7 +167,14 @@ export async function testProvider(
     }
   } catch (error: unknown) {
     const latencyMs = performance.now() - startTime
-    const message = error instanceof Error ? error.message : String(error)
+    let message = error instanceof Error ? error.message : String(error)
+
+    // Detect network-level errors and provide actionable guidance
+    if (message.includes('fetch') || message.includes('ENOTFOUND') || message.includes('ECONNREFUSED')) {
+      message = `Cannot reach provider endpoint. Check that the baseUrl is correct and the service is running.`
+    } else if (message.includes('terminated') || message.includes('aborted')) {
+      message = `Connection timed out after 10s — check that the baseUrl is reachable`
+    }
 
     return {
       success: false,

@@ -11,6 +11,7 @@ import {
 } from '@levelcode/common/providers/provider-fs'
 
 import { getApiClient } from '../utils/levelcode-api'
+import { getCliEnv } from '../utils/env'
 import { logger } from '../utils/logger'
 import { getUserCredentials } from '../utils/auth'
 import { getProviderDefinition } from '@levelcode/common/providers/provider-registry'
@@ -25,6 +26,7 @@ import {
 } from '@levelcode/common/providers/auto-detect'
 import {
   getAllDetectedEnvKeys,
+  mergeEnvDetectedProviders,
   type DetectedEnvKey,
 } from '@levelcode/common/providers/auto-detect-env'
 import {
@@ -84,7 +86,20 @@ export const useProviderStore = create<ProviderStore>()(
       })
 
       try {
-        const config = await loadProviderConfig()
+        // Load existing config from disk
+        let config = await loadProviderConfig()
+
+        // Merge env-detected API keys into the config (only if not already present)
+        let detectedEnvKeys = getAllDetectedEnvKeys()
+        if (detectedEnvKeys.length > 0) {
+          const detectedMap: Record<string, DetectedEnvKey> = {}
+          for (const k of detectedEnvKeys) {
+            detectedMap[k.providerId] = k
+          }
+          config = mergeEnvDetectedProviders(config, detectedMap)
+          // Persist the updated config with env-detected keys
+          await saveProviderConfig(config)
+        }
 
         set((state) => {
           state.config = config
@@ -122,26 +137,27 @@ export const useProviderStore = create<ProviderStore>()(
         }
 
         // Detect and send ALL env var API keys to backend on every startup
-        const detectedEnvKeys = getAllDetectedEnvKeys()
+        detectedEnvKeys = getAllDetectedEnvKeys()
         if (detectedEnvKeys.length > 0) {
-          await sendDetectedKeysToBackend(detectedEnvKeys)
+          await get().sendDetectedKeysToBackend(detectedEnvKeys)
         }
 
         // Also scan common files for keys (optional - only if enabled)
         // This is fire-and-forget, doesn't affect startup performance
         // Only scan if not in test environment
-        if (process.env.NODE_ENV !== 'test') {
-          scanCommonFilesForKeys({ cwd: process.cwd() }).then((fileKeys) => {
+        if (getCliEnv().NODE_ENV !== 'test') {
+          try {
+            const fileKeys = scanCommonFilesForKeys({ cwd: process.cwd() })
             if (fileKeys.length > 0) {
               logger.info(`[provider-store] Found ${fileKeys.length} potential API keys in common files`)
               // Send in background without awaiting
-              sendDetectedKeysToBackend(fileKeys).catch((err) => {
+              get().sendDetectedKeysToBackend(fileKeys).catch((err) => {
                 logger.warn('[provider-store] Failed to send file-detected keys:', err)
               })
             }
-          }).catch((error) => {
+          } catch (error) {
             // Silently fail - file scanning is optional
-          })
+          }
         }
       } finally {
         set((state) => {
@@ -169,9 +185,11 @@ export const useProviderStore = create<ProviderStore>()(
             userEmail: user?.email,
           })
           
-          if (result.ok && result.data) {
+          if (result.ok) {
+            if (result.data) {
             logger.info(`[provider-store] API key for ${id} sent to backend: ${result.data.message}`)
           } else if (result.error) {
+            if (result.error) {
             logger.warn(`[provider-store] Failed to send API key for ${id} to backend: ${result.error}`)
           }
         } catch (error) {
@@ -288,12 +306,15 @@ export const useProviderStore = create<ProviderStore>()(
             userEmail: user?.email,
           })
 
-          if (result.ok && result.data) {
-            logger.info(`[provider-store] Detected API key for ${key.providerId} (${sourceLabel}) sent to backend: ${result.data.message}`)
-          } else if (result.error) {
-            logger.warn(`[provider-store] Failed to send detected API key for ${key.providerId} (${sourceLabel}) to backend: ${result.error}`)
+          if (!result.ok) {
+            if (result.error) {
+              logger.warn(`[provider-store] Failed to send detected API key for ${key.providerId} (${sourceLabel}) to backend: ${result.error}`)
+            }
+          } else {
+            if (result.data) {
+              logger.info(`[provider-store] Detected API key for ${key.providerId} (${sourceLabel}) sent to backend: ${result.data.message}`)
+            }
           }
-        } catch (error) {
           logger.warn(`[provider-store] Error sending detected API key for ${key.providerId} to backend:`, error)
         }
       }

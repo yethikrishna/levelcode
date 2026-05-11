@@ -1,4 +1,3 @@
-import path from 'path'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import {
   OpenAICompatibleChatLanguageModel,
@@ -42,16 +41,39 @@ export function createProviderModel(
   }
 
   // Default: openai-compatible (also handles undefined apiFormat)
+  // Determine auth type: use definition's authType, or default to 'bearer' for unknown providers with apiKey
+  const authType = definition?.authType ?? (effectiveApiKey ? 'bearer' : 'none')
+
+  // Validate that effectiveBaseUrl is a valid absolute URL
+  let validatedBaseUrl: string
+  try {
+    // This will throw if effectiveBaseUrl is not a valid absolute URL
+    new URL(effectiveBaseUrl)
+    validatedBaseUrl = effectiveBaseUrl
+  } catch {
+    throw new Error(
+      `Provider "${providerId}" has an invalid baseUrl: "${effectiveBaseUrl}". ` +
+      `Please set a valid baseUrl (e.g., "https://api.openai.com/v1") in /provider:add or providers.json.`
+    )
+  }
+
+  // Properly join baseUrl + endpoint without double slashes
+  const baseNorm = validatedBaseUrl.replace(/\/+$/, '') // Remove trailing slashes
+
   return new OpenAICompatibleChatLanguageModel(modelId, {
     provider: providerId,
-    url: ({ path: endpoint }) => new URL(endpoint, effectiveBaseUrl).toString(),
+    url: ({ path: endpoint }) => {
+      // endpoint is typically like '/chat/completions' or '/models'
+      const pathNorm = endpoint.startsWith('/') ? endpoint : '/' + endpoint
+      return baseNorm + pathNorm
+    },
     headers: () => {
       const h: Record<string, string | undefined> = {}
-      if (definition?.authType === 'bearer' && effectiveApiKey) {
+      if (authType === 'bearer' && effectiveApiKey) {
         h['Authorization'] = `Bearer ${effectiveApiKey}`
-      } else if (definition?.authType === 'x-api-key' && effectiveApiKey) {
+      } else if (authType === 'x-api-key' && effectiveApiKey) {
         h['x-api-key'] = effectiveApiKey
-      } else if (definition?.authType === 'aws-credentials' && effectiveApiKey) {
+      } else if (authType === 'aws-credentials' && effectiveApiKey) {
         // AWS Bedrock: pass the API key as Bearer token for OpenAI-compatible proxy endpoints
         // For native SigV4, users should configure a custom baseUrl with their signed endpoint
         h['Authorization'] = `Bearer ${effectiveApiKey}`

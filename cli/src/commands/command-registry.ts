@@ -46,6 +46,20 @@ import {
   PROVIDER_DEFINITIONS,
 } from '@levelcode/common/providers/provider-registry'
 
+import {
+  handleBiblePending,
+  handleBibleApproved,
+  handleBibleApprove,
+  handleBibleReject,
+  handleBibleDelete,
+  handleBibleEdit,
+  handleBibleStats,
+  handleBibleAdd,
+  handleBibleToggleResearch,
+  handleBibleContext,
+  handleBibleShow,
+} from './bible'
+
 import type { PhaseTransitionHookEvent } from '@levelcode/common/types/team-hook-events'
 import type { DevPhase, TeamConfig } from '@levelcode/common/types/team-config'
 
@@ -204,7 +218,7 @@ const clearInput = (params: RouterParams) => {
  * Find the active team, preferring Zustand store → last-active-team marker → first team on disk.
  * Returns null if no teams exist.
  */
-function resolveActiveTeam(): import('@levelcode/common/types/team-config').TeamConfig | null {
+export function resolveActiveTeam(): import('@levelcode/common/types/team-config').TeamConfig | null {
   // 1. Zustand store (set by /team:create or previous commands)
   const storeTeam = useTeamStore.getState().activeTeam
   if (storeTeam) return storeTeam
@@ -1254,6 +1268,109 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       clearInput(params)
     },
   }),
+  // ── Bible commands ──────────────────────────────────
+  defineCommandWithArgs({
+    name: 'bible:pending',
+    aliases: ['bible:pend'],
+    handler: async (params, args) => {
+      const result = await handleBiblePending(args.trim() || undefined)
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:approved',
+    handler: async (params, args) => {
+      const type = args.trim() || undefined
+      const result = await handleBibleApproved(type as any)
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:approve',
+    handler: async (params, args) => {
+      const result = await handleBibleApprove(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:reject',
+    handler: async (params, args) => {
+      const result = await handleBibleReject(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:delete',
+    handler: async (params, args) => {
+      const result = await handleBibleDelete(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:edit',
+    handler: async (params, args) => {
+      const result = await handleBibleEdit(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'bible:stats',
+    handler: async (params) => {
+      const result = await handleBibleStats()
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:add',
+    handler: async (params, args) => {
+      const result = await handleBibleAdd(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'bible:toggle-research',
+    handler: async (params) => {
+      const result = await handleBibleToggleResearch()
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:context',
+    handler: async (params, args) => {
+      const type = args.trim() || undefined
+      const result = await handleBibleContext(type as any)
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:show',
+    handler: async (params, args) => {
+      const result = await handleBibleShow(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
 ]
 
 export function findCommand(cmd: string): CommandDefinition | undefined {
@@ -1334,5 +1451,97 @@ ${skill.content}
         params.scrollToLatest()
       }, 0)
     },
-  })
+  }),
+
+  // ========== BIBLE COMMANDS ==========
+  defineCommand({
+    name: 'bible:pending',
+    handler: async (params) => {
+      const result = await handleBiblePending()
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'bible:approved',
+    handler: async (params) => {
+      const result = await handleBibleApproved()
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'bible:stats',
+    handler: async (params) => {
+      const result = await handleBibleStats()
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'bible:toggle-research',
+    handler: async (params) => {
+      const result = await handleBibleToggleResearch()
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:approve',
+    handler: async (params, args) => {
+      const result = await handleBibleApprove(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:reject',
+    handler: async (params, args) => {
+      const result = await handleBibleReject(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:delete',
+    handler: async (params, args) => {
+      const result = await handleBibleDelete(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:edit',
+    handler: async (params, args) => {
+      const result = await handleBibleEdit(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:add',
+    handler: async (params, args) => {
+      const result = await handleBibleAdd(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bible:show',
+    handler: async (params, args) => {
+      const result = await handleBibleShow(args.trim())
+      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
 }

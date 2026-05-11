@@ -195,7 +195,36 @@ function createDirectAnthropicModel(anthropicApiKey: string, model: string): Lan
 export async function getModelForRequest(params: ModelRequestParams): Promise<ModelResult> {
   const { apiKey, model, skipClaudeOAuth } = params
 
-  // Check if we should use Claude OAuth direct (works in both standalone and non-standalone)
+  // PRIORITY 1: Always try to use configured active model from providers.json first
+  // This ensures user's provider configuration is respected over hardcoded agent models
+  try {
+    const { getProviderModelForRequest, getDefaultModel, createProviderModel } = await import('./multi-provider')
+    
+    // Try to find the exact model in configured providers
+    const providerResult = await getProviderModelForRequest(model)
+    if (providerResult) {
+      return { model: providerResult.model, isClaudeOAuth: false }
+    }
+
+    // Model not found in providers — ALWAYS use default/active model if configured
+    const defaultModel = await getDefaultModel()
+    if (defaultModel) {
+      const oauthAccessToken = defaultModel.providerEntry.oauthToken?.accessToken
+      const fallbackModel = createProviderModel(
+        defaultModel.providerId,
+        defaultModel.modelId,
+        defaultModel.providerEntry.apiKey,
+        defaultModel.providerEntry.baseUrl,
+        oauthAccessToken,
+      )
+      return { model: fallbackModel, isClaudeOAuth: false }
+    }
+  } catch (err) {
+    // Log error but continue to legacy routing
+    console.error('[model-provider] Error in multi-provider routing:', err)
+  }
+
+  // PRIORITY 2: Claude OAuth (only if no provider config and it's a Claude model)
   // Skip if explicitly requested, if rate-limited, or if not a Claude model
   if (!skipClaudeOAuth && !isClaudeOAuthRateLimited() && isClaudeModel(model)) {
     const claudeOAuthCredentials = await getValidClaudeOAuthCredentials()
@@ -210,31 +239,7 @@ export async function getModelForRequest(params: ModelRequestParams): Promise<Mo
     }
   }
 
-  // Check providers.json for configured multi-provider routing
-  try {
-    const { getProviderModelForRequest, getDefaultModel, createProviderModel } = await import('./multi-provider')
-    const providerResult = await getProviderModelForRequest(model)
-    if (providerResult) {
-      return { model: providerResult.model, isClaudeOAuth: false }
-    }
-
-    // Model not found in any configured provider — try auto-fallback to default model
-    const defaultModel = await getDefaultModel()
-    if (defaultModel) {
-      const oauthAccessToken = defaultModel.providerEntry.oauthToken?.accessToken
-      const fallbackModel = createProviderModel(
-        defaultModel.providerId,
-        defaultModel.modelId,
-        defaultModel.providerEntry.apiKey,
-        defaultModel.providerEntry.baseUrl,
-        oauthAccessToken,
-      )
-      return { model: fallbackModel, isClaudeOAuth: false }
-    }
-  } catch {
-    // providers.json not configured or error — fall through to legacy routing
-  }
-
+  // PRIORITY 3: Legacy routing (standalone mode with env vars)
   if (isStandaloneMode()) {
     // Standalone mode: route directly to providers, bypass backend
 

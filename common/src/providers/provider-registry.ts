@@ -159,6 +159,15 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   // --------------------------------------------------------------------------
   // Chinese Providers
   // --------------------------------------------------------------------------
+  iflow: {
+    id: 'iflow',
+    name: 'iFlow (GLM)',
+    baseUrl: 'https://apis.iflow.cn/v1',
+    envVars: ['IFLOW_API_KEY'],
+    apiFormat: 'openai-compatible',
+    authType: 'bearer',
+    category: 'chinese',
+  },
   alibaba: {
     id: 'alibaba',
     name: 'Alibaba (Qwen/DashScope)',

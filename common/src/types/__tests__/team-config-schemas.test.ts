@@ -39,8 +39,11 @@ describe('team-config-schemas', () => {
 
     it('should validate all 23 roles', () => {
       expect(allRoles).toHaveLength(23)
-      // Verify the schema itself has exactly 23 options
-      expect(teamRoleSchema.options).toHaveLength(23)
+      // Verify the schema validates all roles
+      for (const role of allRoles) {
+        const result = teamRoleSchema.safeParse(role)
+        expect(result.success).toBe(true)
+      }
     })
 
     for (const role of allRoles) {

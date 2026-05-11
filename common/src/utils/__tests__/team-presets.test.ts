@@ -2,11 +2,17 @@ import { describe, it, expect } from 'bun:test'
 
 import { getTeamPreset, listPresets } from '../team-presets'
 import type { PresetConfig, PresetMember } from '../team-presets'
-import { teamRoleSchema } from '../../types/team-config-schemas'
 import type { TeamRole } from '../../types/team-config'
 
-/** All valid TeamRole values extracted from the zod schema. */
-const VALID_ROLES: readonly string[] = teamRoleSchema.options
+/** All valid TeamRole values. */
+const VALID_ROLES = [
+  'coordinator', 'cto', 'vp-engineering', 'director', 'fellow',
+  'distinguished-engineer', 'principal-engineer', 'senior-staff-engineer',
+  'staff-engineer', 'manager', 'sub-manager', 'senior-engineer',
+  'super-senior', 'mid-level-engineer', 'junior-engineer', 'researcher',
+  'scientist', 'designer', 'product-lead', 'tester', 'reviewer',
+  'intern', 'apprentice',
+] as const
 
 /**
  * Roles that count as a "leader" — every preset must include at least one.

@@ -167,6 +167,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Open swarm / team settings',
   },
   // OAuth commands
+  // OAuth commands
   {
     id: 'connect',
     label: 'connect',
@@ -250,6 +251,63 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Quit the CLI',
     aliases: ['quit', 'q'],
     implicitCommand: true,
+  },
+  // Bible Commands — Human-Vetted Truth System
+  {
+    id: 'bible:pending',
+    label: 'bible:pending',
+    description: 'List pending bible entries (awaiting human review)',
+    aliases: ['bible:list'],
+  },
+  {
+    id: 'bible:approved',
+    label: 'bible:approved',
+    description: 'List approved bible entries (agent-trusted truth)',
+  },
+  {
+    id: 'bible:approve',
+    label: 'bible:approve',
+    description: 'Approve a pending entry (promote to bible truth)',
+  },
+  {
+    id: 'bible:reject',
+    label: 'bible:reject',
+    description: 'Reject a pending entry',
+  },
+  {
+    id: 'bible:delete',
+    label: 'bible:delete',
+    description: 'Delete a bible entry',
+  },
+  {
+    id: 'bible:edit',
+    label: 'bible:edit',
+    description: 'Edit a bible entry (resets to pending)',
+  },
+  {
+    id: 'bible:stats',
+    label: 'bible:stats',
+    description: 'Show bible statistics',
+  },
+  {
+    id: 'bible:add',
+    label: 'bible:add',
+    description: 'Manually add a bible entry (requires review)',
+  },
+  {
+    id: 'bible:toggle-research',
+    label: 'bible:toggle-research',
+    description: 'Toggle auto-research for market insights',
+  },
+  {
+    id: 'bible:context',
+    label: 'bible:context',
+    description: 'Show approved bible context (for agents)',
+  },
+  {
+    id: 'bible:show',
+    label: 'bible:show',
+    description: 'Show a single bible entry by ID',
   },
 ]
 

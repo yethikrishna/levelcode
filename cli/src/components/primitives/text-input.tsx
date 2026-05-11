@@ -61,9 +61,14 @@ export const TextInput = memo(function TextInput({
           return
         }
 
-        // Regular character input
-        if (key.sequence && key.sequence.length === 1 && !key.ctrl && !key.meta) {
-          onChange(value + key.sequence)
+        // Handle both single character input and paste (multi-character sequences)
+        // Paste events send the entire pasted string as key.sequence
+        if (key.sequence && !key.ctrl && !key.meta) {
+          // Filter out control characters but allow multi-character paste
+          const sanitized = key.sequence.replace(/[\x00-\x1F\x7F]/g, '')
+          if (sanitized) {
+            onChange(value + sanitized)
+          }
           return
         }
       },

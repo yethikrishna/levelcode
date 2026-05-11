@@ -103,7 +103,7 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
     if (step !== 'test' || !selectedProvider || isTesting || testResult) return
 
     setIsTesting(true)
-    testProvider(selectedProvider.id, apiKey || undefined)
+    testProvider(selectedProvider.id, apiKey || undefined, selectedProvider.baseUrl || undefined)
       .then((result) => {
         setTestResult(result)
         setIsTesting(false)

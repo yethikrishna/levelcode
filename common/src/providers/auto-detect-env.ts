@@ -1,4 +1,4 @@
-import { PROVIDER_DEFINITIONS } from './provider-registry'
+import { PROVIDER_DEFINITIONS, getProviderDefinition } from './provider-registry'
 import type { ProviderEntry, ProvidersConfig } from './provider-types'
 
 /**
@@ -49,24 +49,33 @@ export function mergeEnvDetectedProviders(
   config: ProvidersConfig,
   detectedKeys: Record<string, DetectedEnvKey>,
 ): ProvidersConfig {
-  const newConfig = { ...config }
-  const existingProviders = new Set(Object.keys(config.providers))
+  const updatedProviders: Record<string, ProviderEntry> = { ...config.providers }
 
   for (const [providerId, detected] of Object.entries(detectedKeys)) {
-    // Skip if provider already exists in config
-    if (existingProviders.has(providerId)) {
+    // Skip if provider already exists with an API key (user manually configured)
+    const existing = updatedProviders[providerId]
+    if (existing?.apiKey) {
       continue
     }
 
-    // Add provider entry with the env-detected API key
-    newConfig.providers[providerId] = {
-      apiKey: detected.apiKey,
-      source: detected.source,
+    const definition = getProviderDefinition(providerId)
+
+    // Add or update provider entry with the env-detected API key
+    updatedProviders[providerId] = {
       enabled: true,
-    } as ProviderEntry
+      autoDetected: true,
+      apiKey: detected.apiKey,
+      baseUrl: definition?.baseUrl ?? existing?.baseUrl,
+      models: existing?.models ?? [],
+      customModelIds: existing?.customModelIds ?? [],
+      displayName: definition?.name,
+    }
   }
 
-  return newConfig
+  return {
+    ...config,
+    providers: updatedProviders,
+  }
 }
 
 /**
