@@ -60,8 +60,10 @@ export const DiffViewer = ({ diffText }: DiffViewerProps) => {
         .filter((rawLine) => !rawLine.startsWith('@@'))
         .map((rawLine, idx) => {
           const line = rawLine.length === 0 ? ' ' : rawLine
-          const { fg, attrs } = lineColor(line, theme.name, theme.muted)
-          const resolvedFg = fg || theme.foreground
+          const mutedColor = typeof theme.muted === 'string' ? theme.muted : theme.foregroundMuted
+          const { fg, attrs } = lineColor(line, theme.mode, mutedColor)
+          const foregroundColor = typeof theme.foreground === 'string' ? theme.foreground : theme.foregroundMuted
+          const resolvedFg = fg || foregroundColor
           return (
             <text key={`diff-line-${idx}`} style={{ wrapMode: 'none' }}>
               <span fg={resolvedFg} attributes={attrs}>

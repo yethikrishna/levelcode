@@ -1,6 +1,9 @@
 import { describe, test, expect, mock, beforeEach } from 'bun:test'
 
-// Mock isStandaloneMode to return false so we test the real API client
+// Mock isStandaloneMode to return false so we test the real API client.
+// NOTE: mock.module() is process-wide in bun:test. Each test file that
+// depends on a specific isStandaloneMode() return value must set up its
+// own mock to be independent of execution order.
 mock.module('@levelcode/sdk', () => ({
   isStandaloneMode: () => false,
   WEBSITE_URL: 'https://test.levelcode.vercel.app',

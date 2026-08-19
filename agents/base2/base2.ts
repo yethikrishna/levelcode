@@ -12,12 +12,14 @@ export function createBase2(
     hasNoValidation?: boolean
     planOnly?: boolean
     noAskUser?: boolean
+    gccState?: { commit?: string; branch?: string; token?: string; sessionId?: string }
   },
 ): Omit<SecretAgentDefinition, 'id'> {
   const {
     hasNoValidation = mode === 'fast',
     planOnly = false,
     noAskUser = false,
+    gccState,
   } = options ?? {}
   const isDefault = mode === 'default'
   const isFast = mode === 'fast'
@@ -53,6 +55,7 @@ export function createBase2(
       'spawn_agents',
       'read_files',
       'read_subtree',
+      'repo_map',
       !isFast && !isFree && 'write_todos',
       !isFast && !noAskUser && 'suggest_followups',
       'str_replace',
@@ -62,6 +65,8 @@ export function createBase2(
       !noAskUser && 'ask_user',
       'skill',
       'set_output',
+      !hasNoValidation && 'verify_changes',
+      'remember',
       // Team/swarm tools
       'team_create',
       'team_delete',
@@ -350,6 +355,57 @@ ${PLACEHOLDER.FILE_TREE_PROMPT_SMALL}
 ${PLACEHOLDER.KNOWLEDGE_FILES_CONTENTS}
 ${PLACEHOLDER.SYSTEM_INFO_PROMPT}
 
+# Next-Level Capabilities (use these — they are your edge)
+
+## 1. Structural awareness first: repo_map
+When working in an unfamiliar codebase or subsystem, call the repo_map tool BEFORE spawning file-pickers or reading files speculatively. It returns every important file with its key symbols ranked by cross-reference importance (a * marks the project's de-facto API surface). Use focus_path to zoom into a subsystem. Then read only the files that matter. This is dramatically cheaper and more reliable than blind exploration.
+
+## 2. Self-healing verification: verify_changes
+${hasNoValidation
+        ? 'Validation is disabled for this mode — skip verification unless the user asks.'
+        : `After completing a batch of edits, call the verify_changes tool. It auto-detects the project's typecheck/lint/test/build commands, runs them in order, and returns structured failures with summaries.
+
+THE LOOP: verify -> read failure summaries -> fix -> verify again. Repeat up to 3 fix attempts. Never declare a coding task complete with failing checks without telling the user exactly what still fails and why. If no checks are detected, fall back to spawning commanders with project-appropriate commands.`}
+
+## 3. Persistent memory: remember
+You wake up smarter in this repo every session: durable insights live in .levelcode/MEMORY.md and are loaded into your context automatically. When you (or your subagents) discover something durable and non-obvious — a build quirk, a hidden coupling, a user preference, a mistake pattern — persist it with the remember tool. Be selective: only repo-specific insights a future agent would otherwise have to rediscover the hard way. When a memory proves wrong, correct the file with your editing tools.
+
+# Native Multi-Step Planning + Subgoal Trees (Berserk Iteration 7)
+
+## Subgoal Tree Decomposition
+Decompose every complex task into a native subgoal tree:
+- Root goal = user request
+- Level-1 subgoals = major phases (explore, plan, implement, verify)
+- Leaf subgoals = atomic actions (spawn specific agent, read file X, propose edit Y)
+- Maintain tree state internally; track status (pending / in-progress / verified / fixed)
+- Re-plan subtree on verification failure; prune completed verified branches
+
+## Integrated Propose → Verify → Fix + Subgoal Cycle
+When making code changes:
+1. **Decompose**: Break request into subgoal tree before acting.
+2. **Propose**: For each leaf subgoal, use propose_str_replace / propose_write_file or draft.
+3. **Verify**: Run self-critique + subgoal status check.
+4. **Fix**: Apply corrections, update tree, re-verify affected subtree.
+5. **Advance**: Mark subgoal verified only after passing integrated critique; move to next.
+
+## Enhanced Self-Critique Prompt (with Subgoals)
+Before finalizing any edit or subgoal, perform this internal critique:
+- Does this change solve the exact user request with minimal diff?
+- Are there any edge cases, type errors, or convention violations introduced?
+- Does it correctly advance the current subgoal without breaking parent goals?
+- Would a reviewer find this correct, idiomatic, and complete?
+- If issues found, iterate fix on this subgoal until critique passes, then re-verify tree.
+
+# GCC Context Awareness (Git Context Commit)
+
+When planning or decomposing into subgoal trees, you MUST leverage GCC state (context tokens/commits) if provided:
+- Use the current commit hash, branch, and optional share token to anchor planning.
+- Reference context tokens for shareable session state when coordinating across agents or restoring planning state.
+- Include commit/branch awareness in subgoal planning to ensure changes are relative to the exact baseline.
+- When using write_todos or creating plans, note relevant GCC commit info for traceability.
+
+${gccState ? `Current GCC state: commit=${gccState.commit ?? 'unknown'}, branch=${gccState.branch ?? 'unknown'}${gccState.token ? `, token=${gccState.token}` : ''}` : 'No GCC state provided for this session.'}
+
 # Initial Git Changes
 
 The following is the state of the git repository at the start of the conversation. Note that it is not updated to reflect any subsequent changes made by the user or the agents.
@@ -399,7 +455,7 @@ ${PLACEHOLDER.GIT_CHANGES_PROMPT}
   }
 }
 
-const EXPLORE_PROMPT = `- Iteratively spawn file pickers, code-searchers, directory-listers, glob-matchers, commanders, and web/docs researchers to gather context as needed. The file-picker agent in particular is very useful to find relevant files -- try spawning multiple in parallel (say, 2-5) to explore different parts of the codebase. Use read_subtree if you need to grok a particular part of the codebase. Read all the relevant files using the read_files tool.`
+const EXPLORE_PROMPT = `- Start with the repo_map tool to get a ranked structural map of the codebase (use focus_path for subsystems) — then iteratively spawn file pickers, code-searchers, directory-listers, glob-matchers, commanders, and web/docs researchers to gather context as needed. The file-picker agent in particular is very useful to find relevant files -- try spawning multiple in parallel (say, 2-5) to explore different parts of the codebase. Use read_subtree if you need to grok a particular part of the codebase. Read all the relevant files using the read_files tool.`
 
 function buildImplementationInstructionsPrompt({
   isSonnet,
@@ -431,7 +487,7 @@ ${buildArray(
     !noAskUser &&
     'After getting context on the user request from the codebase or from research, use the ask_user tool to ask the user for important clarifications on their request or alternate implementation strategies. You should skip this step if the choice is obvious -- only ask the user if you need their help making the best choice.',
     (isDefault || isMax) &&
-    `- For any task requiring 3+ steps, use the write_todos tool to write out your step-by-step implementation plan. Include ALL of the applicable tasks in the list.${isFast ? '' : ' You should include a step to review the changes after you have implemented the changes.'}:${hasNoValidation ? '' : ' You should include at least one step to validate/test your changes: be specific about whether to typecheck, run tests, run lints, etc.'} You may be able to do reviewing and validation in parallel in the same step. Skip write_todos for simple tasks like quick edits or answering questions.`,
+    `- For any task requiring 3+ steps, FIRST decompose into a subgoal tree (root + hierarchical subgoals), THEN use the write_todos tool to write out your step-by-step implementation plan reflecting the tree. Include ALL of the applicable tasks in the list.${isFast ? '' : ' You should include a step to review the changes after you have implemented the changes.'}:${hasNoValidation ? '' : ' You should include at least one step to validate/test your changes: be specific about whether to typecheck, run tests, run lints, etc.'} You may be able to do reviewing and validation in parallel in the same step. Skip write_todos for simple tasks like quick edits or answering questions. Always track subgoal status and re-decompose on verification failures.`,
     (isDefault || isMax) &&
     `- For quick problems, briefly explain your reasoning to the user. If you need to think longer, write your thoughts within the <think> tags. Finally, for complex problems, spawn the thinker agent to help find the best solution. (gpt-5-agent / Titan Agent is a last resort for complex problems)`,
     isFree &&
@@ -445,7 +501,7 @@ ${buildArray(
     isFast &&
     '- Do a single typecheck targeted for your changes at most (if applicable for the project). Or skip this step if the change was small.',
     !hasNoValidation &&
-    `- For non-trivial changes, test them by running appropriate validation commands for the project (e.g. typechecks, tests, lints, etc.). Try to run all appropriate commands in parallel. ${isMax ? ' Typecheck and test the specific area of the project that you are editing *AND* then typecheck and test the entire project if necessary.' : ' If you can, only test the area of the project that you are editing, rather than the entire project.'} You may have to explore the project to find the appropriate commands. Don't skip this step, unless the change is very small and targeted (< 10 lines and unlikely to have a type error)!`,
+    `- For non-trivial changes, validate them with the verify_changes tool: it auto-detects and runs the project's typecheck/lint/test/build commands and returns structured failures. If a check fails, fix the issues and call verify_changes again (up to 3 fix rounds). ${isMax ? 'Additionally typecheck and test the entire project if your area-scoped verification passes but the change is far-reaching.' : 'Prefer fast checks first while iterating (checks: [\'typecheck\']), then run the full set.'} If verify_changes detects no commands, explore the project and run validation via commanders instead. Don't skip this step, unless the change is very small and targeted (< 10 lines and unlikely to have a type error)!`,
     (isDefault || isMax) &&
     `- Spawn a ${isDefault ? 'code-reviewer' : 'code-reviewer-multi-prompt'} to review the changes after you have implemented changes. (Skip this step only if the change is extremely straightforward and obvious.)`,
     `- Inform the user that you have completed the task in one sentence or a few short bullet points.${isSonnet ? " Don't create any markdown summary files or example documentation files, unless asked by the user." : ''}`,
@@ -478,7 +534,7 @@ function buildImplementationStepPrompt({
     isMax &&
     `You must spawn the 'editor-multi-prompt' agent to implement code changes rather than using the str_replace or write_file tools, since it will generate the best code changes.`,
     (isDefault || isMax) &&
-    `You must spawn a ${isDefault ? 'code-reviewer' : 'code-reviewer-multi-prompt'} to review the changes after you have implemented the changes and in parallel with typechecking or testing.`,
+    `You must spawn a ${isDefault ? 'code-reviewer' : 'code-reviewer-multi-prompt'} to review the changes after you have implemented the changes and in parallel with typechecking or testing. Maintain and advance your internal subgoal tree throughout; only mark subgoals verified after passing the integrated verification loop.`,
     `After completing the user request, summarize your changes in a sentence${isFast ? '' : ' or a few short bullet points'}.${isSonnet ? " Don't create any summary markdown files or example documentation files, unless asked by the user." : ''} Don't repeat yourself, especially if you have already concluded and summarized the changes in a previous step -- just end your turn.`,
     !isFast &&
     !noAskUser &&

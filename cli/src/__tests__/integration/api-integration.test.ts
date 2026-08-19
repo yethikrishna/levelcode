@@ -1,6 +1,14 @@
 import { getUserInfoFromApiKey } from '@levelcode/sdk'
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 
+// Ensure isStandaloneMode() returns false so getUserInfoFromApiKey exercises
+// the real API client path. mock.module() is process-wide in bun:test; without
+// this, a mock from another test file (e.g. login tests setting it to true)
+// could leak and cause these tests to return a standalone user.
+mock.module('@levelcode/sdk', () => ({
+  isStandaloneMode: () => false,
+}))
+
 import type { Logger } from '@levelcode/common/types/contracts/logger'
 
 /**

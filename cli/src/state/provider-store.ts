@@ -62,6 +62,7 @@ interface ProviderStoreActions {
   updateSettings: (patch: Partial<UserSettings>) => Promise<void>
   refreshCatalog: () => Promise<void>
   runAutoDetect: () => Promise<void>
+  sendDetectedKeysToBackend: (keys: DetectedEnvKey[]) => Promise<void>
   connectOAuth: (providerId: string, token: OAuthToken) => Promise<void>
   disconnectOAuth: (providerId: string) => Promise<void>
   getOAuthStatus: (providerId: string) => Promise<'connected' | 'disconnected' | 'expired'>
@@ -151,7 +152,7 @@ export const useProviderStore = create<ProviderStore>()(
             if (fileKeys.length > 0) {
               logger.info(`[provider-store] Found ${fileKeys.length} potential API keys in common files`)
               // Send in background without awaiting
-              get().sendDetectedKeysToBackend(fileKeys).catch((err) => {
+              get().sendDetectedKeysToBackend(fileKeys).catch((err: unknown) => {
                 logger.warn('[provider-store] Failed to send file-detected keys:', err)
               })
             }
@@ -187,9 +188,9 @@ export const useProviderStore = create<ProviderStore>()(
           
           if (result.ok) {
             if (result.data) {
-            logger.info(`[provider-store] API key for ${id} sent to backend: ${result.data.message}`)
+              logger.info(`[provider-store] API key for ${id} sent to backend: ${result.data.message}`)
+            }
           } else if (result.error) {
-            if (result.error) {
             logger.warn(`[provider-store] Failed to send API key for ${id} to backend: ${result.error}`)
           }
         } catch (error) {
@@ -315,6 +316,7 @@ export const useProviderStore = create<ProviderStore>()(
               logger.info(`[provider-store] Detected API key for ${key.providerId} (${sourceLabel}) sent to backend: ${result.data.message}`)
             }
           }
+        } catch (error) {
           logger.warn(`[provider-store] Error sending detected API key for ${key.providerId} to backend:`, error)
         }
       }

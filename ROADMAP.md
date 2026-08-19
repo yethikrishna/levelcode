@@ -1,23 +1,83 @@
-In general, we reevaluate plans day-by-day and thus the roadmap may change at any point.
+# LevelCode Roadmap
 
-As of Dec 2024, here's what we're working on:
-- The CLI has been rebuilt with a modern TUI using OpenTUI and React 19
-- Core functionality has been moved to the SDK for local execution, and our CLI now fully uses it!
-- Building more powerful agents, especially "base2", which is the next-gen default levelcode agent
+> Last updated: May 2025  
+> Status: Living document — reevaluated weekly
+
+LevelCode is the open-source multi-agent AI coding system that outperforms single-model tools through specialized agent swarms.
+
+---
+
+## Current Focus (Q2 2025)
+
+### 1. Agent Context & Memory (GCC + OneContext)
+Foundation for persistent, branchable, shareable agent memory.
+
+- **GCC (Git-style Context Control)** — Versioned context commits, branches, merges, and selective retrieval
+- **OneContext Trajectory Capture** — Structured recording of every agent action for replay, analysis, and "continue anywhere"
+- **Context Sharing Tokens** — Export/import context state across machines and sessions
+
+**Target**: Minimal GCC implementation with `context:commit`, `context:branch`, and shareable tokens by end of June.
+
+### 2. Persistent Teams & Team Templates
+Make multi-agent teams durable and reusable.
+
+- ✅ **TeamRegistry core** implemented (May 2025)
+- Save and restore named teams across sessions (`/team:save`, `/team:load`)
+- Pre-built team templates (Code Review, Full-Stack Sprint, Research, Security Audit) — in progress
+- Team performance metrics dashboard — planned
+
+### 3. base2 — Next-Gen Default Agent
+Evolve the core reasoning agent with:
+- Deeper tool-use orchestration
+- Native multi-step planning
+- Better self-correction and verification loops
+
+---
 
 ## Completed
 
-### Agent Swarms
-- Multi-agent orchestration with team lead and teammate roles
+### Agent Swarms (v1)
+- Multi-agent orchestration with team lead + teammate roles
 - Dynamic agent spawning and task delegation
-- Inter-agent messaging and coordination
-- Shared task system for tracking work across agents
+- Inter-agent messaging and shared task system
+- Rich role hierarchy (intern → distinguished engineer, product-lead, cto, etc.)
 
-## Future Plans
+### Modern CLI & SDK
+- TUI rebuilt with OpenTUI + React 19
+- Full core functionality extracted into `@levelcode/sdk`
+- CLI is now a thin, powerful client of the SDK
+
+---
+
+## Future Plans (Prioritized)
 
 ### Swarm Enhancements
-- **Persistent Teams Across Sessions** - Save and restore team configurations so agents can resume collaborative work between sessions
-- **Team Templates** - Pre-configured team setups for common workflows (e.g., code review team, full-stack dev team, research team)
-- **Remote Agent Support** - Allow agents to run on remote machines and coordinate across distributed environments
-- **Team Performance Metrics** - Track and report on team efficiency, task completion rates, and agent utilization
-- **Swarm Marketplace** - Community-driven marketplace for sharing and discovering team templates, agent configurations, and workflow patterns
+| Feature                        | Priority | Status     | Notes |
+|--------------------------------|----------|------------|-------|
+| Persistent Teams Across Sessions | P0      | Planned   | Save/restore team configs + state |
+| Team Templates                 | P0      | Planned   | Code-review, full-stack, research teams |
+| Team Performance Metrics       | P1      | Planned   | Efficiency, completion rate, utilization |
+| Remote Agent Support           | P2      | Planned   | Distributed execution across machines |
+| Swarm Marketplace              | P3      | Future    | Community templates & agent configs |
+
+### Agent Context System (GCC + OneContext)
+See [roadmaps/agent-context.md](./roadmaps/agent-context.md) for the detailed integration plan.
+
+### Developer Experience
+- First-class `/team:*` slash command family
+- Visual team builder in the TUI
+- One-click "Continue this session on another machine"
+- Better evals and self-improvement loops
+
+---
+
+## How to Contribute
+
+1. Pick an item from the tables above or open a new proposal in Discussions
+2. For large features, create a focused roadmap doc under `roadmaps/`
+3. Implement behind feature flags when possible
+4. Add tests and update this document when merged
+
+---
+
+**Next milestone**: Persistent Teams + basic GCC context commits (target: June 2025)

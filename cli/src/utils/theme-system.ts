@@ -73,44 +73,12 @@ export function supportsTruecolor(env: CliEnv = getCliEnv()): boolean {
   return false
 }
 
-
-
-/**
- * Get the block color for the logo based on theme and terminal capabilities.
- * In dark mode: white (#ffffff or 'white')
- * In light mode: black (#000000 or 'black')
- */
-export function getLogoBlockColor(
-  themeName: ThemeName,
-  env: CliEnv = getCliEnv(),
-): string {
-  const isTruecolor = supportsTruecolor(env)
-  if (themeName === 'dark') {
-    return isTruecolor ? '#ffffff' : 'white'
-  }
-  return isTruecolor ? '#000000' : 'black'
-}
-
-/**
- * Get the accent color for the logo based on theme and terminal capabilities.
- * Returns the primary green color with appropriate fallback.
- */
-export function getLogoAccentColor(
-  themeName: ThemeName,
-  env: CliEnv = getCliEnv(),
-): string {
-  const isTruecolor = supportsTruecolor(env)
-  // The primary green color - 'lime' is CSS bright green
-  if (themeName === 'dark') {
-    return isTruecolor ? '#9EFC62' : 'lime'
-  }
-  return isTruecolor ? '#65A83E' : 'green'
-}
-
 const IDE_THEME_INFERENCE = {
   dark: [
     'dark',
     'midnight',
+    'solar',
+    'matrix',
     'night',
     'noir',
     'black',
@@ -166,7 +134,7 @@ const inferThemeFromName = (themeName: string): ThemeName | null => {
 
   for (const hint of IDE_THEME_INFERENCE.dark) {
     if (normalized.includes(hint)) {
-      return 'dark'
+      return 'midnight'
     }
   }
 
@@ -371,7 +339,7 @@ const extractJetBrainsTheme = (content: string): ThemeName | null => {
 
   const normalized = content.toLowerCase()
   if (normalized.includes('darcula') || normalized.includes('dark')) {
-    return 'dark'
+    return 'midnight'
   }
 
   if (normalized.includes('light')) {
@@ -461,7 +429,7 @@ const detectVSCodeTheme = (
     env.VSCODE_THEME_KIND ?? env.VSCODE_COLOR_THEME_KIND
   if (themeKindEnv) {
     const normalized = themeKindEnv.trim().toLowerCase()
-    if (normalized === 'dark' || normalized === 'hc') return 'dark'
+    if (normalized === 'dark' || normalized === 'hc') return 'midnight'
     if (normalized === 'light') return 'light'
   }
 
@@ -818,7 +786,7 @@ function detectWindowsPowerShellTheme(): ThemeName | null {
     'white',
   ]
 
-  if (darkColors.includes(colorLower)) return 'dark'
+  if (darkColors.includes(colorLower)) return 'midnight'
   if (lightColors.includes(colorLower)) return 'light'
 
   return null
@@ -837,7 +805,7 @@ export function detectPlatformTheme(): ThemeName {
         '-g',
         'AppleInterfaceStyle',
       ])
-      if (value?.toLowerCase() === 'dark') return 'dark'
+      if (value?.toLowerCase() === 'dark') return 'midnight'
       return 'light'
     }
 
@@ -853,7 +821,7 @@ export function detectPlatformTheme(): ThemeName {
         '-Command',
         '(Get-ItemProperty -Path HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize).AppsUseLightTheme',
       ])
-      if (value === '0') return 'dark'
+      if (value === '0') return 'midnight'
       if (value === '1') return 'light'
     }
 
@@ -864,149 +832,371 @@ export function detectPlatformTheme(): ThemeName {
         'org.gnome.desktop.interface',
         'color-scheme',
       ])
-      if (value?.toLowerCase().includes('dark')) return 'dark'
+      if (value?.toLowerCase().includes('dark')) return 'midnight'
       if (value?.toLowerCase().includes('light')) return 'light'
     }
   }
 
-  return 'dark'
+  return 'midnight'
+}
+
+const BASE_MIDNIGHT = {
+  mode: 'dark' as const,
+  // Core semantic colors - GitHub Dark inspired
+  primary: '#58a6ff',
+  accent: '#58a6ff',
+  secondary: '#bc8cff',
+  tertiary: '#ff7b72',
+  success: '#3fb950',
+  error: '#f85149',
+  warning: '#d29922',
+  info: '#58a6ff',
+  link: '#58a6ff',
+  directory: '#8b949e',
+
+  // Neutral scale - GitHub Dark palette
+  foreground: '#c9d1d9',
+  foregroundMuted: '#8b949e',
+  foregroundSubtle: '#6e7681',
+  background: '#0d1117',
+  muted: '#8b949e',
+  border: '#30363d',
+  borderSubtle: '#21262d',
+  surface: '#161b22',
+  surfaceRaised: '#21262d',
+  surfaceSunken: '#0d1117',
+  surfaceHover: '#30363d',
+  surfaceActive: '#1f6feb33',
+  overlay: '#0d1117cc',
+
+  // Status bar segments
+  statusBarBg: '#161b22',
+  statusBarRemoteBg: '#1f6feb',
+  statusBarErrorBg: '#da3633',
+
+  // AI/User messages
+  aiMessageBg: '#161b22',
+  aiMessageBorder: '#30363d',
+  userMessageBg: '#1f6feb1a',
+  userMessageBorder: '#1f6feb44',
+  aiLine: '#30363d',
+  userLine: '#58a6ff',
+
+  // Agent backgrounds
+  agentToggleHeaderBg: '#1f6feb',
+  agentToggleExpandedBg: '#238636',
+  agentFocusedBg: '#30363d',
+  agentContentBg: '#0d1117',
+  inputFg: '#c9d1d9',
+  inputFocusedFg: '#f0f6fc',
+
+  // Mode toggles
+  modeFastBg: '#d29922',
+  modeFastText: '#d29922',
+  modeMaxBg: '#f85149',
+  modeMaxText: '#f85149',
+  modePlanBg: '#1f6feb',
+  modePlanText: '#1f6feb',
+
+  // Activity bar
+  activityBarBg: '#010409',
+  activityBarActiveBg: '#161b22',
+  activityBarFg: '#8b949e',
+  activityBarActiveFg: '#58a6ff',
+
+  // Image card
+  imageCardBorder: '#30363d',
+
+  // Syntax highlighting colors (GitHub Dark)
+  syntaxKeyword: '#ff7b72',
+  syntaxString: '#a5d6ff',
+  syntaxNumber: '#79c0ff',
+  syntaxComment: '#8b949e',
+  syntaxFunction: '#d2a8ff',
+  syntaxVariable: '#ffa657',
+  syntaxOperator: '#ff7b72',
+  syntaxPunctuation: '#c9d1d9',
 }
 
 const DEFAULT_CHAT_THEMES: Record<ThemeName, ChatTheme> = {
-  dark: {
-    name: 'dark',
-    // Core semantic colors
-    primary: '#9EFC62',
-    secondary: '#a3aed0',
-    success: '#22c55e',
-    error: '#ef4444',
-    warning: '#FFA500',
-    info: '#9EFC62',
-    link: '#3B82F6',
-    directory: '#9CA3AF',
-
-    // Neutral scale
-    foreground: '#f1f5f9',
-    background: 'transparent',
-    muted: '#acb3bf',
-    border: '#536175',
-    surface: '#202327',
-    surfaceHover: '#334155',
-
-    // Context-specific
-    aiLine: '#6b7280',
-    userLine: '#9EFC62',
-
-    // Agent backgrounds
-    agentToggleHeaderBg: '#f97316',
-    agentToggleExpandedBg: '#1d4ed8',
-    agentFocusedBg: '#334155',
-    agentContentBg: '#000000',
-    inputFg: '#f5f5f5',
-    inputFocusedFg: '#ffffff',
-
-    // Mode toggles
-    modeFastBg: '#f97316',
-    modeFastText: '#f97316',
-    modeMaxBg: '#dc2626',
-    modeMaxText: '#dc2626',
-    modePlanBg: '#1e40af',
-    modePlanText: '#1e40af',
-
-    // Image card
-    imageCardBorder: '#6B7280',
-
-    // Markdown
+  midnight: {
+    ...BASE_MIDNIGHT,
+    name: 'midnight',
     markdown: {
-      // Dark mode: slightly darker gray for less brightness
-      codeBackground: '#374151',
-      codeHeaderFg: '#5b647a',
-      inlineCodeFg: '#FF8534',
-      codeTextFg: '#f1f5f9',
+      codeBackground: '#161b22',
+      codeHeaderFg: '#8b949e',
+      inlineCodeFg: '#79c0ff',
+      codeTextFg: '#c9d1d9',
       headingFg: {
-        1: '#facc15',
-        2: '#facc15',
-        3: '#facc15',
-        4: '#facc15',
-        5: '#facc15',
-        6: '#facc15',
+        1: '#58a6ff',
+        2: '#58a6ff',
+        3: '#58a6ff',
+        4: '#bc8cff',
+        5: '#bc8cff',
+        6: '#bc8cff',
       },
-      listBulletFg: '#a3aed0',
-      blockquoteBorderFg: '#334155',
-      blockquoteTextFg: '#e2e8f0',
-      dividerFg: '#283042',
+      listBulletFg: '#8b949e',
+      blockquoteBorderFg: '#30363d',
+      blockquoteTextFg: '#8b949e',
+      dividerFg: '#21262d',
       codeMonochrome: false,
+      linkFg: '#58a6ff',
+    },
+  },
+  dark: {
+    ...BASE_MIDNIGHT,
+    name: 'dark',
+    markdown: {
+      codeBackground: '#161b22',
+      codeHeaderFg: '#8b949e',
+      inlineCodeFg: '#79c0ff',
+      codeTextFg: '#c9d1d9',
+      headingFg: {
+        1: '#58a6ff',
+        2: '#58a6ff',
+        3: '#58a6ff',
+        4: '#bc8cff',
+        5: '#bc8cff',
+        6: '#bc8cff',
+      },
+      listBulletFg: '#8b949e',
+      blockquoteBorderFg: '#30363d',
+      blockquoteTextFg: '#8b949e',
+      dividerFg: '#21262d',
+      codeMonochrome: false,
+      linkFg: '#58a6ff',
+    },
+  },
+  solar: {
+    ...BASE_MIDNIGHT,
+    name: 'solar',
+    primary: '#f0883e',
+    accent: '#f0883e',
+    secondary: '#d29922',
+    tertiary: '#ff7b72',
+    success: '#3fb950',
+    error: '#f85149',
+    warning: '#d29922',
+    info: '#f0883e',
+    link: '#f0883e',
+    aiLine: '#30363d',
+    userLine: '#f0883e',
+    statusBarRemoteBg: '#f0883e',
+    aiMessageBorder: '#f0883e33',
+    userMessageBg: '#f0883e1a',
+    userMessageBorder: '#f0883e44',
+    agentToggleHeaderBg: '#f0883e',
+    modePlanBg: '#f0883e',
+    modePlanText: '#f0883e',
+    activityBarActiveFg: '#f0883e',
+    markdown: {
+      codeBackground: '#161b22',
+      codeHeaderFg: '#8b949e',
+      inlineCodeFg: '#ffa657',
+      codeTextFg: '#c9d1d9',
+      headingFg: {
+        1: '#f0883e',
+        2: '#f0883e',
+        3: '#f0883e',
+        4: '#d29922',
+        5: '#d29922',
+        6: '#d29922',
+      },
+      listBulletFg: '#8b949e',
+      blockquoteBorderFg: '#30363d',
+      blockquoteTextFg: '#8b949e',
+      dividerFg: '#21262d',
+      codeMonochrome: false,
+      linkFg: '#f0883e',
+    },
+  },
+  matrix: {
+    ...BASE_MIDNIGHT,
+    name: 'matrix',
+    background: '#000000',
+    surface: '#001100',
+    surfaceRaised: '#002200',
+    surfaceSunken: '#000000',
+    surfaceHover: '#003300',
+    surfaceActive: '#00ff4133',
+    border: '#005500',
+    borderSubtle: '#003300',
+    statusBarBg: '#001100',
+    statusBarRemoteBg: '#008f11',
+    primary: '#00ff41',
+    accent: '#00ff41',
+    secondary: '#008f11',
+    tertiary: '#39ff14',
+    success: '#00ff41',
+    error: '#ff0000',
+    warning: '#cccc00',
+    info: '#00ff41',
+    link: '#39ff14',
+    foreground: '#00ff41',
+    foregroundMuted: '#008f11',
+    foregroundSubtle: '#005500',
+    muted: '#008f11',
+    directory: '#008f11',
+    activityBarBg: '#000000',
+    activityBarActiveBg: '#001100',
+    activityBarFg: '#005500',
+    activityBarActiveFg: '#00ff41',
+    aiMessageBg: '#000a00',
+    aiMessageBorder: '#003300',
+    userMessageBg: '#00ff4111',
+    userMessageBorder: '#00ff4144',
+    aiLine: '#003300',
+    userLine: '#00ff41',
+    agentToggleHeaderBg: '#008f11',
+    agentToggleExpandedBg: '#00ff41',
+    agentFocusedBg: '#003300',
+    agentContentBg: '#000000',
+    inputFg: '#00ff41',
+    inputFocusedFg: '#39ff14',
+    modeFastBg: '#cccc00',
+    modeFastText: '#cccc00',
+    modeMaxBg: '#ff0000',
+    modeMaxText: '#ff0000',
+    modePlanBg: '#008f11',
+    modePlanText: '#008f11',
+    imageCardBorder: '#003300',
+    syntaxKeyword: '#39ff14',
+    syntaxString: '#00ff41',
+    syntaxNumber: '#00ff41',
+    syntaxComment: '#005500',
+    syntaxFunction: '#00ff41',
+    syntaxVariable: '#00ff41',
+    syntaxOperator: '#00ff41',
+    syntaxPunctuation: '#008f11',
+    overlay: '#000000cc',
+    markdown: {
+      codeBackground: '#001100',
+      codeHeaderFg: '#008f11',
+      inlineCodeFg: '#39ff14',
+      codeTextFg: '#00ff41',
+      headingFg: {
+        1: '#00ff41',
+        2: '#00ff41',
+        3: '#00ff41',
+        4: '#39ff14',
+        5: '#39ff14',
+        6: '#39ff14',
+      },
+      listBulletFg: '#008f11',
+      blockquoteBorderFg: '#003300',
+      blockquoteTextFg: '#008f11',
+      dividerFg: '#003300',
+      codeMonochrome: false,
+      linkFg: '#39ff14',
     },
   },
   light: {
     name: 'light',
+    mode: 'light',
     // Core semantic colors
-    primary: '#65A83E',
-    secondary: '#6b7280',
-    success: '#059669',
-    error: '#ef4444',
-    warning: '#F59E0B',
-    info: '#65A83E',
-    link: '#2563EB',
-    directory: '#6B7280',
+    primary: '#0969da',
+    accent: '#0969da',
+    secondary: '#8250df',
+    tertiary: '#cf222e',
+    success: '#1a7f37',
+    error: '#cf222e',
+    warning: '#9a6700',
+    info: '#0969da',
+    link: '#0969da',
+    directory: '#57606a',
 
-    // Neutral scale
-    foreground: '#111827',
-    background: 'transparent',
-    muted: '#6b7280',
-    border: '#d1d5db',
-    surface: '#f3f4f6',
-    surfaceHover: '#e5e7eb',
+    // Neutral scale - GitHub Light
+    foreground: '#1f2328',
+    foregroundMuted: '#656d76',
+    foregroundSubtle: '#8c959f',
+    background: '#ffffff',
+    muted: '#656d76',
+    border: '#d0d7de',
+    borderSubtle: '#eaeef2',
+    surface: '#f6f8fa',
+    surfaceRaised: '#ffffff',
+    surfaceSunken: '#f6f8fa',
+    surfaceHover: '#eaeef2',
+    surfaceActive: '#0969da22',
+    overlay: '#ffffffcc',
 
-    // AI/User context
-    aiLine: '#6b7280',
-    userLine: '#65A83E',
+    // Status bar segments
+    statusBarBg: '#f6f8fa',
+    statusBarRemoteBg: '#0969da',
+    statusBarErrorBg: '#cf222e',
 
-    // Agent context
-    agentToggleHeaderBg: '#ea580c',
-    agentToggleExpandedBg: '#1d4ed8',
-    agentFocusedBg: '#f3f4f6',
+    // AI/User messages
+    aiMessageBg: '#f6f8fa',
+    aiMessageBorder: '#d0d7de',
+    userMessageBg: '#ddf4ff',
+    userMessageBorder: '#0969da44',
+    aiLine: '#d0d7de',
+    userLine: '#0969da',
+
+    // Agent backgrounds
+    agentToggleHeaderBg: '#0969da',
+    agentToggleExpandedBg: '#1a7f37',
+    agentFocusedBg: '#eaeef2',
     agentContentBg: '#ffffff',
-    inputFg: '#111827',
-    inputFocusedFg: '#000000',
+    inputFg: '#1f2328',
+    inputFocusedFg: '#1f2328',
 
     // Mode toggles
-    modeFastBg: '#f97316',
-    modeFastText: '#f97316',
-    modeMaxBg: '#dc2626',
-    modeMaxText: '#dc2626',
-    modePlanBg: '#1e40af',
-    modePlanText: '#1e40af',
+    modeFastBg: '#bf8700',
+    modeFastText: '#bf8700',
+    modeMaxBg: '#cf222e',
+    modeMaxText: '#cf222e',
+    modePlanBg: '#0969da',
+    modePlanText: '#0969da',
+
+    // Activity bar
+    activityBarBg: '#f6f8fa',
+    activityBarActiveBg: '#ffffff',
+    activityBarFg: '#656d76',
+    activityBarActiveFg: '#0969da',
 
     // Image card
-    imageCardBorder: '#6B7280',
+    imageCardBorder: '#d0d7de',
+
+    // Syntax highlighting colors (GitHub Light)
+    syntaxKeyword: '#cf222e',
+    syntaxString: '#0a3069',
+    syntaxNumber: '#0550ae',
+    syntaxComment: '#6e7781',
+    syntaxFunction: '#8250df',
+    syntaxVariable: '#953800',
+    syntaxOperator: '#cf222e',
+    syntaxPunctuation: '#1f2328',
 
     // Markdown
     markdown: {
-      // Light mode: lighter gray background so inline code feels airy
-      codeBackground: '#f3f4f6',
-      codeHeaderFg: '#6b7280',
-      inlineCodeFg: '#C45A00',
-      codeTextFg: '#111827',
+      codeBackground: '#f6f8fa',
+      codeHeaderFg: '#656d76',
+      inlineCodeFg: '#0550ae',
+      codeTextFg: '#1f2328',
       headingFg: {
-        1: '#dc2626',
-        2: '#dc2626',
-        3: '#dc2626',
-        4: '#dc2626',
-        5: '#dc2626',
-        6: '#dc2626',
+        1: '#0969da',
+        2: '#0969da',
+        3: '#0969da',
+        4: '#8250df',
+        5: '#8250df',
+        6: '#8250df',
       },
-      listBulletFg: '#6b7280',
-      blockquoteBorderFg: '#d1d5db',
-      blockquoteTextFg: '#374151',
-      dividerFg: '#e5e7eb',
+      listBulletFg: '#656d76',
+      blockquoteBorderFg: '#d0d7de',
+      blockquoteTextFg: '#656d76',
+      dividerFg: '#eaeef2',
       codeMonochrome: false,
+      linkFg: '#0969da',
     },
   },
 }
 
 export const chatThemes = {
+  midnight: DEFAULT_CHAT_THEMES.midnight,
   dark: DEFAULT_CHAT_THEMES.dark,
+  solar: DEFAULT_CHAT_THEMES.solar,
+  matrix: DEFAULT_CHAT_THEMES.matrix,
   light: DEFAULT_CHAT_THEMES.light,
 }
 
@@ -1038,6 +1228,42 @@ export const createMarkdownPalette = (theme: ChatTheme): MarkdownPalette => {
     codeMonochrome: theme.markdown?.codeMonochrome ?? true,
     linkFg: theme.markdown?.linkFg ?? theme.link,
   }
+}
+
+/**
+ * Check if a theme name is a dark mode theme
+ */
+export const isDarkTheme = (themeName: ThemeName): boolean => {
+  return themeName !== 'light'
+}
+
+/**
+ * Get the block color for the logo based on theme and terminal capabilities.
+ */
+export function getLogoBlockColor(
+  themeName: ThemeName,
+  env: CliEnv = getCliEnv(),
+): string {
+  const isTruecolor = supportsTruecolor(env)
+  if (isDarkTheme(themeName)) {
+    return isTruecolor ? '#ffffff' : 'white'
+  }
+  return isTruecolor ? '#000000' : 'black'
+}
+
+/**
+ * Get the accent color for the logo based on theme and terminal capabilities.
+ */
+export function getLogoAccentColor(
+  themeName: ThemeName,
+  env: CliEnv = getCliEnv(),
+): string {
+  const isTruecolor = supportsTruecolor(env)
+  const theme = chatThemes[themeName] ?? chatThemes.midnight
+  if (isDarkTheme(themeName)) {
+    return isTruecolor ? theme.primary : 'cyan'
+  }
+  return isTruecolor ? theme.primary : 'blue'
 }
 
 /**

@@ -22,10 +22,11 @@ interface LocalEndpoint {
 const LOCAL_ENDPOINTS: LocalEndpoint[] = [
   { providerId: 'ollama', url: 'http://localhost:11434/v1/models' },
   { providerId: 'lmstudio', url: 'http://localhost:1234/v1/models' },
+  { providerId: 'llama-cpp', url: 'http://localhost:8080/v1/models' },
 ]
 
 /**
- * Scans known local provider endpoints (Ollama, LM Studio) and returns
+ * Scans known local provider endpoints (Ollama, LM Studio, llama.cpp) and returns
  * any that respond successfully, along with the model IDs they report.
  */
 export async function autoDetectLocalProviders(): Promise<AutoDetectedProvider[]> {

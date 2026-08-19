@@ -1,5 +1,5 @@
 import { TextAttributes } from '@opentui/core'
-import React, { memo, type ReactNode } from 'react'
+import React, { memo, useEffect, useState, useCallback } from 'react'
 
 import { Button } from './button'
 import { useTerminalDimensions } from '../hooks/use-terminal-dimensions'
@@ -8,12 +8,21 @@ import { getLastNVisualLines } from '../utils/text-layout'
 
 import type { ThinkingCollapseState } from '../types/chat'
 
-const PREVIEW_LINE_COUNT = 5
+const PREVIEW_LINE_COUNT = 4
+
+const THINKING_PHASES = [
+  'Analyzing codebase...',
+  'Reading files...',
+  'Planning changes...',
+  'Making edits...',
+  'Verifying changes...',
+  'Running tests...',
+  'Finalizing...',
+] as const
 
 interface ThinkingProps {
   content: string
   thinkingCollapseState: ThinkingCollapseState
-  /** Whether the thinking has completed (streaming finished) */
   isThinkingComplete: boolean
   onToggle: () => void
   availableWidth?: number
@@ -26,14 +35,14 @@ export const Thinking = memo(
     isThinkingComplete,
     onToggle,
     availableWidth,
-  }: ThinkingProps): ReactNode => {
+  }: ThinkingProps) => {
     const theme = useTheme()
     const { contentMaxWidth } = useTerminalDimensions()
+    const [phaseIndex, setPhaseIndex] = useState(0)
+    const [dotCount, setDotCount] = useState(0)
 
     const width = Math.max(10, availableWidth ?? contentMaxWidth)
-    // Normalize content to single line for consistent preview
     const normalizedContent = content.replace(/\n+/g, ' ').trim()
-    // Account for "..." prefix (3 chars) when calculating line widths
     const effectiveWidth = width - 3
     const { lines, hasMore } = getLastNVisualLines(
       normalizedContent,
@@ -44,11 +53,30 @@ export const Thinking = memo(
     const showFull = thinkingCollapseState === 'expanded'
     const showPreview = thinkingCollapseState === 'preview' && lines.length > 0
 
-    const toggleIndicator =
-      !isThinkingComplete ? '• '
-      : showFull ? '▾ '
-      : showPreview ? '• '
-      : '▸ '
+    useEffect(() => {
+      if (isThinkingComplete) return
+      const phaseInterval = setInterval(() => {
+        setPhaseIndex((i) => (i + 1) % THINKING_PHASES.length)
+      }, 3000)
+      const dotInterval = setInterval(() => {
+        setDotCount((d) => (d + 1) % 4)
+      }, 400)
+      return () => {
+        clearInterval(phaseInterval)
+        clearInterval(dotInterval)
+      }
+    }, [isThinkingComplete])
+
+    const toggleIndicator = !isThinkingComplete
+      ? '● '
+      : showFull
+        ? '▾ '
+        : showPreview
+          ? '• '
+          : '▸ '
+
+    const phaseText = !isThinkingComplete ? THINKING_PHASES[phaseIndex] : null
+    const dots = '.'.repeat(dotCount) + ' '.repeat(3 - dotCount)
 
     return (
       <Button
@@ -57,19 +85,35 @@ export const Thinking = memo(
           gap: 0,
           marginTop: 0,
           marginBottom: 0,
+          paddingLeft: 1,
+          paddingRight: 1,
+          paddingTop: 0,
+          paddingBottom: 0,
+          backgroundColor: theme.surface,
         }}
         onClick={onToggle}
       >
-        <text style={{ fg: theme.foreground }}>
-          <span>{toggleIndicator}</span>
-          <span attributes={TextAttributes.BOLD}>Thinking</span>
-        </text>
+        <box style={{ flexDirection: 'row', alignItems: 'center', gap: 1 }}>
+          <text style={{ wrapMode: 'none' }}>
+            <span fg={isThinkingComplete ? theme.muted : theme.primary}>
+              {toggleIndicator}
+            </span>
+            <span attributes={TextAttributes.BOLD} fg={theme.foregroundMuted ?? theme.foreground}>
+              {isThinkingComplete ? 'Thought' : 'Thinking'}
+            </span>
+            {!isThinkingComplete && phaseText && (
+              <span fg={theme.muted}>
+                {' '}{phaseText}{dots}
+              </span>
+            )}
+          </text>
+        </box>
         {showPreview && (
           <box style={{ paddingLeft: 2 }}>
             <text
               style={{
                 wrapMode: 'none',
-                fg: theme.muted,
+                fg: theme.foregroundSubtle ?? theme.muted,
               }}
               attributes={TextAttributes.ITALIC}
             >
@@ -82,7 +126,7 @@ export const Thinking = memo(
             <text
               style={{
                 wrapMode: 'word',
-                fg: theme.muted,
+                fg: theme.foregroundMuted ?? theme.muted,
               }}
               attributes={TextAttributes.ITALIC}
             >

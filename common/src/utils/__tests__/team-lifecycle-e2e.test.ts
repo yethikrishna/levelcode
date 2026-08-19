@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -94,15 +94,18 @@ function makeTask(overrides?: Partial<TeamTask>): TeamTask {
   }
 }
 
+let homedirSpy: ReturnType<typeof spyOn>
+
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'team-lifecycle-e2e-'))
   origHome = process.env.HOME
   origUserProfile = process.env.USERPROFILE
-  process.env.HOME = tmpDir
-  process.env.USERPROFILE = tmpDir
+  // Spy+mock os.homedir() for reliable per-test isolation (env override insufficient under parallel tests)
+  homedirSpy = spyOn(os, 'homedir').mockReturnValue(tmpDir)
 })
 
 afterEach(() => {
+  if (homedirSpy) homedirSpy.mockRestore()
   if (origHome !== undefined) {
     process.env.HOME = origHome
   } else {
@@ -545,14 +548,14 @@ describe('team lifecycle E2E', () => {
       expect(planningTools).not.toContain('Read')
 
       // Pre-alpha: adds messaging
-      expect(preAlphaTools).toContain('SendMessage')
+      expect(preAlphaTools).toContain('send_message')
       expect(preAlphaTools).not.toContain('Read')
 
       // Alpha+: adds file/code tools
-      expect(alphaTools).toContain('SendMessage')
-      expect(alphaTools).toContain('Read')
-      expect(alphaTools).toContain('Write')
-      expect(alphaTools).toContain('Bash')
+      expect(alphaTools).toContain('send_message')
+      expect(alphaTools).toContain('team_create')
+      expect(alphaTools).toContain('spawn_agents')
+      expect(alphaTools).toContain('spawn_agent_inline')
     })
 
     it('should persist phase changes to disk', async () => {

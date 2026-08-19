@@ -181,6 +181,14 @@ const getBundledAgentsAsLocalInfo = (): LocalAgentInfo[] => {
 
 let cachedAgentsDir: string | null = null
 
+/**
+ * Test-only flag. When true, findAgentsDirectory skips the upward tree walk
+ * and only checks the project root. This prevents tests from discovering a
+ * real ~/.agents directory on the developer's machine when the test's temp
+ * project root has no .agents folder.
+ */
+let skipTreeWalkForTests = false
+
 export const findAgentsDirectory = (): string | null => {
   if (cachedAgentsDir && fs.existsSync(cachedAgentsDir)) {
     return cachedAgentsDir
@@ -196,6 +204,13 @@ export const findAgentsDirectory = (): string | null => {
       cachedAgentsDir = rootCandidate
       return cachedAgentsDir
     }
+  }
+
+  // Test isolation: skip the upward tree walk so tests in a temp directory
+  // do not accidentally discover a real ~/.agents on the host machine.
+  if (skipTreeWalkForTests) {
+    cachedAgentsDir = null
+    return null
   }
 
   let currentDir = process.cwd()
@@ -451,6 +466,17 @@ export const __resetLocalAgentRegistryForTests = (): void => {
   userAgentsCache = {}
   userAgentFilePaths = new Map()
   mcpServersCache = {}
+}
+
+/**
+ * Test-only: toggle the upward tree-walk in findAgentsDirectory.
+ * When enabled, only the project root is checked — preventing tests
+ * running in a temp directory from discovering a real ~/.agents on
+ * the developer's host machine.
+ */
+export const __setSkipTreeWalkForTests = (skip: boolean): void => {
+  skipTreeWalkForTests = skip
+  cachedAgentsDir = null
 }
 
 /**

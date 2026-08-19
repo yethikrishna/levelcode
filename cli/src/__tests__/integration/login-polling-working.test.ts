@@ -1,5 +1,12 @@
 import { describe, test, expect, mock } from 'bun:test'
 
+// Ensure isStandaloneMode() returns true for these tests. mock.module() is
+// process-wide in bun:test, so we must set it explicitly to avoid being
+// affected by other test files that mock it to false.
+mock.module('@levelcode/sdk', () => ({
+  isStandaloneMode: () => true,
+}))
+
 import { createMockLogger } from '@levelcode/common/testing/mock-types'
 import { generateLoginUrl, pollLoginStatus } from '../../login/login-flow'
 import { createMockApiClient } from '../helpers/mock-api-client'

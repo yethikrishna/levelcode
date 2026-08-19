@@ -17,6 +17,8 @@ import { proposeWriteFileParams } from './params/tool/propose-write-file'
 import { readDocsParams } from './params/tool/read-docs'
 import { readFilesParams } from './params/tool/read-files'
 import { readSubtreeParams } from './params/tool/read-subtree'
+import { rememberParams } from './params/tool/remember'
+import { repoMapParams } from './params/tool/repo-map'
 import { runFileChangeHooksParams } from './params/tool/run-file-change-hooks'
 import { runTerminalCommandParams } from './params/tool/run-terminal-command'
 import { sendMessageParams } from './params/tool/send-message'
@@ -34,8 +36,15 @@ import { taskListParams } from './params/tool/task-list'
 import { taskUpdateParams } from './params/tool/task-update'
 import { teamCreateParams } from './params/tool/team-create'
 import { teamDeleteParams } from './params/tool/team-delete'
+import { teamListParams } from './params/tool/team-list'
+import { teamLoadParams } from './params/tool/team-load'
+import { teamSaveParams } from './params/tool/team-save'
+import { contextCommitParams } from './params/tool/context-commit'
+import { contextBranchParams } from './params/tool/context-branch'
+import { contextMergeParams } from './params/tool/context-merge'
 import { thinkDeeplyParams } from './params/tool/think-deeply'
 import { updateSubgoalParams } from './params/tool/update-subgoal'
+import { verifyChangesParams } from './params/tool/verify-changes'
 import { webSearchParams } from './params/tool/web-search'
 import { writeFileParams } from './params/tool/write-file'
 import { writeTodosParams } from './params/tool/write-todos'
@@ -61,6 +70,8 @@ export const toolParams = {
   read_docs: readDocsParams,
   read_files: readFilesParams,
   read_subtree: readSubtreeParams,
+  remember: rememberParams,
+  repo_map: repoMapParams,
   run_file_change_hooks: runFileChangeHooksParams,
   run_terminal_command: runTerminalCommandParams,
   send_message: sendMessageParams,
@@ -78,8 +89,15 @@ export const toolParams = {
   task_update: taskUpdateParams,
   team_create: teamCreateParams,
   team_delete: teamDeleteParams,
+  team_list: teamListParams,
+  team_load: teamLoadParams,
+  team_save: teamSaveParams,
+  context_commit: contextCommitParams,
+  context_branch: contextBranchParams,
+  context_merge: contextMergeParams,
   think_deeply: thinkDeeplyParams,
   update_subgoal: updateSubgoalParams,
+  verify_changes: verifyChangesParams,
   web_search: webSearchParams,
   write_file: writeFileParams,
   write_todos: writeTodosParams,
@@ -132,8 +150,20 @@ export const clientToolCallSchema = z.discriminatedUnion('toolName', [
     input: toolParams.list_directory.inputSchema,
   }),
   z.object({
+    toolName: z.literal('remember'),
+    input: toolParams.remember.inputSchema,
+  }),
+  z.object({
+    toolName: z.literal('repo_map'),
+    input: toolParams.repo_map.inputSchema,
+  }),
+  z.object({
     toolName: z.literal('run_file_change_hooks'),
     input: toolParams.run_file_change_hooks.inputSchema,
+  }),
+  z.object({
+    toolName: z.literal('verify_changes'),
+    input: toolParams.verify_changes.inputSchema,
   }),
   z.object({
     toolName: z.literal('run_terminal_command'),

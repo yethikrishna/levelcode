@@ -9,7 +9,10 @@ import { logger } from './logger'
 import { getRgPath } from '../native/ripgrep'
 import { getProjectRoot } from '../project-files'
 
-import type { ClientToolCall } from '@levelcode/common/tools/list'
+import type {
+  ClientToolCall,
+  LevelCodeToolOutput,
+} from '@levelcode/common/tools/list'
 
 let clientInstance: LevelCodeClient | null = null
 
@@ -80,7 +83,9 @@ export async function getLevelCodeClient(): Promise<LevelCodeClient | null> {
         agentDefinitions,
         logger,
         overrideTools: {
-          ask_user: async (input: ClientToolCall<'ask_user'>['input']) => {
+          ask_user: async (
+            input: ClientToolCall<'ask_user'>['input'],
+          ): Promise<LevelCodeToolOutput<'ask_user'>> => {
             const askUserResponse = await AskUserBridge.request(
               'cli-override',
               input.questions,

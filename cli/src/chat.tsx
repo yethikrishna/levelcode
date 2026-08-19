@@ -8,6 +8,11 @@ import { ProviderStatusList } from './components/provider-status-list'
 import { ProviderWizard } from './components/provider-wizard'
 import { ModelPicker } from './components/model-picker'
 import { SettingsPanel } from './components/settings-panel'
+import { ActivityBar } from './components/activity-bar'
+import { CommandPalette } from './components/command-palette'
+import { ToastContainer } from './components/notification-toast'
+import { WelcomeScreen } from './components/welcome-screen'
+import { ShortcutHints } from './components/shortcut-hints'
 import {
   useCallback,
   useEffect,
@@ -1386,12 +1391,25 @@ export const Chat = ({
   const lastMouseActivityRef = useRef<number>(0)
   const handleMouseActivity = useCallback(() => {
     const now = Date.now()
-    // Throttle to max once per second
     if (now - lastMouseActivityRef.current > 1000) {
       lastMouseActivityRef.current = now
       reportActivity()
     }
   }, [])
+
+  const handleWelcomeSuggestion = useCallback(
+    async (prompt: string) => {
+      const result = await onSubmitPrompt(prompt, agentMode)
+      handleCommandResult(result)
+    },
+    [onSubmitPrompt, agentMode, handleCommandResult],
+  )
+
+  const showWelcome =
+    !isStreaming &&
+    !isWaitingForResponse &&
+    visibleTopLevelMessages.length === 0 &&
+    pendingBashMessages.filter((m) => !m.addedToHistory).length === 0
 
   return (
     <box
@@ -1400,213 +1418,232 @@ export const Chat = ({
         flexDirection: 'column',
         gap: 0,
         flexGrow: 1,
+        backgroundColor: theme.background,
+        position: 'relative',
       }}
     >
-      <scrollbox
-        ref={scrollRef as React.Ref<ScrollBoxRenderable>}
-        stickyScroll
-        stickyStart="bottom"
-        scrollX={false}
-        scrollbarOptions={{ visible: false }}
-        verticalScrollbarOptions={{
-          visible: !isStreaming && !isWaitingForResponse && hasOverflow,
-          trackOptions: { width: 1 },
-        }}
-        {...appliedScrollboxProps}
-        style={{
-          flexGrow: 1,
-          rootOptions: {
-            flexGrow: 1,
-            padding: 0,
-            gap: 0,
-            flexDirection: 'row',
-            shouldFill: true,
-            backgroundColor: 'transparent',
-          },
-          wrapperOptions: {
-            flexGrow: 1,
-            border: false,
-            shouldFill: true,
-            backgroundColor: 'transparent',
-            flexDirection: 'column',
-          },
-          contentOptions: {
-            flexDirection: 'column',
-            gap: 0,
-            shouldFill: true,
-            justifyContent: 'flex-end',
-            backgroundColor: 'transparent',
-            paddingLeft: 1,
-            paddingRight: 2,
-          },
-        }}
-      >
-        <TopBanner gitRoot={gitRoot} onSwitchToGitRoot={onSwitchToGitRoot} />
-
-        {headerContent}
-        {hiddenMessageCount > 0 && (
-          <LoadPreviousButton
-            hiddenCount={hiddenMessageCount}
-            onLoadMore={handleLoadPreviousMessages}
-          />
-        )}
-        {visibleTopLevelMessages.map((message, idx) => {
-          const isLast = idx === visibleTopLevelMessages.length - 1
-          return (
-            <MessageWithAgents
-              key={message.id}
-              message={message}
-              depth={0}
-              isLastMessage={isLast}
-              availableWidth={messageAvailableWidth}
-            />
-          )
-        })}
-        {/* Pending bash messages as ghost messages (only show those not already in history) */}
-        {pendingBashMessages
-          .filter((msg) => !msg.addedToHistory)
-          .map((msg) => (
-            <PendingBashMessage key={`pending-bash-${msg.id}`} message={msg} />
-          ))}
-      </scrollbox>
-
-      {showTeamPanel && (
-        <box
-          style={{
-            flexShrink: 0,
-            border: ['top', 'bottom'],
-            borderColor: theme.border,
-          }}
-        >
-          <TeamPanel width={separatorWidth} />
-        </box>
-      )}
-
-      <box
-        style={{
-          flexShrink: 0,
-          backgroundColor: 'transparent',
-        }}
-      >
-        {shouldShowStatusLine && (
-          <StatusBar
-            timerStartTime={timerStartTime}
-            isAtBottom={isAtBottom}
-            scrollToLatest={scrollToLatest}
-            statusIndicatorState={statusIndicatorState}
-          />
-        )}
-
-        {ad && getAdsEnabled() && <AdBanner ad={ad} />}
-
-        {teamSettingsMode && (
-          <TeamSettingsScreen onClose={closeTeamSettings} />
-        )}
-
-        {providerWizardMode && (
-          <ProviderWizard onClose={() => setProviderWizardMode(false)} />
-        )}
-
-        {modelPickerMode && (
-          <ModelPicker onClose={() => setModelPickerMode(false)} />
-        )}
-
-        {providerSettingsMode && (
-          <SettingsPanel onClose={() => setProviderSettingsMode(false)} />
-        )}
-
-        {helpModalMode && (
-          <HelpModal onClose={() => setHelpModalMode(false)} />
-        )}
-
-        {oauthFlowMode && oauthProviderId && OAUTH_CONFIGS[oauthProviderId] && (
-          <OAuthConnectFlow
-            providerId={oauthProviderId}
-            providerName={getProviderDefinition(oauthProviderId)?.name ?? oauthProviderId}
-            config={OAUTH_CONFIGS[oauthProviderId]}
-            onSuccess={() => { setOauthFlowMode(false); setOauthProviderId(null) }}
-            onCancel={() => { setOauthFlowMode(false); setOauthProviderId(null) }}
-          />
-        )}
-        {oauthFlowMode && !oauthProviderId && (
-          <ProviderStatusList
-            onConnect={(id) => setOauthProviderId(id)}
-            onClose={() => setOauthFlowMode(false)}
-          />
-        )}
-
-        {reviewMode ? (
-          <ReviewScreen
-            onSelectOption={handleReviewOptionSelect}
-            onCancel={handleCloseReviewScreen}
-          />
-        ) : (
-          <ChatInputBar
-            inputValue={inputValue}
-            cursorPosition={cursorPosition}
-            setInputValue={setInputValue}
-            inputFocused={inputFocused}
-            inputRef={inputRef}
-            inputPlaceholder={inputPlaceholder}
-            lastEditDueToNav={lastEditDueToNav}
-            agentMode={agentMode}
-            toggleAgentMode={toggleAgentMode}
-            setAgentMode={setAgentMode}
-            hasSlashSuggestions={hasSlashSuggestions}
-            hasMentionSuggestions={hasMentionSuggestions}
-            hasSuggestionMenu={hasSuggestionMenu}
-            slashSuggestionItems={slashSuggestionItems}
-            agentSuggestionItems={agentSuggestionItems}
-            fileSuggestionItems={fileSuggestionItems}
-            slashSelectedIndex={slashSelectedIndex}
-            agentSelectedIndex={agentSelectedIndex}
-            onSlashItemClick={handleSlashItemClick}
-            onMentionItemClick={handleMentionItemClick}
-            theme={theme}
-            terminalHeight={terminalHeight}
-            separatorWidth={separatorWidth}
-            shouldCenterInputVertically={shouldCenterInputVertically}
-            inputBoxTitle={inputBoxTitle}
-            isCompactHeight={isCompactHeight}
-            isNarrowWidth={isNarrowWidth}
-            feedbackMode={feedbackMode}
-            handleExitFeedback={handleExitFeedback}
-            publishMode={publishMode}
-            handleExitPublish={handleExitPublish}
-            handlePublish={handlePublish}
-            handleSubmit={handleSubmit}
-            onPaste={createPasteHandler({
-              text: inputValue,
-              cursorPosition,
-              onChange: setInputValue,
-              onPasteImage: chatKeyboardHandlers.onPasteImage,
-              onPasteImagePath: chatKeyboardHandlers.onPasteImagePath,
-              onPasteLongText: (pastedText) => {
-                const id = crypto.randomUUID()
-                const preview = pastedText.slice(0, 100).replace(/\n/g, ' ')
-                useChatStore.getState().addPendingTextAttachment({
-                  id,
-                  content: pastedText,
-                  preview,
-                  charCount: pastedText.length,
-                })
-                // Show temporary status message
-                showClipboardMessage(
-                  `📋 Pasted text (${pastedText.length.toLocaleString()} chars)`,
-                  { durationMs: 5000 },
-                )
+      <box style={{ flexDirection: 'row', flexGrow: 1, gap: 0 }}>
+        <ActivityBar />
+        <box style={{ flexDirection: 'column', flexGrow: 1, gap: 0 }}>
+          <scrollbox
+            ref={scrollRef as React.Ref<ScrollBoxRenderable>}
+            stickyScroll
+            stickyStart="bottom"
+            scrollX={false}
+            scrollbarOptions={{ visible: false }}
+            verticalScrollbarOptions={{
+              visible: !isStreaming && !isWaitingForResponse && hasOverflow,
+              trackOptions: { width: 1 },
+            }}
+            {...appliedScrollboxProps}
+            style={{
+              flexGrow: 1,
+              rootOptions: {
+                flexGrow: 1,
+                padding: 0,
+                gap: 0,
+                flexDirection: 'row',
+                shouldFill: true,
+                backgroundColor: 'transparent',
               },
-              cwd: getProjectRoot() ?? process.cwd(),
-            })}
-          />
-        )}
+              wrapperOptions: {
+                flexGrow: 1,
+                border: false,
+                shouldFill: true,
+                backgroundColor: 'transparent',
+                flexDirection: 'column',
+              },
+              contentOptions: {
+                flexDirection: 'column',
+                gap: 0,
+                shouldFill: showWelcome,
+                justifyContent: showWelcome ? 'center' : 'flex-end',
+                backgroundColor: 'transparent',
+                paddingLeft: 1,
+                paddingRight: 2,
+              },
+            }}
+          >
+            {!showWelcome && <TopBanner gitRoot={gitRoot} onSwitchToGitRoot={onSwitchToGitRoot} />}
 
-        <BottomStatusLine
-          isClaudeConnected={isClaudeOAuthActive}
-          isClaudeActive={isClaudeActive}
-          claudeQuota={claudeQuota}
-        />
+            {!showWelcome && headerContent}
+            {showWelcome ? (
+              <WelcomeScreen onSuggestionClick={handleWelcomeSuggestion} />
+            ) : (
+              <>
+                {hiddenMessageCount > 0 && (
+                  <LoadPreviousButton
+                    hiddenCount={hiddenMessageCount}
+                    onLoadMore={handleLoadPreviousMessages}
+                  />
+                )}
+                {visibleTopLevelMessages.map((message, idx) => {
+                  const isLast = idx === visibleTopLevelMessages.length - 1
+                  return (
+                    <MessageWithAgents
+                      key={message.id}
+                      message={message}
+                      depth={0}
+                      isLastMessage={isLast}
+                      availableWidth={messageAvailableWidth}
+                    />
+                  )
+                })}
+                {pendingBashMessages
+                  .filter((msg) => !msg.addedToHistory)
+                  .map((msg) => (
+                    <PendingBashMessage key={`pending-bash-${msg.id}`} message={msg} />
+                  ))}
+              </>
+            )}
+          </scrollbox>
+
+          {showTeamPanel && !showWelcome && (
+            <box
+              style={{
+                flexShrink: 0,
+                border: ['top', 'bottom'],
+                borderColor: theme.border,
+              }}
+            >
+              <TeamPanel width={separatorWidth} />
+            </box>
+          )}
+
+          <box
+            style={{
+              flexShrink: 0,
+              backgroundColor: 'transparent',
+            }}
+          >
+            {shouldShowStatusLine && !showWelcome && (
+              <StatusBar
+                timerStartTime={timerStartTime}
+                isAtBottom={isAtBottom}
+                scrollToLatest={scrollToLatest}
+                statusIndicatorState={statusIndicatorState}
+              />
+            )}
+
+            {ad && getAdsEnabled() && !showWelcome && <AdBanner ad={ad} />}
+
+            {teamSettingsMode && (
+              <TeamSettingsScreen onClose={closeTeamSettings} />
+            )}
+
+            {providerWizardMode && (
+              <ProviderWizard onClose={() => setProviderWizardMode(false)} />
+            )}
+
+            {modelPickerMode && (
+              <ModelPicker onClose={() => setModelPickerMode(false)} />
+            )}
+
+            {providerSettingsMode && (
+              <SettingsPanel onClose={() => setProviderSettingsMode(false)} />
+            )}
+
+            {helpModalMode && (
+              <HelpModal onClose={() => setHelpModalMode(false)} />
+            )}
+
+            {oauthFlowMode && oauthProviderId && OAUTH_CONFIGS[oauthProviderId] && (
+              <OAuthConnectFlow
+                providerId={oauthProviderId}
+                providerName={getProviderDefinition(oauthProviderId)?.name ?? oauthProviderId}
+                config={OAUTH_CONFIGS[oauthProviderId]}
+                onSuccess={() => { setOauthFlowMode(false); setOauthProviderId(null) }}
+                onCancel={() => { setOauthFlowMode(false); setOauthProviderId(null) }}
+              />
+            )}
+            {oauthFlowMode && !oauthProviderId && (
+              <ProviderStatusList
+                onConnect={(id) => setOauthProviderId(id)}
+                onClose={() => setOauthFlowMode(false)}
+              />
+            )}
+
+            {reviewMode ? (
+              <ReviewScreen
+                onSelectOption={handleReviewOptionSelect}
+                onCancel={handleCloseReviewScreen}
+              />
+            ) : (
+              <ChatInputBar
+                inputValue={inputValue}
+                cursorPosition={cursorPosition}
+                setInputValue={setInputValue}
+                inputFocused={inputFocused}
+                inputRef={inputRef}
+                inputPlaceholder={inputPlaceholder}
+                lastEditDueToNav={lastEditDueToNav}
+                agentMode={agentMode}
+                toggleAgentMode={toggleAgentMode}
+                setAgentMode={setAgentMode}
+                hasSlashSuggestions={hasSlashSuggestions}
+                hasMentionSuggestions={hasMentionSuggestions}
+                hasSuggestionMenu={hasSuggestionMenu}
+                slashSuggestionItems={slashSuggestionItems}
+                agentSuggestionItems={agentSuggestionItems}
+                fileSuggestionItems={fileSuggestionItems}
+                slashSelectedIndex={slashSelectedIndex}
+                agentSelectedIndex={agentSelectedIndex}
+                onSlashItemClick={handleSlashItemClick}
+                onMentionItemClick={handleMentionItemClick}
+                theme={theme}
+                terminalHeight={terminalHeight}
+                separatorWidth={separatorWidth}
+                shouldCenterInputVertically={shouldCenterInputVertically}
+                inputBoxTitle={inputBoxTitle}
+                isCompactHeight={isCompactHeight}
+                isNarrowWidth={isNarrowWidth}
+                feedbackMode={feedbackMode}
+                handleExitFeedback={handleExitFeedback}
+                publishMode={publishMode}
+                handleExitPublish={handleExitPublish}
+                handlePublish={handlePublish}
+                handleSubmit={handleSubmit}
+                onPaste={createPasteHandler({
+                  text: inputValue,
+                  cursorPosition,
+                  onChange: setInputValue,
+                  onPasteImage: chatKeyboardHandlers.onPasteImage,
+                  onPasteImagePath: chatKeyboardHandlers.onPasteImagePath,
+                  onPasteLongText: (pastedText) => {
+                    const id = crypto.randomUUID()
+                    const preview = pastedText.slice(0, 100).replace(/\n/g, ' ')
+                    useChatStore.getState().addPendingTextAttachment({
+                      id,
+                      content: pastedText,
+                      preview,
+                      charCount: pastedText.length,
+                    })
+                    showClipboardMessage(
+                      `\u{1F4CB} Pasted text (${pastedText.length.toLocaleString()} chars)`,
+                      { durationMs: 5000 },
+                    )
+                  },
+                  cwd: getProjectRoot() ?? process.cwd(),
+                })}
+              />
+            )}
+
+            <box style={{ flexDirection: 'row', width: '100%' }}>
+              <box style={{ flexGrow: 1 }}>
+                <ShortcutHints />
+              </box>
+              <BottomStatusLine
+                isClaudeConnected={isClaudeOAuthActive}
+                isClaudeActive={isClaudeActive}
+                claudeQuota={claudeQuota}
+              />
+            </box>
+          </box>
+        </box>
       </box>
+
+      <CommandPalette />
+      <ToastContainer />
     </box>
   )
 }

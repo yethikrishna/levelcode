@@ -1,0 +1,3 @@
+-- LevelCode plugin loader
+-- Put setup() in your init.lua:
+--   require("levelcode").setup({})

@@ -23,17 +23,13 @@ function extractToggleIds(blocks: ContentBlock[] | undefined): string[] {
   if (!blocks) return []
   
   const ids: string[] = []
-  
   for (const block of blocks) {
     if (block.type === 'agent') {
-      ids.push(block.agentId)
-      // Recursively extract from nested blocks
-      ids.push(...extractToggleIds(block.blocks))
+      ids.push(block.agentId, ...extractToggleIds(block.blocks))
     } else if (block.type === 'tool') {
       ids.push(block.toolCallId)
     }
   }
-  
   return ids
 }
 

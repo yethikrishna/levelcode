@@ -1,6 +1,9 @@
 import { publisher } from '../constants'
 
 import type { AgentDefinition } from '../types/agent-definition'
+import { RoleSynthesizer } from './role-synthesis'
+
+const roleSynthesizer = new RoleSynthesizer()
 
 const coordinator: AgentDefinition = {
   id: 'coordinator',
@@ -111,6 +114,13 @@ Only advance one phase at a time. Confirm readiness before transitioning.
 - Summarize decisions and rationale briefly.
 - When reporting to the user, focus on what was accomplished and what comes next.
 
+# Dynamic Role Synthesis
+
+- When a task requires a specialized skill not covered by built-in team roles, use dynamic role synthesis to create a custom agent on the fly.
+- Classify the task (frontend/backend/devops/testing/database/security/design/documentation/data-science/mobile) and spawn an agent with the synthesized role.
+- The synthesizer selects the appropriate base system prompt, tool set, and autonomy level based on task classification.
+- Use synthesized roles for niche tasks like "set up WebGL rendering pipeline" or "migrate from Redis to Valkey" that don't map cleanly to standard titles.
+
 # Constraints
 
 - Do not implement code directly. Delegate implementation to engineers.
@@ -118,6 +128,19 @@ Only advance one phase at a time. Confirm readiness before transitioning.
 - Do not transition phases without verifying that the current phase's goals are met.
 - Validate assumptions by reading code or spawning researchers before committing to an approach.
 `,
+
+  /**
+   * Expose the RoleSynthesizer for programmatic use by the coordinator runtime.
+   */
+  roleSynthesizer,
+
+  /**
+   * Synthesize a custom agent role for a given task.
+   * Convenience method wrapping roleSynthesizer.synthesizeRole.
+   */
+  async synthesizeCustomRole(task: string, context?: Parameters<typeof roleSynthesizer.synthesizeRole>[1]) {
+    return roleSynthesizer.synthesizeRole(task, context)
+  },
 
   instructionsPrompt: `Orchestrate the team to complete the user's objective. Follow these steps:
 

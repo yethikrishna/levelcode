@@ -84,8 +84,8 @@ describe('fingerprint utilities', () => {
 
       test('should return fingerprint of expected length', () => {
         const fingerprint = generateFingerprintIdSync()
-        // Format: levelcode-cli- (13 chars) + 8 random chars = 21 chars
-        expect(fingerprint.length).toBe(21)
+        // Format: levelcode-cli- (14 chars) + 8 random chars = 22 chars
+        expect(fingerprint.length).toBe(22)
       })
 
       test('should contain only valid base64url characters in suffix', () => {

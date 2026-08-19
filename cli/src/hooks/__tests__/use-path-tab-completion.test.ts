@@ -36,7 +36,7 @@ const toRelativePath = (
   completed: string,
   currentPath: string,
 ): string | null => {
-  if (completed.startsWith(currentPath + path.sep)) {
+  if (completed.startsWith(currentPath + '/')) {
     return completed.slice(currentPath.length + 1)
   }
   return null

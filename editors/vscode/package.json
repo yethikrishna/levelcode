@@ -1,0 +1,154 @@
+{
+  "name": "levelcode-vscode",
+  "displayName": "LevelCode",
+  "description": "LevelCode AI coding agent for VS Code",
+  "version": "0.1.0",
+  "publisher": "levelcode",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "levelcode",
+    "ai",
+    "coding-agent",
+    "assistant",
+    "llm"
+  ],
+  "activationEvents": [
+    "onView:levelcode.sidebar",
+    "onCommand:levelcode.start",
+    "onCommand:levelcode.sendPrompt",
+    "onCommand:levelcode.openPanel"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "levelcode.start",
+        "title": "LevelCode: Start Agent",
+        "category": "LevelCode",
+        "icon": "$(play)"
+      },
+      {
+        "command": "levelcode.sendPrompt",
+        "title": "LevelCode: Send Prompt",
+        "category": "LevelCode",
+        "icon": "$(send)"
+      },
+      {
+        "command": "levelcode.openPanel",
+        "title": "LevelCode: Open Chat Panel",
+        "category": "LevelCode",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "levelcode.acceptEdit",
+        "title": "Accept Edit",
+        "icon": "$(check)"
+      },
+      {
+        "command": "levelcode.rejectEdit",
+        "title": "Reject Edit",
+        "icon": "$(x)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "levelcode-sidebar",
+          "title": "LevelCode",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "levelcode-sidebar": [
+        {
+          "id": "levelcode.chatView",
+          "name": "Chat",
+          "type": "webview"
+        },
+        {
+          "id": "levelcode.editsView",
+          "name": "Suggested Edits",
+          "type": "tree"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "levelcode.start",
+          "when": "view == levelcode.chatView",
+          "group": "navigation"
+        },
+        {
+          "command": "levelcode.openPanel",
+          "when": "view == levelcode.chatView",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "levelcode.sendPrompt",
+          "group": "levelcode"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "levelcode.acceptEdit",
+          "when": "false"
+        },
+        {
+          "command": "levelcode.rejectEdit",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "LevelCode",
+      "properties": {
+        "levelcode.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "LevelCode API key (LEVELCODE_API_KEY env var is also used)."
+        },
+        "levelcode.model": {
+          "type": "string",
+          "default": "base",
+          "description": "Default agent/model to run."
+        },
+        "levelcode.sdkPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to levelcode CLI binary; auto-detected if empty."
+        },
+        "levelcode.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Start agent on VS Code launch."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@levelcode/sdk": "^0.2.7"
+  }
+}

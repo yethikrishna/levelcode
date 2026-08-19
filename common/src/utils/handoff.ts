@@ -3,6 +3,7 @@ import type { SwarmTaskState } from './swarm-state'
 import { getBibleContext } from './memory-bible'
 import { formatBibleStats } from './memory-bible'
 import { calculateHealthScore } from './swarm-state'
+import type { ScratchpadHandoffSummary } from '../memory/scratchpad'
 
 // ============================================================================
 // Handoff Pack — Concise Summary for Human Takeover
@@ -20,6 +21,8 @@ export interface HandoffPack {
   estimatedEffort: string  // e.g., "2-3 hours", "1-2 days"
   nextPhase?: string
   blockers?: string[]
+  /** Optional per-agent scratchpad summaries (from AgentScratchpad) */
+  scratchpadSummaries?: ScratchpadHandoffSummary[]
   metrics: {
     tasksCompleted: number
     tasksRemaining: number
@@ -32,7 +35,10 @@ export interface HandoffPack {
 // Generate Handoff Pack
 // ============================================================================
 
-export function generateHandoffPack(state: SwarmState): HandoffPack {
+export function generateHandoffPack(
+  state: SwarmState,
+  options?: { scratchpadSummaries?: ScratchpadHandoffSummary[] },
+): HandoffPack {
   const phase = state.phase
   const completed = state.tasks.filter(t => t.status === 'completed').length
   const remaining = state.tasks.filter(t => t.status !== 'completed').length
@@ -80,6 +86,23 @@ export function generateHandoffPack(state: SwarmState): HandoffPack {
       type: 'bible-context',
       content: bibleContext.slice(0, 200),
     })
+  }
+
+  // 5. Scratchpad blockers / open questions contribute to evidence
+  const scratchpadSummaries = options?.scratchpadSummaries
+  if (scratchpadSummaries && scratchpadSummaries.length > 0) {
+    for (const s of scratchpadSummaries) {
+      // Extract blocker lines from summary markdown
+      const blockerMatch = s.summaryMarkdown.match(/\*\*Blockers[^*]*\*\*:\s*([\s\S]*?)(?=\n\n\*\*|\n---|$)/)
+      if (blockerMatch && blockerMatch[1]!.trim()) {
+        for (const line of blockerMatch[1]!.split('\n').filter(l => l.trim().startsWith('- '))) {
+          evidence.push({
+            type: 'scratchpad-blocker',
+            content: `${s.agentId}: ${line.replace(/^- /, '').trim()}`,
+          })
+        }
+      }
+    }
   }
 
   // Recommendations
@@ -130,6 +153,7 @@ export function generateHandoffPack(state: SwarmState): HandoffPack {
     estimatedEffort,
     nextPhase,
     blockers: blocked > 0 ? state.tasks.filter(t => t.status === 'blocked').map(t => t.taskId) : undefined,
+    scratchpadSummaries,
     metrics: {
       tasksCompleted: completed,
       tasksRemaining: remaining,
@@ -184,7 +208,51 @@ export function formatHandoffPack(pack: HandoffPack): string {
     lines.push('', `Next Phase: ${pack.nextPhase}`)
   }
 
+  // Per-agent scratchpad summaries (from AgentScratchpad)
+  if (pack.scratchpadSummaries && pack.scratchpadSummaries.length > 0) {
+    lines.push('', '=== Agent Scratchpad Summaries ===', '')
+    for (const s of pack.scratchpadSummaries) {
+      lines.push(s.summaryMarkdown)
+      lines.push('')
+      lines.push('---')
+      lines.push('')
+    }
+  }
+
   return lines.join('\n')
+}
+
+// ============================================================================
+// Handoff + Scratchpad integration helpers
+// ============================================================================
+
+import { AgentScratchpad, getDefaultScratchpad } from '../memory/scratchpad'
+
+/**
+ * Generate a handoff pack that automatically includes per-agent scratchpad
+ * summaries from the provided (or default) AgentScratchpad instance.
+ *
+ * @param state - Swarm state
+ * @param scratchpad - AgentScratchpad to pull summaries from (defaults to global singleton)
+ * @returns HandoffPack with scratchpad summaries attached
+ */
+export function generateHandoffPackWithScratchpads(
+  state: SwarmState,
+  scratchpad?: AgentScratchpad,
+): HandoffPack {
+  const pad = scratchpad ?? getDefaultScratchpad()
+  const summaries = pad.getAllHandoffSummaries()
+  return generateHandoffPack(state, { scratchpadSummaries: summaries })
+}
+
+/**
+ * Convenience: generate and format a handoff pack including scratchpads in one call.
+ */
+export function formatHandoffPackWithScratchpads(
+  state: SwarmState,
+  scratchpad?: AgentScratchpad,
+): string {
+  return formatHandoffPack(generateHandoffPackWithScratchpads(state, scratchpad))
 }
 
 // ============================================================================

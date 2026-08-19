@@ -87,6 +87,22 @@ async function additionalToolDefinitions(
   })
 }
 
+/**
+ * Helper to lazily fetch and cache additional tool definitions.
+ * Reduces duplication in loopAgentSteps.
+ */
+function createAdditionalToolDefinitionsCache(
+  params: Parameters<typeof additionalToolDefinitions>[0],
+) {
+  let cached: CustomToolDefinitions | undefined
+  return async () => {
+    if (!cached) {
+      cached = await additionalToolDefinitions(params)
+    }
+    return cached
+  }
+}
+
 export const runAgentStep = async (
   params: {
     userId: string | undefined
@@ -582,10 +598,15 @@ export async function loopAgentSteps(
   }
   initialAgentState.runId = runId
 
-  let cachedAdditionalToolDefinitions: CustomToolDefinitions | undefined
   // Use parent's tools for prompt caching when inheritParentSystemPrompt is true
   const useParentTools =
     agentTemplate.inheritParentSystemPrompt && parentTools !== undefined
+
+  const getAdditionalToolDefs = createAdditionalToolDefinitionsCache({
+    ...params,
+    agentTemplate,
+    fileContext,
+  })
 
   // Initialize message history with user prompt and instructions on first iteration
   const instructionsPrompt = await getAgentPrompt({
@@ -594,15 +615,7 @@ export async function loopAgentSteps(
     promptType: { type: 'instructionsPrompt' },
     agentTemplates: localAgentTemplates,
     useParentTools,
-    additionalToolDefinitions: async () => {
-      if (!cachedAdditionalToolDefinitions) {
-        cachedAdditionalToolDefinitions = await additionalToolDefinitions({
-          ...params,
-          agentTemplate,
-        })
-      }
-      return cachedAdditionalToolDefinitions
-    },
+    additionalToolDefinitions: getAdditionalToolDefs,
   })
 
   // Build the initial message history with user prompt and instructions
@@ -616,15 +629,7 @@ export async function loopAgentSteps(
       agentTemplate,
       promptType: { type: 'systemPrompt' },
       agentTemplates: localAgentTemplates,
-      additionalToolDefinitions: async () => {
-        if (!cachedAdditionalToolDefinitions) {
-          cachedAdditionalToolDefinitions = await additionalToolDefinitions({
-            ...params,
-            agentTemplate,
-          })
-        }
-        return cachedAdditionalToolDefinitions
-      },
+      additionalToolDefinitions: getAdditionalToolDefs,
     })
     system = systemPrompt ?? ''
   }
@@ -654,15 +659,7 @@ export async function loopAgentSteps(
     ? parentTools
     : await getToolSet({
       toolNames: agentTemplate.toolNames,
-        additionalToolDefinitions: async () => {
-          if (!cachedAdditionalToolDefinitions) {
-            cachedAdditionalToolDefinitions = await additionalToolDefinitions({
-              ...params,
-              agentTemplate,
-            })
-          }
-          return cachedAdditionalToolDefinitions
-        },
+        additionalToolDefinitions: getAdditionalToolDefs,
         agentTools,
         skills: fileContext.skills ?? {},
       })
@@ -715,15 +712,7 @@ export async function loopAgentSteps(
     inputSchema: tool.inputSchema as {},
   }))
 
-  const additionalToolDefinitionsWithCache = async () => {
-    if (!cachedAdditionalToolDefinitions) {
-      cachedAdditionalToolDefinitions = await additionalToolDefinitions({
-        ...params,
-        agentTemplate,
-      })
-    }
-    return cachedAdditionalToolDefinitions
-  }
+  const additionalToolDefinitionsWithCache = getAdditionalToolDefs
 
   let currentAgentState: AgentState = {
     ...initialAgentState,
@@ -1016,6 +1005,7 @@ export async function loopAgentSteps(
               system,
               tools,
               additionalToolDefinitions: async () => {
+                let cachedAdditionalToolDefinitions: any
                 if (!cachedAdditionalToolDefinitions) {
                   cachedAdditionalToolDefinitions = await additionalToolDefinitions({
                     ...params,

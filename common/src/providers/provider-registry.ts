@@ -294,6 +294,16 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     authType: 'bearer',
     category: 'free-local',
   },
+  'llama-cpp': {
+    id: 'llama-cpp',
+    name: 'llama.cpp',
+    baseUrl: 'http://localhost:8080/v1',
+    envVars: [],
+    apiFormat: 'openai-compatible',
+    authType: 'none',
+    category: 'free-local',
+    description: 'llama.cpp server mode — serve a single GGUF model locally on port 8080',
+  },
 
   // --------------------------------------------------------------------------
   // GPU Cloud

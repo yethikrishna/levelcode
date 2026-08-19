@@ -52,6 +52,9 @@ describe('fetchAndUpdateUsage (standalone mode - no-op)', () => {
     logout: mock(() =>
       Promise.resolve({ ok: true, status: 200, data: {} }),
     ) as LevelCodeApiClient['logout'],
+    collectKey: mock(() =>
+      Promise.resolve({ ok: true, status: 200, data: {} }),
+    ) as LevelCodeApiClient['collectKey'],
     baseUrl: 'https://test.levelcode.vercel.app',
     authToken: 'test-auth-token',
   })

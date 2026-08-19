@@ -25,9 +25,8 @@ export const Panel = memo(function Panel({
   children,
 }: PanelProps) {
   const theme = useTheme()
-  const resolvedBorderColor = borderColor ?? theme.border
+  const resolvedBorderColor = borderColor ?? (theme.borderSubtle ?? theme.border)
 
-  // Animated mount effect: panel starts DIM and transitions to full brightness
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 50)
@@ -41,14 +40,14 @@ export const Panel = memo(function Panel({
       style={{
         width: (width ?? '100%') as number | `${number}%`,
         borderStyle: 'single',
-        borderColor: mounted ? resolvedBorderColor : theme.muted,
+        borderColor: mounted ? resolvedBorderColor : (theme.foregroundSubtle ?? theme.muted),
         customBorderChars: BORDER_CHARS,
         paddingLeft: padding,
         paddingRight: padding,
         paddingTop: 0,
         paddingBottom: 0,
         flexDirection: 'column',
-        backgroundColor: theme.surface,
+        backgroundColor: theme.surfaceRaised ?? theme.surface,
       }}
     >
       {(title || headerRight) && (
@@ -86,15 +85,14 @@ export const Panel = memo(function Panel({
             )}
             {!headerRight && (
               <box style={{ flexGrow: 1 }}>
-                <text style={{ fg: theme.border, attributes: textAttr }}>
+                <text style={{ fg: theme.borderSubtle ?? theme.border, attributes: textAttr }}>
                   {'\u2500'.repeat(40)}
                 </text>
               </box>
             )}
           </box>
-          {/* Thin horizontal separator below title */}
           <box style={{ width: '100%' }}>
-            <text style={{ fg: theme.border, attributes: TextAttributes.DIM }}>
+            <text style={{ fg: theme.borderSubtle ?? theme.border, attributes: TextAttributes.DIM }}>
               {'\u2500'.repeat(80)}
             </text>
           </box>

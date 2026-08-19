@@ -1,4 +1,6 @@
-export type ThemeName = 'dark' | 'light'
+export type ThemeName = 'midnight' | 'dark' | 'solar' | 'matrix' | 'light'
+
+export type ThemeMode = 'dark' | 'light'
 
 export type MarkdownHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -21,48 +23,62 @@ export interface MarkdownThemeOverrides {
 
 /**
  * Semantic Color Theme Interface
- * Inspired by Tailwind - uses semantic color roles instead of specific names
- * This makes theming easier and more intuitive
+ * Modern IDE-inspired dark theme with GitHub Dark aesthetics
  */
 export interface ChatTheme {
-  /** Theme identifier ('dark' or 'light') */
+  /** Theme identifier */
   name: ThemeName
+  /** Base mode (dark or light) for compatibility */
+  mode: ThemeMode
+
   // ============================================================================
   // CORE SEMANTIC COLORS
   // ============================================================================
 
-  /** Primary brand color - main actions, highlights, important elements */
+  /** Primary brand/accent color - electric cyan-blue */
   primary: string
 
-  /** Secondary brand color - supporting elements, less emphasis */
+  /** Legacy accent alias (same as primary) */
+  accent?: string
+
+  /** Secondary accent - purple/indigo */
   secondary: string
 
-  /** Success color - checkmarks, completed states, positive feedback */
+  /** Tertiary accent - for variety */
+  tertiary: string
+
+  /** Success color - green */
   success: string
 
-  /** Error/danger color - errors, destructive actions, failures */
+  /** Error/danger color - red */
   error: string
 
-  /** Warning color - cautions, alerts, validation issues */
+  /** Warning color - amber */
   warning: string
 
-  /** Info color - informational elements, hints */
+  /** Info color - purple/blue */
   info: string
 
-  /** Link color - hyperlinks, clickable references */
+  /** Link color */
   link: string
 
-  /** Directory color - folder/directory paths */
+  /** Directory color */
   directory: string
 
   // ============================================================================
-  // NEUTRAL SCALE
+  // NEUTRAL SCALE (GitHub Dark inspired)
   // ============================================================================
 
   /** Default text color */
   foreground: ThemeColor
 
-  /** Base background color */
+  /** Muted text color */
+  foregroundMuted: string
+
+  /** Subtle text color */
+  foregroundSubtle: string
+
+  /** Base background color - deep charcoal */
   background: string
 
   /** Subdued/secondary text color */
@@ -71,24 +87,64 @@ export interface ChatTheme {
   /** Border and divider color */
   border: string
 
+  /** Subtle border color */
+  borderSubtle: string
+
   /** Surface color for panels, cards, chrome */
   surface: string
+
+  /** Raised surface (elevated panels) */
+  surfaceRaised: string
+
+  /** Sunken/inset surface (input fields) */
+  surfaceSunken: string
 
   /** Hover state for interactive surfaces */
   surfaceHover: string
 
+  /** Active/selected state */
+  surfaceActive: string
+
+  /** Overlay/dim background */
+  overlay: string
+
   // ============================================================================
-  // CONTEXT-SPECIFIC COLORS (Minimal - most use semantic colors)
+  // STATUS BAR SEGMENTS
+  // ============================================================================
+
+  /** Status bar background */
+  statusBarBg: string
+
+  /** Status bar remote/branch segment background */
+  statusBarRemoteBg: string
+
+  /** Status bar errors/warnings background */
+  statusBarErrorBg: string
+
+  // ============================================================================
+  // CONTEXT-SPECIFIC COLORS
   // ============================================================================
 
   // AI/User differentiation
-  /** AI message indicator line color */
+  /** AI message background */
+  aiMessageBg: string
+
+  /** AI message border */
+  aiMessageBorder: string
+
+  /** User message background - accent tinted */
+  userMessageBg: string
+
+  /** User message border */
+  userMessageBorder: string
+
+  /** Agent/AI accent line */
   aiLine: string
 
-  /** User message indicator line color */
+  /** User accent line */
   userLine: string
 
-  // Agent backgrounds (specific states that don't map to semantics)
+  // Agent backgrounds
   /** Agent toggle header background */
   agentToggleHeaderBg: string
 
@@ -100,13 +156,14 @@ export interface ChatTheme {
 
   /** Agent content background */
   agentContentBg: string
+
   /** Input text color */
   inputFg: ThemeColor
 
   /** Focused input text color */
   inputFocusedFg: ThemeColor
 
-  // Mode toggles (distinct UI elements)
+  // Mode toggles
   /** Fast mode toggle background */
   modeFastBg: string
 
@@ -125,12 +182,39 @@ export interface ChatTheme {
   /** Plan mode toggle text */
   modePlanText: string
 
+  // Activity bar
+  /** Activity bar background */
+  activityBarBg: string
+
+  /** Activity bar active item background */
+  activityBarActiveBg: string
+
+  /** Activity bar foreground */
+  activityBarFg: string
+
+  /** Activity bar active foreground */
+  activityBarActiveFg: string
+
   // ============================================================================
   // IMAGE CARD
   // ============================================================================
 
   /** Image card border color */
   imageCardBorder: string
+
+  // ============================================================================
+  // CODE BLOCKS
+  // ============================================================================
+
+  /** Code block syntax colors */
+  syntaxKeyword: string
+  syntaxString: string
+  syntaxNumber: string
+  syntaxComment: string
+  syntaxFunction: string
+  syntaxVariable: string
+  syntaxOperator: string
+  syntaxPunctuation: string
 
   // ============================================================================
   // MARKDOWN
@@ -142,3 +226,38 @@ export interface ChatTheme {
   /** Text attributes (bold, dim, etc.) */
   messageTextAttributes?: number
 }
+
+/** Theme preset metadata for UI display */
+export interface ThemePreset {
+  id: ThemeName
+  name: string
+  description: string
+  mode: ThemeMode
+}
+
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    description: 'Deep charcoal dark theme (GitHub Dark inspired)',
+    mode: 'dark',
+  },
+  {
+    id: 'solar',
+    name: 'Solar',
+    description: 'Warm orange-accented dark theme',
+    mode: 'dark',
+  },
+  {
+    id: 'matrix',
+    name: 'Matrix',
+    description: 'Classic green-on-black hacker theme',
+    mode: 'dark',
+  },
+  {
+    id: 'light',
+    name: 'Light',
+    description: 'Clean light theme for daytime use',
+    mode: 'light',
+  },
+]

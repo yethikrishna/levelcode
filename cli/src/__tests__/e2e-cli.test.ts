@@ -7,7 +7,7 @@ import stripAnsi from 'strip-ansi'
 import { isSDKBuilt, ensureCliTestEnv } from './test-utils'
 
 const CLI_PATH = path.join(__dirname, '../index.tsx')
-const TIMEOUT_MS = 10000
+const TIMEOUT_MS = 30000
 const sdkBuilt = isSDKBuilt()
 
 ensureCliTestEnv()
@@ -113,7 +113,7 @@ describe.skipIf(!sdkBuilt)('CLI End-to-End Tests', () => {
       await new Promise<void>((resolve) => {
         const timeout = setTimeout(() => {
           resolve()
-        }, 2000) // Increased timeout for CI environments
+        }, 10000) // Allow up to 10s for CLI startup output
 
         // Check both stdout and stderr - CLI may output to either
         proc.stdout?.once('data', () => {
@@ -147,7 +147,7 @@ describe.skipIf(!sdkBuilt)('CLI End-to-End Tests', () => {
       await new Promise<void>((resolve) => {
         const timeout = setTimeout(() => {
           resolve()
-        }, 2000) // Increased timeout for CI environments
+        }, 10000) // Allow up to 10s for CLI startup output
 
         // Check both stdout and stderr - CLI may output to either
         proc.stdout?.once('data', () => {

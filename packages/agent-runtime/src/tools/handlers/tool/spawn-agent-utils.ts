@@ -6,6 +6,7 @@ import {
   addTeamMember,
   loadTeamConfig,
   sendMessage,
+  saveTeamConfig,
 } from '@levelcode/common/utils/team-fs'
 import { TEAM_AGENTS } from '../../../../../../agents/team'
 // Role hierarchy is no longer used for spawn restrictions -- all roles can spawn all others.
@@ -573,27 +574,50 @@ export async function registerAgentAsTeamMember(
   }
 
   const role: TeamRole = (teamRole as TeamRole) || 'mid-level-engineer'
-  const memberName = `${agentType}-${agentId}`
+  let memberName = `${agentType}-${agentId}`
 
-  const member: TeamMember = {
-    agentId,
-    name: memberName,
-    role,
-    agentType,
-    model: '',
-    joinedAt: Date.now(),
-    status: 'active',
-    cwd: process.cwd(),
-  }
+  // Check if there is an existing idle member matching the role or agentType
+  const idleIndex = teamConfig.members.findIndex(
+    (m) => m.status === 'idle' && (m.role === role || m.agentType === agentType)
+  )
 
-  try {
-    await addTeamMember(teamName, member)
-  } catch (error) {
-    logger.debug(
-      { teamName, agentId, error },
-      `Failed to register agent as team member`,
-    )
-    return null
+  if (idleIndex !== -1) {
+    const existing = teamConfig.members[idleIndex]
+    existing.agentId = agentId
+    existing.status = 'active'
+    existing.joinedAt = Date.now()
+    existing.cwd = process.cwd()
+    memberName = existing.name
+    try {
+      await saveTeamConfig(teamName, teamConfig)
+    } catch (error) {
+      logger.debug(
+        { teamName, agentId, error },
+        `Failed to save updated team config for preset member activation`,
+      )
+      return null
+    }
+  } else {
+    const member: TeamMember = {
+      agentId,
+      name: memberName,
+      role,
+      agentType,
+      model: '',
+      joinedAt: Date.now(),
+      status: 'active',
+      cwd: process.cwd(),
+    }
+
+    try {
+      await addTeamMember(teamName, member)
+    } catch (error) {
+      logger.debug(
+        { teamName, agentId, error },
+        `Failed to register agent as team member`,
+      )
+      return null
+    }
   }
 
   // Notify the team lead about the new member (fire-and-forget)

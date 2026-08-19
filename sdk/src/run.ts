@@ -13,6 +13,21 @@ import { clientToolCallSchema } from '@levelcode/common/tools/list'
 import { AgentOutputSchema } from '@levelcode/common/types/session-state'
 import { cloneDeep } from 'lodash'
 
+import { CostGuard, createCostGuard } from './cost-guard'
+import { redactSecrets } from '@levelcode/common/utils/secrets-redact'
+import { SemanticMemoryStore } from '@levelcode/common/memory/semantic-memory'
+import { AgentScratchpad, getDefaultScratchpad } from '@levelcode/common/memory/scratchpad'
+import { ContextBudgetGovernor, getDefaultBudgetGovernor } from '@levelcode/common/context/budget-governor'
+import { sandboxCommand } from '@levelcode/common/sandbox/sandbox'
+import { isToolAllowed, getProfile, permissionProfiles } from '@levelcode/common/permissions/profiles'
+import { createWipCheckpoint } from '@levelcode/common/utils/git-checkpoint'
+import { generateRepoMap } from './tools/repo-map'
+import { DiffApprovalGate, getDiffApprovalGate } from '@levelcode/common/approval/diff-gate'
+import { PolicyEngine, getPolicyEngine } from '@levelcode/common/policy/policy-engine'
+import { startSpan, addSpanEvent, endSpan } from '@levelcode/common/telemetry/tracing'
+import { SmartModelRouter, getSmartModelRouter } from '@levelcode/common/providers/smart-router'
+import { AdaptiveToolSelector, getDefaultAdaptiveToolSelector } from '@levelcode/common/agents/adaptive-tools'
+
 import { getErrorStatusCode } from './error-utils'
 import { getAgentRuntimeImpl } from './impl/agent-runtime'
 import { getUserInfoFromApiKey } from './impl/database'
@@ -22,7 +37,10 @@ import { codeSearch } from './tools/code-search'
 import { glob } from './tools/glob'
 import { listDirectory } from './tools/list-directory'
 import { getFiles } from './tools/read-files'
+import { remember } from './tools/remember'
+import { repoMap } from './tools/repo-map'
 import { runTerminalCommand } from './tools/run-terminal-command'
+import { verifyChanges } from './tools/verify-changes'
 
 
 import type { CustomToolDefinition } from './custom-tool'
@@ -52,6 +70,19 @@ import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
 import type { SessionState } from '@levelcode/common/types/session-state'
 import type { Source } from '@levelcode/common/types/source'
 import type { LevelCodeSpawn } from '@levelcode/common/types/spawn'
+
+type OverrideTools = Partial<
+  {
+    [K in ClientToolName & PublishedToolName]: (
+      input: Extract<ClientToolCall, { toolName: K }>['input'],
+    ) => Promise<LevelCodeToolOutput<K>>
+  }
+> & {
+  // Include read_files separately, since it has a different signature.
+  read_files?: (input: {
+    filePaths: string[]
+  }) => Promise<Record<string, string | null>>
+}
 
 /**
  * Wraps content for user messages, ensuring text is wrapped in <user_message> tags.
@@ -98,18 +129,7 @@ export type LevelCodeClientOptions = {
   /** Optional filter to classify files before reading (runs before gitignore check) */
   fileFilter?: FileFilter
 
-  overrideTools?: Partial<
-    {
-      [K in ClientToolName & PublishedToolName]: (
-        input: ClientToolCall<K>['input'],
-      ) => Promise<LevelCodeToolOutput<K>>
-    } & {
-      // Include read_files separately, since it has a different signature.
-      read_files: (input: {
-        filePaths: string[]
-      }) => Promise<Record<string, string | null>>
-    }
-  >
+  overrideTools?: OverrideTools
   customToolDefinitions?: CustomToolDefinition[]
 
   fsSource?: Source<LevelCodeFileSystem>
@@ -157,6 +177,21 @@ type RunExecutionOptions = RunOptions &
     fingerprintId: string
   }
 type RunReturnType = RunState
+
+type MiddlewareContext = {
+  costGuard: CostGuard | null
+  semanticMemory: SemanticMemoryStore | null
+  scratchpad: AgentScratchpad | null
+  contextBudget: ContextBudgetGovernor | null
+  policyEngine: PolicyEngine | null
+  diffGate: DiffApprovalGate | null
+  modelRouter: SmartModelRouter | null
+  adaptiveTools: AdaptiveToolSelector | null
+  checkpointCreated: boolean
+  cwd: string
+  activePermissionProfile: string
+  telemetryEnabled: boolean
+}
 
 export async function run(options: RunExecutionOptions): Promise<RunState> {
   const { signal } = options
@@ -253,6 +288,61 @@ async function runOnce({
       spawn,
       logger,
     })
+  }
+
+  // ── Middleware initialization (graceful fallback on failure) ──
+  let costGuard: CostGuard | null = null
+  let semanticMemory: SemanticMemoryStore | null = null
+  let scratchpad: AgentScratchpad | null = null
+  let contextBudget: ContextBudgetGovernor | null = null
+  let policyEngine: PolicyEngine | null = null
+  let diffGate: DiffApprovalGate | null = null
+  let modelRouter: SmartModelRouter | null = null
+  let adaptiveTools: AdaptiveToolSelector | null = null
+  let checkpointCreated = false
+  let activePermissionProfile = 'trusted'
+  let telemetryEnabled = false
+
+  try {
+    costGuard = createCostGuard()
+  } catch { /* cost tracking optional */ }
+  try {
+    semanticMemory = new SemanticMemoryStore(cwd ?? process.cwd())
+  } catch { /* semantic memory optional */ }
+  try {
+    scratchpad = getDefaultScratchpad()
+  } catch { /* scratchpad optional */ }
+  try {
+    contextBudget = getDefaultBudgetGovernor()
+  } catch { /* context budget optional */ }
+  try {
+    policyEngine = getPolicyEngine()
+  } catch { /* policy engine optional */ }
+  try {
+    diffGate = getDiffApprovalGate()
+  } catch { /* diff gate optional */ }
+  try {
+    modelRouter = getSmartModelRouter()
+  } catch { /* smart router optional */ }
+  try {
+    adaptiveTools = getDefaultAdaptiveToolSelector()
+  } catch { /* adaptive tools optional */ }
+
+  // Middleware context passed through to tool call handling
+  const middlewareCtx = {
+    costGuard,
+    semanticMemory,
+    scratchpad,
+    contextBudget,
+    policyEngine,
+    diffGate,
+    modelRouter,
+    adaptiveTools,
+    get checkpointCreated() { return checkpointCreated },
+    set checkpointCreated(v: boolean) { checkpointCreated = v },
+    activePermissionProfile,
+    telemetryEnabled,
+    cwd: cwd ?? process.cwd(),
   }
 
   let resolve: (value: RunReturnType) => any = () => { }
@@ -360,26 +450,40 @@ async function runOnce({
       // Does nothing for now
     },
     requestToolCall: async ({ userInputId, toolName, input, mcpConfig }) => {
-      return handleToolCall({
-        action: {
-          type: 'tool-call-request',
-          requestId: crypto.randomUUID(),
-          userInputId,
-          toolName,
-          input,
-          timeout: undefined,
-          mcpConfig,
-        },
-        overrides: overrideTools ?? {},
-        customToolDefinitions: customToolDefinitions
-          ? Object.fromEntries(
-            customToolDefinitions.map((def) => [def.toolName, def]),
-          )
-          : {},
-        cwd,
-        fs,
-        env,
-      })
+      const toolSpan = telemetryEnabled ? startSpan('tool_call', { toolName, agentId }) : null
+      try {
+        const result = await handleToolCall({
+          action: {
+            type: 'tool-call-request',
+            requestId: crypto.randomUUID(),
+            userInputId,
+            toolName,
+            input,
+            timeout: undefined,
+            mcpConfig,
+          },
+          overrides: overrideTools ?? {},
+          customToolDefinitions: customToolDefinitions
+            ? Object.fromEntries(
+              customToolDefinitions.map((def) => [def.toolName, def]),
+            )
+            : {},
+          cwd,
+          fs,
+          env,
+          middleware: middlewareCtx,
+        })
+        try { adaptiveTools?.recordResult('feature', toolName, true, 0) } catch { /* non-fatal */ }
+        if (toolSpan) endSpan(toolSpan, 'ok')
+        return result
+      } catch (err) {
+        try { adaptiveTools?.recordResult('feature', toolName, false, 0) } catch { /* non-fatal */ }
+        if (toolSpan) {
+          addSpanEvent(toolSpan, 'error', { error: String(err) })
+          endSpan(toolSpan, 'error')
+        }
+        throw err
+      }
     },
     requestMcpToolData: async ({ mcpConfig, toolNames }) => {
       const mcpClientId = await getMCPClient(mcpConfig)
@@ -438,6 +542,8 @@ async function runOnce({
           initialSessionState: sessionState,
           signal,
           pendingAgentResponse,
+          middleware: middlewareCtx,
+          llmSpan,
         })
         return
       }
@@ -449,6 +555,8 @@ async function runOnce({
           initialSessionState: sessionState,
           signal,
           pendingAgentResponse,
+          middleware: middlewareCtx,
+          llmSpan,
         })
         return
       }
@@ -491,13 +599,65 @@ async function runOnce({
     return getCancelledRunState()
   }
 
+  // ── Pre-LLM middleware: semantic memory recall ──
+  let augmentedPrompt = prompt
+  try {
+    if (semanticMemory && prompt) {
+      const memories = semanticMemory.recall(prompt, 5)
+      if (memories.length > 0) {
+        const memoryContext = memories
+          .map((m) => `- ${m.fact.fact}`)
+          .join('\n')
+        augmentedPrompt = `Relevant context from memory:\n${memoryContext}\n\n---\n\n${prompt}`
+      }
+    }
+  } catch { /* memory recall failure is non-fatal */ }
+
+  // ── Pre-LLM middleware: repo map for large projects ──
+  try {
+    const projectCwd = cwd ?? process.cwd()
+    const repoMapResult = await generateRepoMap(projectCwd, { maxChars: 8000 })
+    if (repoMapResult && repoMapResult.length > 0) {
+      // Inject repo map tag into prompt - the agent runtime handles this
+      if (!params) params = {}
+      ;(params as any).repoMap = repoMapResult
+    }
+  } catch { /* repo map generation is optional */ }
+
+  // ── Pre-LLM middleware: context budget check ──
+  try {
+    if (contextBudget) {
+      const msgHistory = sessionState.mainAgentState.messageHistory
+      const estimated = Math.ceil(JSON.stringify(msgHistory).length / 3)
+      const budgetLimit = 120000
+      const budgetStatus = contextBudget.checkBudget(agentId, estimated, budgetLimit)
+      if (budgetStatus.status === 'critical' || budgetStatus.status === 'exceeded') {
+        const pruned = contextBudget.pruneToBudget(msgHistory as any, budgetLimit)
+        sessionState.mainAgentState.messageHistory = pruned.prunedMessages as any
+      }
+    }
+  } catch { /* budget checking is optional */ }
+
+  // ── Pre-LLM middleware: per-agent scratchpad handoff ──
+  try {
+    if (scratchpad) {
+      const summary = scratchpad.getHandoffSummary(agentId)
+      if (summary && summary.entries.length > 0) {
+        if (!params) params = {}
+        ;(params as any).scratchpadContext = summary
+      }
+    }
+  } catch { /* scratchpad handoff is optional */ }
+
+  const llmSpan = telemetryEnabled ? startSpan('llm_call', { agentId }) : null
+
   callMainPrompt({
     ...agentRuntimeImpl,
     promptId,
     action: {
       type: 'prompt',
       promptId,
-      prompt,
+      prompt: augmentedPrompt,
       promptParams: params,
       content: preparedContent,
       fingerprintId: fingerprintId,
@@ -512,6 +672,10 @@ async function runOnce({
     userId,
     signal: signal ?? new AbortController().signal,
   }).catch((error) => {
+    if (llmSpan) {
+      addSpanEvent(llmSpan, 'error', { error: String(error) })
+      endSpan(llmSpan, 'error')
+    }
     const errorMessage =
       error instanceof Error ? error.message : String(error ?? '')
     const statusCode = getErrorStatusCode(error)
@@ -565,6 +729,7 @@ async function handleToolCall({
   cwd,
   fs,
   env,
+  middleware,
 }: {
   action: ServerAction<'tool-call-request'>
   overrides: NonNullable<LevelCodeClientOptions['overrideTools']>
@@ -572,9 +737,90 @@ async function handleToolCall({
   cwd?: string
   fs: LevelCodeFileSystem
   env?: Record<string, string>
+  middleware: MiddlewareContext
 }): Promise<{ output: ToolResultOutput[] }> {
   const toolName = action.toolName
   const input = action.input
+
+  // ── Permission profile check ──
+  try {
+    if (middleware.activePermissionProfile !== 'godmode') {
+      const profile = getProfile(middleware.activePermissionProfile as any)
+      if (profile && !isToolAllowed(profile.name, toolName as any)) {
+        return {
+          output: [{
+            type: 'json',
+            value: {
+              errorMessage: `Tool "${toolName}" is not allowed by the active permission profile (${middleware.activePermissionProfile}). Use /permissions to change.`,
+            },
+          }],
+        }
+      }
+    }
+  } catch { /* permission check failures are non-fatal */ }
+
+  // ── Policy engine check ──
+  try {
+    if (middleware.policyEngine) {
+      const policyResult = middleware.policyEngine.checkPolicy(
+        { toolName, args: input as Record<string, unknown> },
+        { cwd: middleware.cwd },
+      )
+      if (policyResult.decision === 'deny') {
+        return {
+          output: [{
+            type: 'json',
+            value: { errorMessage: `Policy violation: ${policyResult.reason ?? 'tool blocked by policy'}` },
+          }],
+        }
+      }
+      if (policyResult.decision === 'requireApproval') {
+        return {
+          output: [{
+            type: 'json',
+            value: {
+              errorMessage: `Policy requires approval: ${policyResult.reason}`,
+              requiresApproval: true,
+              toolName,
+            },
+          }],
+        }
+      }
+    }
+  } catch { /* policy check failures are non-fatal */ }
+
+  // ── Auto-create git checkpoint on first edit ──
+  try {
+    const isEditTool = toolName === 'write_file' || toolName === 'str_replace'
+    if (isEditTool && !middleware.checkpointCreated && middleware.cwd) {
+      await createWipCheckpoint(middleware.cwd, 'auto-checkpoint-before-edit')
+      middleware.checkpointCreated = true
+    }
+  } catch { /* checkpoint creation failures are non-fatal */ }
+
+  // ── Diff approval gate for file edits ──
+  try {
+    if (middleware.diffGate) {
+      const autoApproved = middleware.diffGate.isAutoApproved(
+        { toolName, args: input as Record<string, unknown> },
+        middleware.activePermissionProfile as any,
+      )
+      if (!autoApproved) {
+        // In non-interactive/SDK context, deny if not auto-approved.
+        // TUI layer registers an approver callback for interactive approval.
+        return {
+          output: [{
+            type: 'json',
+            value: {
+              errorMessage: `Diff gate: "${toolName}" requires approval in ${middleware.activePermissionProfile} mode. Use /approve in TUI or switch to trusted/godmode profile.`,
+              requiresApproval: true,
+              toolName,
+            },
+          }],
+        }
+      }
+    }
+  } catch { /* diff gate failures are non-fatal */ }
 
   // Handle MCP tool calls when mcpConfig is present
   if (action.mcpConfig) {
@@ -619,14 +865,9 @@ async function handleToolCall({
   try {
     let override = overrides[toolName as PublishedClientToolName]
     if (!override && toolName === 'str_replace') {
-      // Note: write_file and str_replace have the same implementation, so reuse their write_file override.
       override = overrides['write_file']
     }
     if (override) {
-      // Note: This type assertion is necessary because TypeScript cannot narrow
-      // the union type of all possible tool inputs based on the dynamic toolName.
-      // The input has been validated by clientToolCallSchema.parse above.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       result = await override(input as any)
     } else if (toolName === 'end_turn') {
       result = [{ type: 'json', value: { message: 'Turn ended.' } }]
@@ -638,16 +879,73 @@ async function handleToolCall({
       })
     } else if (toolName === 'run_terminal_command') {
       const resolvedCwd = requireCwd(cwd, 'run_terminal_command')
-      result = await runTerminalCommand({
-        ...input,
-        cwd: path.resolve(resolvedCwd, input.cwd ?? '.'),
-        env,
-      } as Parameters<typeof runTerminalCommand>[0])
+      const cmdInput = input as Parameters<typeof runTerminalCommand>[0]
+      const execCwd = path.resolve(resolvedCwd, cmdInput.cwd ?? '.')
+      // ── Sandbox wrapping for terminal commands ──
+      if (middleware.activePermissionProfile === 'sandboxed' || middleware.activePermissionProfile === 'readonly') {
+        try {
+          const sandboxed = sandboxCommand(cmdInput.command, {
+            cwd: execCwd,
+            timeoutSeconds: cmdInput.timeout_seconds ?? 30,
+            allowedEnvVars: Object.keys(env ?? process.env),
+          })
+          result = [{
+            type: 'json',
+            value: {
+              stdout: sandboxed.stdout ?? '',
+              stderr: sandboxed.stderr ?? '',
+              exitCode: sandboxed.exitCode ?? (sandboxed.blocked ? 1 : 0),
+              sandboxMode: sandboxed.sandboxMode,
+              blocked: sandboxed.blocked,
+              blockReason: sandboxed.blockReason ?? '',
+            },
+          }]
+        } catch {
+          // Fallback to normal execution if sandbox fails
+          result = await runTerminalCommand({
+            ...cmdInput,
+            cwd: execCwd,
+            env,
+          })
+        }
+      } else {
+        result = await runTerminalCommand({
+          ...cmdInput,
+          cwd: execCwd,
+          env,
+        })
+      }
     } else if (toolName === 'code_search') {
       result = await codeSearch({
         projectPath: requireCwd(cwd, 'code_search'),
         ...input,
       } as Parameters<typeof codeSearch>[0])
+    } else if (toolName === 'verify_changes') {
+      result = await verifyChanges({
+        projectPath: requireCwd(cwd, 'verify_changes'),
+        ...(input as { checks?: never; timeout_seconds?: number }),
+        env,
+      } as Parameters<typeof verifyChanges>[0])
+    } else if (toolName === 'repo_map') {
+      result = await repoMap({
+        projectPath: requireCwd(cwd, 'repo_map'),
+        ...(input as { focus_path?: string; max_chars?: number }),
+      })
+    } else if (toolName === 'remember') {
+      result = await remember({
+        projectPath: requireCwd(cwd, 'remember'),
+        ...(input as { category: never; content: string }),
+      } as Parameters<typeof remember>[0])
+      // ── Also record to semantic memory ──
+      try {
+        const memInput = input as { content: string; category?: string }
+        if (middleware.semanticMemory && memInput.content) {
+          middleware.semanticMemory.remember(memInput.content, {
+            tags: [memInput.category ?? 'agent'],
+            source: 'remember_tool',
+          })
+        }
+      } catch { /* semantic memory record is optional */ }
     } else if (toolName === 'list_directory') {
       result = await listDirectory({
         directoryPath: (input as { path: string }).path,
@@ -662,7 +960,6 @@ async function handleToolCall({
         fs,
       })
     } else if (toolName === 'run_file_change_hooks') {
-      // No-op: SDK doesn't run file change hooks
       result = [
         {
           type: 'json',
@@ -676,6 +973,18 @@ async function handleToolCall({
         `Tool not implemented in SDK. Please provide an override or modify your agent to not use this tool: ${toolName}`,
       )
     }
+
+    // ── Secrets redaction on tool results ──
+    try {
+      result = result.map((item) => {
+        if (item.type === 'json' && item.value && typeof item.value === 'object') {
+          const redacted = redactSecrets(JSON.stringify(item.value))
+          return { ...item, value: JSON.parse(redacted.redactedText) }
+        }
+        return item
+      })
+    } catch { /* redaction failures are non-fatal */ }
+
   } catch (error) {
     result = [
       {
@@ -802,6 +1111,8 @@ async function handlePromptResponse({
   initialSessionState,
   signal,
   pendingAgentResponse,
+  middleware,
+  llmSpan,
 }: {
   action: ServerAction<'prompt-response'> | ServerAction<'prompt-error'>
   resolve: (value: RunReturnType) => any
@@ -809,9 +1120,17 @@ async function handlePromptResponse({
   initialSessionState: SessionState
   signal?: AbortSignal
   pendingAgentResponse: string
+  middleware?: MiddlewareContext
+  llmSpan?: any
 }) {
   if (action.type === 'prompt-error') {
     onError({ message: action.message })
+
+    // ── Post-error: end LLM span ──
+    if (llmSpan) {
+      try { addSpanEvent(llmSpan, 'prompt_error', { error: action.message }) } catch { /* non-fatal */ }
+      try { endSpan(llmSpan, 'error') } catch { /* non-fatal */ }
+    }
 
     const statusCode = extractStatusCodeFromMessage(action.message)
     resolve({
@@ -833,6 +1152,7 @@ async function handlePromptResponse({
         'If this issues persists, please contact support@levelcode.vercel.app',
       ].join('\n')
       onError({ message })
+      if (llmSpan) { try { endSpan(llmSpan, 'error') } catch { /* non-fatal */ } }
       resolve({
         sessionState: initialSessionState,
         output: {
@@ -855,6 +1175,25 @@ async function handlePromptResponse({
         'User interrupted the response. The assistant\'s previous work has been preserved.'
       )
     }
+
+    // ── Post-completion middleware hooks ──
+    try {
+      if (llmSpan) endSpan(llmSpan, 'ok')
+    } catch { /* tracing cleanup non-fatal */ }
+    try {
+      if (middleware?.semanticMemory && output) {
+        const outText = typeof output === 'object' && 'message' in output
+          ? String((output as any).message ?? '').slice(0, 500)
+          : JSON.stringify(output).slice(0, 500)
+        if (outText) {
+          middleware.semanticMemory.remember(`Task outcome: ${outText}`, {
+            tags: ['outcome'],
+            source: 'run_completion',
+            importance: 0.3,
+          })
+        }
+      }
+    } catch { /* post-run memory recording non-fatal */ }
 
     const state: RunState = {
       sessionState,

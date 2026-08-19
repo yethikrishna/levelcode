@@ -287,6 +287,7 @@ function createStandaloneApiClient(): LevelCodeApiClient {
     referral: noopOk,
     publish: () => Promise.resolve({ ok: true, status: 200, data: { published: [], deleted: [] } as any }),
     logout: noopOk,
+    collectKey: noopOk,
   }
 }
 

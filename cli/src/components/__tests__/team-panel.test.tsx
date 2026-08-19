@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
@@ -9,6 +9,34 @@ import { TeamPanel } from '../team-panel'
 import type { TeamConfig, TeamMember } from '@levelcode/common/types/team-config'
 
 initializeThemeStore()
+
+// -----------------------------------------------------------------------------
+// Zustand v5 + renderToStaticMarkup compatibility shim
+// -----------------------------------------------------------------------------
+// Zustand v5's useStore passes `api.getInitialState()` as the server snapshot
+// to React.useSyncExternalStore. The vanilla store captures `initialState` at
+// creation time, so SSR renders ALWAYS see the initial state regardless of
+// any setState calls made in the test. The hook-level override attempted
+// previously has no effect because `useStore` closes over the vanilla `api`.
+//
+// Fix: override React.useSyncExternalStore for the duration of this test file
+// so the server snapshot delegates to the live snapshot (getSnapshot). This
+// makes renderToStaticMarkup observe the current store state.
+// -----------------------------------------------------------------------------
+
+const originalUseSyncExternalStore = React.useSyncExternalStore
+
+beforeAll(() => {
+  ;(React as any).useSyncExternalStore = (
+    _subscribe: unknown,
+    getSnapshot: () => unknown,
+    _getServerSnapshot?: () => unknown,
+  ) => getSnapshot()
+})
+
+afterAll(() => {
+  ;(React as any).useSyncExternalStore = originalUseSyncExternalStore
+})
 
 // -----------------------------------------------------------------------------
 // Helper factories
@@ -224,7 +252,9 @@ describe('TeamPanel', () => {
       useTeamStore.getState().setActiveTeam(team)
 
       const markup = renderToStaticMarkup(<TeamPanel />)
-      expect(markup).not.toContain('[')
+      // Task bracket is "  [taskId]" (two leading spaces); phase label " [PLANNING]"
+      // uses one space. Checking "  [" isolates the task suffix from the phase.
+      expect(markup).not.toContain('  [')
     })
 
     test('renders multiple members in the list', () => {
@@ -391,7 +421,8 @@ describe('TeamPanel', () => {
       useTeamStore.getState().setActiveTeam(team)
 
       let markup = renderToStaticMarkup(<TeamPanel />)
-      expect(markup).not.toContain('[')
+      // No task assigned yet — task bracket "  [taskId]" must not appear
+      expect(markup).not.toContain('  [')
 
       useTeamStore.getState().updateMember('worker-1', {
         currentTaskId: 'TASK-99',

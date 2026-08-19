@@ -286,6 +286,58 @@ export async function sendMessage(teamName: string, to: string, message: TeamPro
   })
 }
 
+// --- Team Metrics (swarm-metrics) ---
+
+function getTeamMetricsPath(teamName: string): string {
+  validateTeamName(teamName)
+  return path.join(getTeamDir(teamName), 'metrics.json')
+}
+
+export interface TeamMetrics {
+  tokens: number
+  tasks: number
+  successRate: number
+  duration: number // ms
+  updatedAt: number
+}
+
+export function loadTeamMetrics(teamName: string): TeamMetrics | null {
+  const metricsPath = getTeamMetricsPath(teamName)
+  if (!fs.existsSync(metricsPath)) {
+    return null
+  }
+  try {
+    const raw = fs.readFileSync(metricsPath, 'utf-8')
+    return JSON.parse(raw) as TeamMetrics
+  } catch {
+    return null
+  }
+}
+
+export async function saveTeamMetrics(teamName: string, metrics: TeamMetrics): Promise<void> {
+  const metricsPath = getTeamMetricsPath(teamName)
+  await withLock(metricsPath, () => {
+    const teamDir = getTeamDir(teamName)
+    fs.mkdirSync(teamDir, { recursive: true })
+    fs.writeFileSync(metricsPath, JSON.stringify({ ...metrics, updatedAt: Date.now() }, null, 2))
+  })
+}
+
+export function updateTeamMetrics(teamName: string, partial: Partial<TeamMetrics>): void {
+  const existing = loadTeamMetrics(teamName) || { tokens: 0, tasks: 0, successRate: 0, duration: 0, updatedAt: Date.now() }
+  const updated: TeamMetrics = {
+    tokens: partial.tokens ?? existing.tokens,
+    tasks: partial.tasks ?? existing.tasks,
+    successRate: partial.successRate ?? existing.successRate,
+    duration: partial.duration ?? existing.duration,
+    updatedAt: Date.now(),
+  }
+  // sync write for simplicity in initial impl
+  const metricsPath = getTeamMetricsPath(teamName)
+  fs.mkdirSync(path.dirname(metricsPath), { recursive: true })
+  fs.writeFileSync(metricsPath, JSON.stringify(updated, null, 2))
+}
+
 export function readInbox(teamName: string, agentName: string): TeamProtocolMessage[] {
   const inboxPath = getInboxPath(teamName, agentName)
   if (!fs.existsSync(inboxPath)) {

@@ -8,6 +8,11 @@ export const AGENT_DEFINITION_FILE = 'agent-definition.d.ts'
 
 export const API_KEY_ENV_VAR = 'LEVELCODE_API_KEY'
 
+// LevelCode persistent project memory files (levelcode.md / .levelcode.md / levelcode.local.md)
+// These are discovered by walking up directories from cwd, similar to CLAUDE.md.
+export const LEVELCODE_MEMORY_DIR = '.levelcode'
+export const LEVELCODE_MEMORY_PRIMARY_FILE = 'levelcode.md'
+
 export const INVALID_AUTH_TOKEN_MESSAGE =
   'Invalid auth token. You may have been logged out from the web portal. Please log in again.'
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from 'bun:test'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -89,16 +89,18 @@ function makeMember(overrides?: Partial<TeamMember>): TeamMember {
   }
 }
 
+let homedirSpy: ReturnType<typeof spyOn>
+
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'team-fs-test-'))
   origHome = process.env.HOME
   origUserProfile = process.env.USERPROFILE
-  // Override home directory so getConfigRoot() points to our temp dir
-  process.env.HOME = tmpDir
-  process.env.USERPROFILE = tmpDir
+  // Spy+mock os.homedir() for reliable per-test isolation (env override insufficient under parallel tests)
+  homedirSpy = spyOn(os, 'homedir').mockReturnValue(tmpDir)
 })
 
 afterEach(() => {
+  if (homedirSpy) homedirSpy.mockRestore()
   // Restore original env
   if (origHome !== undefined) {
     process.env.HOME = origHome

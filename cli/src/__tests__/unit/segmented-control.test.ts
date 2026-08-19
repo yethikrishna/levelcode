@@ -11,23 +11,44 @@ import type { ChatTheme } from '../../types/theme-system'
 
 const theme: ChatTheme = {
   name: 'dark',
+  mode: 'dark',
   // Core
   primary: '#ff0',
+  accent: '#ff0',
   secondary: '#888',
+  tertiary: '#f80',
   success: '#0f0',
   error: '#f00',
   warning: '#fa0',
   info: '#0af',
+  link: '#3B82F6',
+  directory: '#9CA3AF',
   // Neutral
   foreground: '#fff',
+  foregroundMuted: '#aaa',
+  foregroundSubtle: '#888',
   background: 'transparent',
   muted: '#777',
   border: '#333',
+  borderSubtle: '#222',
   surface: '#000',
+  surfaceRaised: '#111',
+  surfaceSunken: '#000',
   surfaceHover: '#222',
-  // Context
+  surfaceActive: '#333',
+  overlay: '#000000cc',
+  // Status bar
+  statusBarBg: '#111',
+  statusBarRemoteBg: '#f60',
+  statusBarErrorBg: '#f00',
+  // AI/User messages
+  aiMessageBg: '#000',
+  aiMessageBorder: '#333',
+  userMessageBg: '#222',
+  userMessageBorder: '#444',
   aiLine: '#0a0',
   userLine: '#08f',
+  // Agent backgrounds
   agentToggleHeaderBg: '#f60',
   agentToggleExpandedBg: '#14e',
   agentFocusedBg: '#334155',
@@ -42,12 +63,22 @@ const theme: ChatTheme = {
   modeMaxText: '#d22',
   modePlanBg: '#14e',
   modePlanText: '#14e',
-  // Link
-  link: '#3B82F6',
-  // Directory
-  directory: '#9CA3AF',
+  // Activity bar
+  activityBarBg: '#000',
+  activityBarActiveBg: '#111',
+  activityBarFg: '#777',
+  activityBarActiveFg: '#ff0',
   // Image card
   imageCardBorder: '#3B82F6',
+  // Syntax highlighting
+  syntaxKeyword: '#f80',
+  syntaxString: '#0f0',
+  syntaxNumber: '#0af',
+  syntaxComment: '#777',
+  syntaxFunction: '#a0f',
+  syntaxVariable: '#fa0',
+  syntaxOperator: '#f00',
+  syntaxPunctuation: '#fff',
   // Markdown
   markdown: {
     codeBackground: '#111',

@@ -4,7 +4,7 @@
  * Provides plugin system and customization support for themes
  */
 
-import type { ChatTheme } from '../types/theme-system'
+import type { ChatTheme, ThemeName } from '../types/theme-system'
 
 /**
  * Plugin interface for extending theme system
@@ -69,7 +69,6 @@ export const registerThemePlugin = (plugin: ThemePlugin): void => {
   if (!themeConfig.plugins) {
     themeConfig.plugins = []
   }
-  // Check if plugin already registered
   if (themeConfig.plugins.some((p) => p.name === plugin.name)) {
     console.warn(`Theme plugin "${plugin.name}" is already registered`)
     return
@@ -79,7 +78,6 @@ export const registerThemePlugin = (plugin: ThemePlugin): void => {
 
 /**
  * Resolve 'default' color values to fallback colors
- * Components should never see 'default' - it's resolved during theme building
  */
 const resolveThemeColors = (theme: ChatTheme, mode: 'dark' | 'light'): void => {
   const defaultFallback = mode === 'dark' ? '#ffffff' : '#000000'
@@ -95,7 +93,6 @@ const resolveThemeColors = (theme: ChatTheme, mode: 'dark' | 'light'): void => {
     return fallback
   }
 
-  // Resolve all ThemeColor properties to actual colors
   theme.foreground = resolve(theme.foreground)
   theme.muted = resolve(theme.muted)
   theme.inputFg = resolve(theme.inputFg)
@@ -104,28 +101,20 @@ const resolveThemeColors = (theme: ChatTheme, mode: 'dark' | 'light'): void => {
 
 /**
  * Build a complete theme by applying custom colors and plugins
- * All 'default' color values are resolved to actual colors
- * @param baseTheme - The base theme to start from
- * @param mode - Current theme mode (dark or light)
- * @param customColors - Optional custom color overrides
- * @param plugins - Optional theme plugins to apply
- * @returns Complete theme with all customizations applied
  */
 export const buildTheme = (
   baseTheme: ChatTheme,
-  mode: 'dark' | 'light',
+  themeName: ThemeName,
   customColors?: Partial<ChatTheme>,
   plugins?: ThemePlugin[],
 ): ChatTheme => {
-  // Start with cloned base theme (cloning handled by caller)
   const theme = { ...baseTheme }
+  const mode: 'dark' | 'light' = themeName === 'light' ? 'light' : 'dark'
 
-  // Layer 1: Apply global custom colors
   if (customColors) {
     Object.assign(theme, customColors)
   }
 
-  // Layer 2: Apply plugins
   if (plugins) {
     for (const plugin of plugins) {
       const pluginOverrides = plugin.apply(theme, mode)
@@ -133,9 +122,8 @@ export const buildTheme = (
     }
   }
 
-  // Final step: Resolve all 'default' values to actual colors
   resolveThemeColors(theme, mode)
-  theme.name = mode
+  theme.name = themeName
 
   return theme
 }

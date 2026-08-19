@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -87,15 +87,18 @@ function makeTeamConfig(overrides?: Partial<TeamConfig>): TeamConfig {
   }
 }
 
+let homedirSpy: ReturnType<typeof spyOn>
+
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'team-messaging-test-'))
   origHome = process.env.HOME
   origUserProfile = process.env.USERPROFILE
-  process.env.HOME = tmpDir
-  process.env.USERPROFILE = tmpDir
+  // Spy+mock os.homedir() for reliable per-test isolation (env override insufficient under parallel tests)
+  homedirSpy = spyOn(os, 'homedir').mockReturnValue(tmpDir)
 })
 
 afterEach(() => {
+  if (homedirSpy) homedirSpy.mockRestore()
   if (origHome !== undefined) {
     process.env.HOME = origHome
   } else {

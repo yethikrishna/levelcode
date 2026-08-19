@@ -301,3 +301,23 @@ function formatStatusLabel(status: TeamTask['status']): string {
       return 'Blocked'
   }
 }
+
+// --- swarm-metrics dashboard ---
+
+import { loadTeamMetrics, type TeamMetrics } from './team-fs'
+
+export function generateTeamMetricsDashboard(teamName: string): string {
+  const metrics = loadTeamMetrics(teamName)
+  if (!metrics) {
+    return `Team Metrics: ${teamName}\n\nNo metrics recorded yet. (storage ready)`
+  }
+  const lines: string[] = []
+  lines.push(`Team Metrics Dashboard: ${teamName}`)
+  lines.push('')
+  lines.push(`Tokens Used: ${metrics.tokens}`)
+  lines.push(`Tasks Completed: ${metrics.tasks}`)
+  lines.push(`Success Rate: ${(metrics.successRate * 100).toFixed(1)}%`)
+  lines.push(`Duration: ${Math.floor(metrics.duration / 1000)}s`)
+  lines.push(`Last Updated: ${new Date(metrics.updatedAt).toISOString()}`)
+  return lines.join('\n')
+}

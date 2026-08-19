@@ -968,6 +968,10 @@ Please continue the conversation from here. In particular, try to address the us
       sentAt: now,
     }
 
+    // GCC: commit summary to Git Context Commit (v1 item 6)
+    const gccPayload = { commit: 'prune-' + now, branch: 'main', timestamp: now, summary: summaryText.slice(0, 200) }
+    const gccToken = Buffer.from(JSON.stringify(gccPayload)).toString('base64url')
+
     // Build final messages array: summary first, then INSTRUCTIONS_PROMPT if it exists
     const finalMessages: Message[] = [summarizedMessage]
     if (instructionsPromptMessage) {

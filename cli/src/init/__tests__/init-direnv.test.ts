@@ -354,6 +354,7 @@ describe('init-direnv', () => {
   describe('initializeDirenv', () => {
     let tempDir: string
     let spawnSyncSpy: ReturnType<typeof spyOn>
+    let platformSpy: ReturnType<typeof spyOn>
     let childProcess: typeof import('child_process')
     let originalEnv: NodeJS.ProcessEnv
     let originalCwd: string
@@ -364,6 +365,9 @@ describe('init-direnv', () => {
       originalCwd = process.cwd()
       childProcess = await import('child_process')
       spawnSyncSpy = spyOn(childProcess, 'spawnSync')
+      // Pretend we are on Linux so isDirenvAvailable() proceeds to call
+      // spawnSync (which is mocked) instead of short-circuiting on win32.
+      platformSpy = spyOn(os, 'platform').mockReturnValue('linux')
     })
 
     afterEach(() => {
@@ -378,6 +382,7 @@ describe('init-direnv', () => {
       process.chdir(originalCwd)
       fs.rmSync(tempDir, { recursive: true, force: true })
       spawnSyncSpy.mockRestore()
+      platformSpy.mockRestore()
     })
 
     test('sets environment variables from direnv export', () => {

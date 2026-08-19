@@ -7,6 +7,11 @@ import {
   isKnowledgeFile,
 } from '@levelcode/common/constants/knowledge'
 import {
+  formatMemoryForPrompt,
+  MEMORY_FILE_RELATIVE_PATH,
+} from '@levelcode/common/utils/agent-memory'
+import { findLevelCodeMemoryFiles } from '@levelcode/common/utils/levelcode-memory'
+import {
   getProjectFileTree,
   getAllFilePaths,
 } from '@levelcode/common/project-file-tree'
@@ -24,6 +29,15 @@ export {
   PRIMARY_KNOWLEDGE_FILE_NAME,
   isKnowledgeFile,
 } from '@levelcode/common/constants/knowledge'
+export {
+  LEVELCODE_MEMORY_FILE_NAMES,
+  isLevelCodeMemoryFile,
+} from '@levelcode/common/constants/knowledge'
+export {
+  findLevelCodeMemoryFiles,
+  findLevelCodeMemoryFilesSync,
+  selectLevelCodeMemoryFile,
+} from '@levelcode/common/utils/levelcode-memory'
 
 import type { CustomToolDefinition } from './custom-tool'
 import type { AgentDefinition } from '@levelcode/common/templates/initial-agents-dir/types/agent-definition'
@@ -388,6 +402,63 @@ export function selectKnowledgeFilePaths(allFilePaths: string[]): string[] {
 }
 
 /**
+ * Loads repo-scoped agent memory (.levelcode/MEMORY.md) if present, returning
+ * a compact prompt-ready rendering. Returns null when there is no memory.
+ */
+async function loadAgentMemoryFile({
+  cwd,
+  fs,
+  logger,
+}: {
+  cwd: string
+  fs: LevelCodeFileSystem
+  logger: Logger
+}): Promise<string | null> {
+  const memoryPath = path.join(cwd, ...MEMORY_FILE_RELATIVE_PATH.split('/'))
+  try {
+    const content = await fs.readFile(memoryPath, 'utf8')
+    const formatted = formatMemoryForPrompt(content)
+    if (!formatted) return null
+    return [
+      'Repo-scoped agent memory (maintained via the `remember` tool; treat as ground truth unless the code contradicts it):',
+      formatted,
+    ].join('\n')
+  } catch (error) {
+    logger.debug?.(
+      { memoryPath, error: getErrorObject(error) },
+      'No agent memory file loaded',
+    )
+    return null
+  }
+}
+
+/**
+ * Loads LevelCode persistent project memory files (levelcode.md, .levelcode.md, levelcode.local.md)
+ * by walking up directories from cwd. Files discovered higher up (closer to filesystem root)
+ * are included but do not override files in the current project directory.
+ * Returns a record of relative-path -> file contents ready to merge into knowledgeFiles.
+ */
+async function loadLevelCodeProjectMemory({
+  cwd,
+  fs,
+  logger,
+}: {
+  cwd: string
+  fs: LevelCodeFileSystem
+  logger: Logger
+}): Promise<Record<string, string>> {
+  try {
+    return await findLevelCodeMemoryFiles({ startDir: cwd, fs, logger })
+  } catch (error) {
+    logger.debug?.(
+      { cwd, error: getErrorObject(error) },
+      'Failed to discover levelcode project memory files',
+    )
+    return {}
+  }
+}
+
+/**
  * Auto-derives knowledge files from project files if knowledgeFiles is undefined.
  * Implements fallback priority: knowledge.md > AGENTS.md > CLAUDE.md per directory.
  */
@@ -446,6 +517,44 @@ export async function initialSessionState(
   }
   if (knowledgeFiles === undefined) {
     knowledgeFiles = projectFiles ? deriveKnowledgeFiles(projectFiles) : {}
+  }
+
+  // Load repo-scoped agent memory (.levelcode/MEMORY.md) into knowledge files
+  // so every session starts with the lessons agents learned in previous ones.
+  if (cwd && knowledgeFiles[MEMORY_FILE_RELATIVE_PATH] === undefined) {
+    const memoryContent = await loadAgentMemoryFile({ cwd, fs, logger })
+    if (memoryContent) {
+      knowledgeFiles = {
+        ...knowledgeFiles,
+        [MEMORY_FILE_RELATIVE_PATH]: memoryContent,
+      }
+    }
+  }
+
+  // Load LevelCode persistent project memory (levelcode.md) by walking up from cwd.
+  // These act like CLAUDE.md — project-specific instructions that are automatically
+  // injected into every agent run. Parent-directory files are included for monorepo
+  // / multi-project layouts; the cwd-level file takes precedence over parent files.
+  if (cwd) {
+    const levelcodeMemoryFiles = await loadLevelCodeProjectMemory({
+      cwd,
+      fs,
+      logger,
+    })
+    // Merge parent files first, then cwd files so that cwd-level wins.
+    // Do NOT override any keys the caller explicitly provided in knowledgeFiles.
+    const mergedLevelCodeFiles: Record<string, string> = {}
+    for (const [key, content] of Object.entries(levelcodeMemoryFiles)) {
+      if (!(key in knowledgeFiles)) {
+        mergedLevelCodeFiles[key] = content
+      }
+    }
+    if (Object.keys(mergedLevelCodeFiles).length > 0) {
+      knowledgeFiles = {
+        ...mergedLevelCodeFiles,
+        ...knowledgeFiles,
+      }
+    }
   }
 
   let processedAgentTemplates: Record<string, any> = {}

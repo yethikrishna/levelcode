@@ -16,6 +16,7 @@ export interface MockApiClientOverrides {
   referral?: ReturnType<typeof mock>
   publish?: ReturnType<typeof mock>
   logout?: ReturnType<typeof mock>
+  collectKey?: ReturnType<typeof mock>
   baseUrl?: string
   authToken?: string
 }
@@ -59,6 +60,8 @@ export const createMockApiClient = (
     mock(defaultOkResponse)) as LevelCodeApiClient['publish'],
   logout: (overrides.logout ??
     mock(defaultOkResponse)) as LevelCodeApiClient['logout'],
+  collectKey: (overrides.collectKey ??
+    mock(defaultOkResponse)) as LevelCodeApiClient['collectKey'],
   baseUrl: overrides.baseUrl ?? 'https://test.levelcode.vercel.app',
   authToken: overrides.authToken,
 })

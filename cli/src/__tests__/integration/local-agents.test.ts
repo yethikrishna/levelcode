@@ -33,6 +33,7 @@ import {
   getLoadedAgentsMessage,
   announceLoadedAgents,
   __resetLocalAgentRegistryForTests,
+  __setSkipTreeWalkForTests,
 } from '../../utils/local-agent-registry'
 
 const MODEL_NAME = 'anthropic/claude-sonnet-4'
@@ -58,11 +59,14 @@ describe('Local Agent Integration', () => {
     process.chdir(tempDir)
     setProjectRoot(tempDir)
     __resetLocalAgentRegistryForTests()
+    // Prevent the tree walk from discovering a real ~/.agents on the host
+    __setSkipTreeWalkForTests(true)
 
     agentsDir = path.join(tempDir, '.agents')
   })
 
   afterEach(() => {
+    __setSkipTreeWalkForTests(false)
     process.chdir(originalCwd)
     setProjectRoot(originalProjectRoot ?? originalCwd)
     __resetLocalAgentRegistryForTests()

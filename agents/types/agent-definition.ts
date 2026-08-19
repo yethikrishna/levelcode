@@ -208,6 +208,18 @@ export interface AgentDefinition {
   // Handle Steps
   // ============================================================================
 
+  /** Optional RoleSynthesizer instance for dynamic role synthesis.
+   *
+   * When provided, allows the agent to synthesize custom roles on the fly
+   * for specialized tasks not covered by built-in team roles.
+   */
+  roleSynthesizer?: RoleSynthesizer
+
+  /** Convenience method to synthesize a custom agent role for a given task.
+   * Wraps roleSynthesizer.synthesizeRole when available.
+   */
+  synthesizeCustomRole?: (task: string, context?: RoleContext) => Promise<SynthesizedRole>
+
   /** Programmatically step the agent forward and run tools.
    *
    * You can either yield:
@@ -425,5 +437,6 @@ import type {
   MCPConfig,
   Logger,
 } from './util-types'
+import type { RoleSynthesizer, RoleContext, SynthesizedRole } from '../team/role-synthesis'
 
 export type { ToolName, GetToolParams }

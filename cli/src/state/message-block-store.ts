@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
+import { enableMapSet } from 'immer'
+
+// Enable Immer Map/Set support since messageTree uses Map
+enableMapSet()
+
 import type { ChatMessage } from '../types/chat'
 import type { ChatTheme } from '../types/theme-system'
 import type { MarkdownPalette } from '../utils/markdown-renderer'
@@ -97,6 +102,8 @@ const initialState: MessageBlockStoreState = {
 export const useMessageBlockStore = create<MessageBlockStore>()(
   immer((set) => ({
     ...initialState,
+    // Note: enableMapSet() is required for Map support in Immer and is
+    // called at module load via the import below.
 
     setContext: (updates) =>
       set((state) => {

@@ -14,6 +14,8 @@ import { handleProposeWriteFile } from './tool/propose-write-file'
 import { handleReadDocs } from './tool/read-docs'
 import { handleReadFiles } from './tool/read-files'
 import { handleReadSubtree } from './tool/read-subtree'
+import { handleRemember } from './tool/remember'
+import { handleRepoMap } from './tool/repo-map'
 import { handleRunFileChangeHooks } from './tool/run-file-change-hooks'
 import { handleRunTerminalCommand } from './tool/run-terminal-command'
 import { handleSetMessages } from './tool/set-messages'
@@ -26,6 +28,7 @@ import { handleSuggestFollowups } from './tool/suggest-followups'
 import { handleTaskCompleted } from './tool/task-completed'
 import { handleThinkDeeply } from './tool/think-deeply'
 import { handleUpdateSubgoal } from './tool/update-subgoal'
+import { handleVerifyChanges } from './tool/verify-changes'
 import { handleWebSearch } from './tool/web-search'
 import { handleWriteFile } from './tool/write-file'
 import { handleWriteTodos } from './tool/write-todos'
@@ -36,6 +39,12 @@ import { handleTaskList } from './tool/task-list'
 import { handleTaskUpdate } from './tool/task-update'
 import { handleTeamCreate } from './tool/team-create'
 import { handleTeamDelete } from './tool/team-delete'
+import { handleTeamList } from './tool/team-list'
+import { handleTeamLoad } from './tool/team-load'
+import { handleTeamSave } from './tool/team-save'
+import { handleContextCommit } from './tool/context-commit'
+import { handleContextBranch } from './tool/context-branch'
+import { handleContextMerge } from './tool/context-merge'
 
 import type { LevelCodeToolHandlerFunction } from './handler-function-type'
 import type { ToolName } from '@levelcode/common/tools/constants'
@@ -66,6 +75,8 @@ export const levelcodeToolHandlers = {
   read_docs: handleReadDocs,
   read_files: handleReadFiles,
   read_subtree: handleReadSubtree,
+  remember: handleRemember,
+  repo_map: handleRepoMap,
   run_file_change_hooks: handleRunFileChangeHooks,
   run_terminal_command: handleRunTerminalCommand,
   set_messages: handleSetMessages,
@@ -83,8 +94,15 @@ export const levelcodeToolHandlers = {
   send_message: handleSendMessage,
   team_create: handleTeamCreate,
   team_delete: handleTeamDelete,
+  team_list: handleTeamList,
+  team_load: handleTeamLoad,
+  team_save: handleTeamSave,
+  context_commit: handleContextCommit,
+  context_branch: handleContextBranch,
+  context_merge: handleContextMerge,
   think_deeply: handleThinkDeeply,
   update_subgoal: handleUpdateSubgoal,
+  verify_changes: handleVerifyChanges,
   web_search: handleWebSearch,
   write_file: handleWriteFile,
   write_todos: handleWriteTodos,

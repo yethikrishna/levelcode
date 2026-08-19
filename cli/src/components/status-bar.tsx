@@ -9,7 +9,6 @@ import { formatElapsedTime } from '../utils/format-elapsed-time'
 
 import type { StatusIndicatorState } from '../utils/status-indicator-state'
 
-
 const SHIMMER_INTERVAL_MS = 160
 
 interface StatusBarProps {
@@ -17,6 +16,33 @@ interface StatusBarProps {
   isAtBottom: boolean
   scrollToLatest: () => void
   statusIndicatorState: StatusIndicatorState
+}
+
+function StatusSegment({
+  children,
+  bg,
+  fg,
+  style,
+}: {
+  children: React.ReactNode
+  bg?: string
+  fg?: string
+  style?: Record<string, unknown>
+}) {
+  if (!children) return null
+  return (
+    <box
+      style={{
+        paddingLeft: 1,
+        paddingRight: 1,
+        backgroundColor: bg,
+        flexShrink: 0,
+        ...style,
+      }}
+    >
+      <text style={{ wrapMode: 'none', fg }}>{children}</text>
+    </box>
+  )
 }
 
 export const StatusBar = ({
@@ -28,8 +54,6 @@ export const StatusBar = ({
   const theme = useTheme()
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
-  // Show timer when actively working (streaming or waiting for response) or paused (ask_user)
-  // This uses statusIndicatorState as the single source of truth for "is the LLM working?"
   const shouldShowTimer =
     statusIndicatorState?.kind === 'waiting' ||
     statusIndicatorState?.kind === 'streaming' ||
@@ -41,9 +65,7 @@ export const StatusBar = ({
       return
     }
 
-    // When paused, don't update the timer - just keep the frozen value
     if (statusIndicatorState?.kind === 'paused') {
-      // Calculate current elapsed time once and freeze it
       const now = Date.now()
       const elapsed = Math.floor((now - timerStartTime) / 1000)
       setElapsedSeconds(elapsed)
@@ -62,40 +84,47 @@ export const StatusBar = ({
     return () => clearInterval(interval)
   }, [timerStartTime, shouldShowTimer, statusIndicatorState?.kind])
 
+  const mutedFg = theme.foregroundMuted ?? (typeof theme.muted === 'string' ? theme.muted : theme.foreground)
+  const isError = statusIndicatorState?.kind === 'ctrlC'
+  const isWorking =
+    statusIndicatorState?.kind === 'waiting' ||
+    statusIndicatorState?.kind === 'streaming' ||
+    statusIndicatorState?.kind === 'retrying' ||
+    statusIndicatorState?.kind === 'connecting'
+
   const renderStatusIndicator = () => {
     switch (statusIndicatorState.kind) {
       case 'ctrlC':
-        return <span fg={theme.secondary}>Press Ctrl-C again to exit</span>
+        return <span fg="#ffffff">Press Ctrl-C again to exit</span>
       
       case 'clipboard':
-        // Use green color for feedback success messages
         const isFeedbackSuccess = statusIndicatorState.message.includes('Feedback sent')
         return (
-          <span fg={isFeedbackSuccess ? theme.success : theme.primary}>
+          <span fg={isFeedbackSuccess ? '#ffffff' : '#ffffff'}>
             {statusIndicatorState.message}
           </span>
         )
       
       case 'reconnected':
-        return <span fg={theme.success}>Reconnected</span>
+        return <span fg="#ffffff">Reconnected</span>
       
       case 'retrying':
         return (
           <ShimmerText
             text="retrying..."
-            primaryColor={theme.warning}
+            primaryColor="#ffffff"
           />
         )
       
       case 'connecting':
-        return <ShimmerText text="connecting..." />
+        return <ShimmerText text="connecting..." primaryColor="#ffffff" />
       
       case 'waiting':
         return (
           <ShimmerText
             text="thinking..."
             interval={SHIMMER_INTERVAL_MS}
-            primaryColor={theme.secondary}
+            primaryColor="#ffffff"
           />
         )
       
@@ -104,7 +133,7 @@ export const StatusBar = ({
           <ShimmerText
             text="working..."
             interval={SHIMMER_INTERVAL_MS}
-            primaryColor={theme.secondary}
+            primaryColor="#ffffff"
           />
         )
       
@@ -120,8 +149,7 @@ export const StatusBar = ({
     if (!shouldShowTimer || elapsedSeconds === 0) {
       return null
     }
-
-    return <span fg={theme.secondary}>{formatElapsedTime(elapsedSeconds)}</span>
+    return formatElapsedTime(elapsedSeconds)
   }
 
   const swarmEnabled = useTeamStore((s) => s.swarmEnabled)
@@ -131,11 +159,7 @@ export const StatusBar = ({
   const renderTeamIndicator = () => {
     if (!swarmEnabled || !activeTeam) return null
     const phaseLabel = currentPhase.toUpperCase().replace('-', ' ')
-    return (
-      <span fg={theme.primary}>
-        {activeTeam.name} [{phaseLabel}]
-      </span>
-    )
+    return `${activeTeam.name} [${phaseLabel}]`
   }
 
   const activeProvider = useProviderStore((s) => s.config.activeProvider)
@@ -143,11 +167,7 @@ export const StatusBar = ({
 
   const renderProviderIndicator = () => {
     if (!activeProvider || !activeModel) return null
-    return (
-      <span fg={theme.muted}>
-        {activeProvider}/{activeModel}
-      </span>
-    )
+    return `${activeProvider}/${activeModel}`
   }
 
   const statusIndicatorContent = renderStatusIndicator()
@@ -155,8 +175,11 @@ export const StatusBar = ({
   const teamIndicatorContent = renderTeamIndicator()
   const providerIndicatorContent = renderProviderIndicator()
 
-  // Only show gray background when there's status indicator or timer
-  const hasContent = statusIndicatorContent || elapsedTimeContent || teamIndicatorContent || providerIndicatorContent
+  const leftBg = isError
+    ? theme.statusBarErrorBg ?? theme.error
+    : isWorking
+      ? theme.statusBarRemoteBg ?? theme.primary
+      : theme.statusBarBg ?? theme.surface
 
   return (
     <box
@@ -164,37 +187,16 @@ export const StatusBar = ({
         width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: 1,
-        paddingRight: 1,
-        gap: 1,
-        backgroundColor: hasContent ? theme.surface : 'transparent',
+        gap: 0,
+        backgroundColor: theme.statusBarBg ?? theme.surface,
+        minHeight: 1,
+        borderStyle: 'single',
+        borderColor: theme.borderSubtle ?? theme.border,
       }}
     >
-      <box
-        style={{
-          flexGrow: 1,
-          flexShrink: 1,
-          flexBasis: 0,
-        }}
-      >
-        <text style={{ wrapMode: 'none' }}>{statusIndicatorContent}</text>
-      </box>
-
-      <box style={{ flexShrink: 0 }}>
-        {!isAtBottom && <ScrollToBottomButton onClick={scrollToLatest} />}
-      </box>
-
-      {teamIndicatorContent && (
-        <box style={{ flexShrink: 0 }}>
-          <text style={{ wrapMode: 'none' }}>{teamIndicatorContent}</text>
-        </box>
-      )}
-
-      {providerIndicatorContent && (
-        <box style={{ flexShrink: 0 }}>
-          <text style={{ wrapMode: 'none' }}>{providerIndicatorContent}</text>
-        </box>
-      )}
+      <StatusSegment bg={leftBg} fg="#ffffff">
+        {statusIndicatorContent ?? (swarmEnabled ? 'TEAM' : 'AGENT')}
+      </StatusSegment>
 
       <box
         style={{
@@ -203,10 +205,26 @@ export const StatusBar = ({
           flexBasis: 0,
           flexDirection: 'row',
           justifyContent: 'flex-end',
+          paddingRight: 1,
+          gap: 0,
         }}
       >
-        <text style={{ wrapMode: 'none' }}>{elapsedTimeContent}</text>
+        {!isAtBottom && <ScrollToBottomButton onClick={scrollToLatest} />}
       </box>
+
+      <StatusSegment bg={theme.statusBarBg ?? theme.surface} fg={mutedFg}>
+        {teamIndicatorContent}
+      </StatusSegment>
+
+      <StatusSegment bg={theme.surfaceRaised ?? theme.surface} fg={mutedFg}>
+        {providerIndicatorContent}
+      </StatusSegment>
+
+      {elapsedTimeContent && (
+        <StatusSegment bg={theme.statusBarRemoteBg ?? theme.primary} fg="#ffffff">
+          {elapsedTimeContent}
+        </StatusSegment>
+      )}
     </box>
   )
 }

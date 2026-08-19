@@ -34,13 +34,7 @@ const reviewerMultiPromptExampleContent = readFileSync(
   join(__dirname, 'reviewer', 'multi-prompt','code-reviewer-multi-prompt.ts'),
   'utf8',
 )
-const examplesAgentsContent = [
-  researcherDocExampleContent,
-  researcherGrok4FastExampleContent,
-  generatePlanExampleContent,
-  reviewerExampleContent,
-  reviewerMultiPromptExampleContent,
-]
+const examplesAgentsContent = [researcherDocExampleContent, researcherGrok4FastExampleContent, generatePlanExampleContent, reviewerExampleContent, reviewerMultiPromptExampleContent]
 
 const definition: AgentDefinition = {
   id: 'agent-builder',

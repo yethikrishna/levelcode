@@ -16,6 +16,16 @@ import { logger } from '../utils/logger'
 import { clamp } from '../utils/math'
 import { supportsTruecolor } from '../utils/theme-system'
 import { calculateNewCursorPosition } from '../utils/word-wrap-utils'
+import {
+  findLineStart,
+  findLineEnd,
+  findPreviousWordBoundary,
+  findNextWordBoundary,
+  isPrintableCharacterKey,
+  renderPositionToOriginal,
+  preventKeyDefault,
+  isAltModifier,
+} from '../utils/multiline-handlers'
 
 import type { InputValue } from '../types/store'
 import type {
@@ -26,121 +36,9 @@ import type {
   TextRenderable,
 } from '@opentui/core'
 
-// Helper functions for text manipulation
-function findLineStart(text: string, cursor: number): number {
-  let pos = Math.max(0, Math.min(cursor, text.length))
-  while (pos > 0 && text[pos - 1] !== '\n') {
-    pos--
-  }
-  return pos
-}
-
-function findLineEnd(text: string, cursor: number): number {
-  let pos = Math.max(0, Math.min(cursor, text.length))
-  while (pos < text.length && text[pos] !== '\n') {
-    pos++
-  }
-  return pos
-}
-
-function findPreviousWordBoundary(text: string, cursor: number): number {
-  let pos = Math.max(0, Math.min(cursor, text.length))
-
-  // Skip whitespace backwards
-  while (pos > 0 && /\s/.test(text[pos - 1])) {
-    pos--
-  }
-
-  // Skip word characters backwards
-  while (pos > 0 && !/\s/.test(text[pos - 1])) {
-    pos--
-  }
-
-  return pos
-}
-
-function findNextWordBoundary(text: string, cursor: number): number {
-  let pos = Math.max(0, Math.min(cursor, text.length))
-
-  // Skip non-whitespace forwards
-  while (pos < text.length && !/\s/.test(text[pos])) {
-    pos++
-  }
-
-  // Skip whitespace forwards
-  while (pos < text.length && /\s/.test(text[pos])) {
-    pos++
-  }
-
-  return pos
-}
-
 export const CURSOR_CHAR = '▍'
+const TAB_WIDTH = 2
 const CONTROL_CHAR_REGEX = /[\u0000-\u0008\u000b-\u000c\u000e-\u001f\u007f]/
-const TAB_WIDTH = 4
-
-/**
- * Check if a key event represents printable character input (not a special key).
- * Uses a positive heuristic based on key.name length rather than a brittle deny-list.
- * 
- * The key insight is that OpenTUI's parser assigns descriptive multi-character names
- * to special keys (like 'backspace', 'up', 'f1') while regular printable characters
- * either have no name (multi-byte input like Chinese) or a single-character name.
- */
-function isPrintableCharacterKey(key: KeyEvent): boolean {
-  const name = key.name
-  
-  // No name = likely multi-byte input (Chinese, Japanese, Korean, etc.) - treat as printable
-  if (!name) return true
-  
-  // Single character name = regular ASCII printable (a, b, 1, $, etc.)
-  if (name.length === 1) return true
-  
-  // Special case: space key has name 'space' but is printable
-  if (name === 'space') return true
-  
-  // Multi-char name = special key (up, f1, backspace, etc.)
-  return false
-}
-
-// Helper to convert render position (in tab-expanded string) to original text position
-function renderPositionToOriginal(text: string, renderPos: number): number {
-  let originalPos = 0
-  let currentRenderPos = 0
-
-  while (originalPos < text.length && currentRenderPos < renderPos) {
-    if (text[originalPos] === '\t') {
-      currentRenderPos += TAB_WIDTH
-    } else {
-      currentRenderPos += 1
-    }
-    originalPos++
-  }
-
-  return Math.min(originalPos, text.length)
-}
-
-type KeyWithPreventDefault =
-  | {
-      preventDefault?: () => void
-    }
-  | null
-  | undefined
-
-function preventKeyDefault(key: KeyWithPreventDefault) {
-  key?.preventDefault?.()
-}
-
-// Helper to check for alt-like modifier keys
-function isAltModifier(key: KeyEvent): boolean {
-  const ESC = '\x1b'
-  return Boolean(
-    key.option ||
-      (key.sequence?.length === 2 &&
-        key.sequence[0] === ESC &&
-        key.sequence[1] !== '['),
-  )
-}
 
 // Helper type for scrollbox with focus/blur methods (not exposed in OpenTUI types but available at runtime)
 interface FocusableScrollBox {

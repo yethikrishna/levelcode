@@ -1,7 +1,4 @@
-I'll create a comprehensive benchmark suite system with support for MMLU, HumanEval, and custom benchmarks. This implementation includes a registry, loader, and various benchmark definitions with proper TypeScript typing.
-
-```typescript
-import type {
+export {} // Stub: original content was invalid markdown, not TS. Real benchmarks live in @levelcode/evals.
   BenchmarkSuite,
   BenchmarkTask,
   TaskType,

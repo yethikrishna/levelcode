@@ -16,6 +16,7 @@ import {
   detectTerminalOverrides,
   getOscDetectedTheme,
   initializeThemeWatcher,
+  isDarkTheme,
   setThemeResolver,
   setLastDetectedTheme,
   setupFileWatchers,
@@ -27,12 +28,15 @@ import type { StoreApi, UseBoundStore } from 'zustand'
 type ThemeStore = {
   theme: ChatTheme
   setThemeName: (name: ThemeName) => void
+  cycleTheme: () => void
 }
 
 export let useThemeStore: UseBoundStore<StoreApi<ThemeStore>> = (() => {
   throw new Error('useThemeStore not initialized')
 }) as any
 let themeStoreInitialized = false
+
+const THEME_CYCLE_ORDER: ThemeName[] = ['midnight', 'solar', 'matrix', 'light']
 
 type ThemeDetector = {
   description: string
@@ -41,7 +45,7 @@ type ThemeDetector = {
 
 const THEME_PRIORITY: ThemeDetector[] = [
   {
-    description: 'Terminal override (e.g., OPENAI_THEME)',
+    description: 'Terminal override (e.g., OPEN_TUI_THEME)',
     detect: detectTerminalOverrides,
   },
   {
@@ -58,13 +62,27 @@ const THEME_PRIORITY: ThemeDetector[] = [
   },
 ]
 
+const resolveEnvTheme = (envPreference: string | undefined): ThemeName | null => {
+  if (!envPreference) return null
+  const normalized = envPreference.trim().toLowerCase()
+
+  if (normalized === 'midnight') return 'midnight'
+  if (normalized === 'solar') return 'solar'
+  if (normalized === 'matrix') return 'matrix'
+  if (normalized === 'light') return 'light'
+  if (normalized === 'dark') return 'midnight'
+
+  return null
+}
+
 export const detectSystemTheme = (): ThemeName => {
   const env = getCliEnv()
   const envPreference = env.OPEN_TUI_THEME ?? env.OPENTUI_THEME
   const normalizedEnv = envPreference?.toLowerCase()
 
-  if (normalizedEnv === 'dark' || normalizedEnv === 'light') {
-    return normalizedEnv
+  const explicitTheme = resolveEnvTheme(envPreference)
+  if (explicitTheme) {
+    return explicitTheme
   }
 
   const preferredTheme = (): ThemeName => {
@@ -74,13 +92,13 @@ export const detectSystemTheme = (): ThemeName => {
         return result
       }
     }
-    return 'dark'
+    return 'midnight'
   }
 
   const resolved = preferredTheme()
 
   if (normalizedEnv === 'opposite') {
-    return resolved === 'dark' ? 'light' : 'dark'
+    return isDarkTheme(resolved) ? 'light' : 'midnight'
   }
 
   return resolved
@@ -98,7 +116,7 @@ export function initializeThemeStore() {
   const initialThemeName = detectSystemTheme()
   setLastDetectedTheme(initialThemeName)
   const initialTheme = buildTheme(
-    cloneChatTheme(chatThemes[initialThemeName]),
+    cloneChatTheme(chatThemes[initialThemeName] ?? chatThemes.midnight),
     initialThemeName,
     themeConfig.customColors,
     themeConfig.plugins,
@@ -109,13 +127,12 @@ export function initializeThemeStore() {
 
     setThemeName: (name: ThemeName) => {
       const currentTheme = get().theme
-      
-      // Skip if theme name hasn't changed
+
       if (currentTheme.name === name) {
         return
       }
 
-      const baseTheme = cloneChatTheme(chatThemes[name])
+      const baseTheme = cloneChatTheme(chatThemes[name] ?? chatThemes.midnight)
       const theme = buildTheme(
         baseTheme,
         name,
@@ -124,17 +141,29 @@ export function initializeThemeStore() {
       )
       set({ theme })
     },
+
+    cycleTheme: () => {
+      const current = get().theme.name
+      const currentIdx = THEME_CYCLE_ORDER.indexOf(current)
+      const nextIdx = (currentIdx + 1) % THEME_CYCLE_ORDER.length
+      const nextName = THEME_CYCLE_ORDER[nextIdx] ?? 'midnight'
+      get().setThemeName(nextName)
+    },
   }))
 
-  // Set up the theme watcher for reactive updates when system theme changes
   initializeThemeWatcher((name: ThemeName) => {
     useThemeStore.getState().setThemeName(name)
   })
-
-  // Note: OSC detection is done earlier in index.tsx before OpenTUI starts,
-  // so the result is already available via getOscDetectedTheme()
 }
 
 export const useTheme = (): ChatTheme => {
   return useThemeStore((state) => state.theme)
+}
+
+export const useSetTheme = () => {
+  return useThemeStore((state) => state.setThemeName)
+}
+
+export const useCycleTheme = () => {
+  return useThemeStore((state) => state.cycleTheme)
 }

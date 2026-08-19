@@ -1,8 +1,12 @@
-import { memo, useRef } from 'react'
+import { memo, useRef, useState } from 'react'
 
 import { makeTextUnselectable } from './clickable'
+import { useTheme } from '../hooks/use-theme'
 
 import type { ReactNode } from 'react'
+
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
+export type ButtonSize = 'sm' | 'md' | 'lg'
 
 interface ButtonProps {
   onClick?: (e?: unknown) => void | Promise<unknown>
@@ -10,35 +14,86 @@ interface ButtonProps {
   onMouseOut?: () => void
   style?: Record<string, unknown>
   children?: ReactNode
-  // pass-through for box host props
+  variant?: ButtonVariant
+  size?: ButtonSize
+  disabled?: boolean
+  active?: boolean
   [key: string]: unknown
 }
 
-/**
- * A button component with proper click detection and non-selectable text.
- *
- * Key behavior:
- * - All nested `<text>`/`<span>` children are made `selectable={false}` via `makeTextUnselectable`
- * - Uses mouseDown/mouseUp tracking so hover or stray mouse events don't trigger clicks
- *
- * When to use:
- * - Use `Button` for standard button-like interactions (primary choice for clickable controls)
- * - Use {@link Clickable} when you need direct control over mouse events but still want
- *   non-selectable text for an interactive region.
- */
-export const Button = memo(function Button({ onClick, onMouseOver, onMouseOut, style, children, ...rest }: ButtonProps) {
+export const Button = memo(function Button({
+  onClick,
+  onMouseOver,
+  onMouseOut,
+  style,
+  children,
+  variant,
+  size,
+  disabled = false,
+  active = false,
+  ...rest
+}: ButtonProps) {
+  const theme = useTheme()
   const processedChildren = makeTextUnselectable(children)
-
-  // Track whether mouse down occurred on this element to implement proper click detection
-  // This prevents hover from triggering clicks in some terminals
   const mouseDownRef = useRef(false)
+  const [hovered, setHovered] = useState(false)
+
+  const hasVariantStyling = variant !== undefined
+
+  const sizeStyles: Record<ButtonSize, Record<string, unknown>> = {
+    sm: { paddingLeft: 1, paddingRight: 1, paddingTop: 0, paddingBottom: 0 },
+    md: { paddingLeft: 2, paddingRight: 2, paddingTop: 0, paddingBottom: 0 },
+    lg: { paddingLeft: 3, paddingRight: 3, paddingTop: 1, paddingBottom: 1 },
+  }
+
+  const getVariantStyles = (): Record<string, unknown> => {
+    if (!hasVariantStyling) return {}
+    if (disabled) {
+      return {
+        fg: theme.foregroundSubtle ?? theme.muted,
+        backgroundColor: 'transparent',
+      }
+    }
+
+    const isHovered = hovered || active
+
+    switch (variant) {
+      case 'primary':
+        return {
+          fg: '#ffffff',
+          backgroundColor: theme.primary,
+        }
+      case 'secondary':
+        return {
+          fg: isHovered ? theme.foreground : theme.foregroundMuted ?? theme.muted,
+          backgroundColor: isHovered ? theme.surfaceHover : theme.surface,
+        }
+      case 'danger':
+        return {
+          fg: isHovered ? '#ffffff' : theme.error,
+          backgroundColor: isHovered ? theme.error : 'transparent',
+        }
+      case 'success':
+        return {
+          fg: isHovered ? '#ffffff' : theme.success,
+          backgroundColor: isHovered ? theme.success : 'transparent',
+        }
+      case 'ghost':
+      default:
+        return {
+          fg: isHovered ? theme.foreground : theme.foregroundMuted ?? theme.muted,
+          backgroundColor: isHovered ? theme.surfaceHover : 'transparent',
+        }
+    }
+  }
 
   const handleMouseDown = () => {
+    if (disabled) return
     mouseDownRef.current = true
   }
 
   const handleMouseUp = (e?: unknown) => {
-    // Only trigger click if mouse down happened on this element
+    if (disabled) return
     if (mouseDownRef.current && onClick) {
       onClick(e)
     }
@@ -46,18 +101,38 @@ export const Button = memo(function Button({ onClick, onMouseOver, onMouseOut, s
   }
 
   const handleMouseOut = () => {
-    // Reset mouse down state when leaving the element
     mouseDownRef.current = false
+    setHovered(false)
     onMouseOut?.()
   }
+
+  const handleMouseOver = () => {
+    if (!disabled) {
+      setHovered(true)
+    }
+    onMouseOver?.()
+  }
+
+  const baseStyle: Record<string, unknown> = hasVariantStyling
+    ? {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...(size ? sizeStyles[size] : {}),
+        ...getVariantStyles(),
+      }
+    : {}
 
   return (
     <box
       {...rest}
-      style={style}
+      style={{
+        ...baseStyle,
+        ...style,
+      }}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      onMouseOver={onMouseOver}
+      onMouseOver={handleMouseOver}
       onMouseOut={handleMouseOut}
     >
       {processedChildren}

@@ -15,6 +15,8 @@ export type ToolName =
   | 'read_docs'
   | 'read_files'
   | 'read_subtree'
+  | 'remember'
+  | 'repo_map'
   | 'run_file_change_hooks'
   | 'run_terminal_command'
   | 'set_messages'
@@ -25,6 +27,7 @@ export type ToolName =
   | 'suggest_followups'
   | 'task_completed'
   | 'think_deeply'
+  | 'verify_changes'
   | 'web_search'
   | 'write_file'
   | 'write_todos'
@@ -46,6 +49,8 @@ export interface ToolParamsMap {
   read_docs: ReadDocsParams
   read_files: ReadFilesParams
   read_subtree: ReadSubtreeParams
+  remember: RememberParams
+  repo_map: RepoMapParams
   run_file_change_hooks: RunFileChangeHooksParams
   run_terminal_command: RunTerminalCommandParams
   set_messages: SetMessagesParams
@@ -56,6 +61,7 @@ export interface ToolParamsMap {
   suggest_followups: SuggestFollowupsParams
   task_completed: TaskCompletedParams
   think_deeply: ThinkDeeplyParams
+  verify_changes: VerifyChangesParams
   web_search: WebSearchParams
   write_file: WriteFileParams
   write_todos: WriteTodosParams
@@ -215,6 +221,26 @@ export interface ReadSubtreeParams {
 }
 
 /**
+ * Persist a durable insight about this repository to .levelcode/MEMORY.md. Every future LevelCode session in this repo automatically starts with these memories in context.
+ */
+export interface RememberParams {
+  /** lesson: a technique or approach that worked/failed here. gotcha: a non-obvious trap in this codebase. preference: how the user wants things done. fact: a durable truth about the architecture or tooling. */
+  category: 'lesson' | 'gotcha' | 'preference' | 'fact'
+  /** One concise, self-contained insight (max 500 chars). Write it for a future agent with zero context from this session. */
+  content: string
+}
+
+/**
+ * Get a compact structural map of the codebase: every important file with its key symbols (functions, classes, types), ranked by importance via tree-sitter cross-reference analysis.
+ */
+export interface RepoMapParams {
+  /** Restrict the map to files under this directory (e.g. "src/auth"). Omit for a whole-project map. */
+  focus_path?: string
+  /** Character budget for the map. Default 8000 (~2k tokens). Increase for large focused areas. */
+  max_chars?: number
+}
+
+/**
  * Parameters for run_file_change_hooks tool
  */
 export interface RunFileChangeHooksParams {
@@ -316,6 +342,16 @@ export interface TaskCompletedParams {}
 export interface ThinkDeeplyParams {
   /** Detailed step-by-step analysis. Initially keep each step concise (max ~5-7 words per step). */
   thought: string
+}
+
+/**
+ * Auto-detect and run this project's verification commands (typecheck, lint, test, build), returning structured pass/fail results with summarized failures.
+ */
+export interface VerifyChangesParams {
+  /** Which checks to run. Omit to run all detected checks in order (typecheck -> lint -> test -> build). */
+  checks?: ('typecheck' | 'lint' | 'test' | 'build')[]
+  /** Per-check timeout in seconds. Default 300. */
+  timeout_seconds?: number
 }
 
 /**

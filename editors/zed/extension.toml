@@ -1,0 +1,11 @@
+id = "levelcode"
+name = "LevelCode"
+description = "LevelCode AI coding agent — invoke the LevelCode CLI from Zed via slash commands."
+version = "0.1.0"
+schema_version = 1
+authors = ["LevelCode <support@levelcode.ai>"]
+repository = "https://github.com/levelcode-ai/levelcode"
+
+[slash_commands.levelcode]
+description = "Send a prompt to the LevelCode AI agent"
+requires_argument = true

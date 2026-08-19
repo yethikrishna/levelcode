@@ -60,6 +60,48 @@ function getAllTsFiles(dir: string): string[] {
 }
 
 /**
+ * Recursively convert any function values to their string representation,
+ * and skip properties that can't be serialized (cyclic structures, etc.)
+ */
+function sanitizeForSerialization(obj: any, seen = new WeakSet()): any {
+  if (obj === null || obj === undefined) {
+    return obj
+  }
+
+  if (typeof obj === 'function') {
+    try {
+      return obj.toString()
+    } catch {
+      return '[function]'
+    }
+  }
+
+  if (typeof obj !== 'object') {
+    return obj
+  }
+
+  // Handle cyclic references
+  if (seen.has(obj)) {
+    return '[cyclic]'
+  }
+  seen.add(obj)
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => sanitizeForSerialization(item, seen))
+  }
+
+  const result: Record<string, any> = {}
+  for (const key of Object.keys(obj)) {
+    try {
+      result[key] = sanitizeForSerialization(obj[key], seen)
+    } catch {
+      result[key] = '[unserializable]'
+    }
+  }
+  return result
+}
+
+/**
  * Load and process an agent definition from a TypeScript file
  */
 async function loadAgentDefinition(filePath: string): Promise<AgentDefinition | null> {
@@ -72,12 +114,8 @@ async function loadAgentDefinition(filePath: string): Promise<AgentDefinition | 
       return null
     }
 
-    // Process the definition - convert handleSteps function to string
-    const processed: AgentDefinition = { ...definition }
-    
-    if (typeof processed.handleSteps === 'function') {
-      processed.handleSteps = processed.handleSteps.toString()
-    }
+    // Deep-sanitize: convert all functions to strings, remove cyclic refs
+    const processed = sanitizeForSerialization(definition) as AgentDefinition
 
     return processed
   } catch (error) {

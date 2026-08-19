@@ -1,9 +1,11 @@
+import { TextAttributes } from '@opentui/core'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useKeyboard } from '@opentui/react'
 
 import { useTheme } from '../hooks/use-theme'
 import { Panel, KeyHint, BreadcrumbNav } from './primitives'
-import type { KeyEvent, BreadcrumbStep } from './primitives'
+import type { BreadcrumbStep } from './primitives'
+import type { KeyEvent } from '@opentui/core'
 import type { DevPhase } from '@levelcode/common/types/team-config'
 
 interface CheckpointModalProps {
@@ -80,7 +82,7 @@ export const CheckpointModal: React.FC<CheckpointModalProps> = ({
       <BreadcrumbNav steps={CHECKPOINT_STEPS} currentStep="review" />
 
       <box style={{ flexDirection: 'column', gap: 0 }}>
-        <text style={{ fg: theme.foreground, bold: true }}>
+        <text style={{ fg: theme.foreground, attributes: TextAttributes.BOLD }}>
           {`Transition to "${toPhase}" phase requires approval.`}
         </text>
         <text style={{ fg: theme.muted }}>{`Current: ${fromPhase}`}</text>

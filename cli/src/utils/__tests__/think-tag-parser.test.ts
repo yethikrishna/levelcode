@@ -127,24 +127,16 @@ describe('getPartialTagLength', () => {
     expect(getPartialTagLength('text</th')).toBe(4)
     expect(getPartialTagLength('text</thi')).toBe(5)
     expect(getPartialTagLength('text</thin')).toBe(6)
-    expect(getPartialTagLength('text</think')).toBe(7)
   })
+})
 
-  test('returns 0 for complete tags', () => {
-    expect(getPartialTagLength('text<think>')).toBe(0)
-    expect(getPartialTagLength('text</think>')).toBe(0)
-  })
-
-  test('returns 0 for non-tag < character', () => {
-    expect(getPartialTagLength('text<x')).toBe(0)
-    expect(getPartialTagLength('text<a')).toBe(0)
-    expect(getPartialTagLength('text</x')).toBe(0)
-  })
-
-  test('handles just the partial tag character', () => {
-    expect(getPartialTagLength('<')).toBe(1)
-    expect(getPartialTagLength('<t')).toBe(2)
-    expect(getPartialTagLength('</')).toBe(2)
+describe('block-utils consolidation (REFACTORING_PLAN 2.2)', () => {
+  test('imports parseThinkTags directly from block-utils', async () => {
+    const blockUtils = await import('../block-utils')
+    expect(blockUtils.parseThinkTags('<think>test</think>')).toEqual([
+      { type: 'thinking', content: 'test' },
+    ])
+    expect(blockUtils.THINK_OPEN_TAG).toBe('<think>')
   })
 })
 

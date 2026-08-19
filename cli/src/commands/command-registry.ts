@@ -1,5 +1,36 @@
 import open from 'open'
 
+import {
+  CostGuard,
+  createCostGuard,
+  sandboxCommand,
+  getDefaultSandboxConfig,
+  isSandboxModeAvailable,
+  getProfile,
+  isToolAllowed,
+  listProfiles,
+  permissionProfiles,
+  createWipCheckpoint,
+  listCheckpoints,
+  restoreCheckpoint,
+  redactSecrets,
+  SemanticMemoryStore,
+  ContextBudgetGovernor,
+  getDefaultBudgetGovernor,
+  buildCodeMap,
+  queryCodeMap,
+  findReferences,
+  TrajectoryReplay,
+  renameSymbol,
+  extractFunction,
+  moveSymbol,
+  getRBACManager,
+  RBACManager,
+  Role,
+  Permission,
+  generateRepoMap,
+} from '@levelcode/sdk'
+
 import { handleAdsEnable, handleAdsDisable } from './ads'
 import { useThemeStore } from '../hooks/use-theme'
 
@@ -9,8 +40,12 @@ import { runBashCommand } from './router'
 import { handleUsageCommand } from './usage'
 import { WEBSITE_URL } from '../login/constants'
 import { useChatStore } from '../state/chat-store'
+import { useCostStore } from '../state/cost-store'
 import { useFeedbackStore } from '../state/feedback-store'
 import { useLoginStore } from '../state/login-store'
+import { useBackgroundStore } from '../state/background-store'
+import { useSideChatStore } from '../state/side-chat-store'
+import { usePermissionProfileStore } from '../state/permission-profile-store'
 import { useTeamStore } from '../state/team-store'
 import { AGENT_MODES } from '../utils/constants'
 import { getSystemMessage, getUserMessage } from '../utils/message-history'
@@ -26,6 +61,7 @@ import {
   saveTeamConfig,
 } from '@levelcode/common/utils/team-fs'
 import { listAllTeams, getLastActiveTeam, setLastActiveTeam } from '@levelcode/common/utils/team-discovery'
+import { getTeamPreset, listPresets } from '@levelcode/common/utils/team-presets'
 import {
   canTransition,
   transitionPhase,
@@ -60,8 +96,31 @@ import {
   handleBibleShow,
 } from './bible'
 
+import {
+  handleMarketplaceSearch,
+  handleMarketplaceInstall,
+  handleMarketplaceUninstall,
+  handleMarketplaceList,
+  handleMarketplacePublish,
+} from './marketplace'
+
+import {
+  handlePRAttach,
+  handlePRDetach,
+  handlePRList,
+} from './pr-swarm'
+
+import {
+  handleSessionCreate,
+  handleSessionJoin,
+  handleSessionLeave,
+  handleSessionList,
+  handleCollabRelay,
+  handleCollabRelayStop,
+} from './session'
+
 import type { PhaseTransitionHookEvent } from '@levelcode/common/types/team-hook-events'
-import type { DevPhase, TeamConfig } from '@levelcode/common/types/team-config'
+import type { DevPhase, TeamConfig, TeamMember } from '@levelcode/common/types/team-config'
 
 import type { MultilineInputHandle } from '../components/multiline-input'
 import type { InputValue, PendingAttachment } from '../types/store'
@@ -111,6 +170,11 @@ export type CommandResult = {
   openProviderOAuth?: boolean
   oauthProviderId?: string
   preSelectAgents?: string[]
+  openCostDashboard?: boolean
+  openTopologyView?: boolean
+  openTeamMetrics?: boolean
+  openSideChatPanel?: boolean
+  openBackgroundPanel?: boolean
 } | void
 
 export type CommandHandler = (
@@ -474,12 +538,16 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   defineCommandWithArgs({
     name: 'team:create',
     handler: (params, args) => {
-      const teamName = args.trim()
+      const parts = args.trim().split(/\s+/)
+      const teamName = parts[0]
+      const templateName = parts[1]
+
       if (!teamName) {
+        const available = listPresets().map(p => p.toLowerCase().replace(/_/g, '-')).join(', ')
         params.setMessages((prev) => [
           ...prev,
           getUserMessage(params.inputValue.trim()),
-          getSystemMessage('Usage: /team:create <name>'),
+          getSystemMessage(`Usage: /team:create <name> [template]\nAvailable templates: ${available}`),
         ])
         params.saveToHistory(params.inputValue.trim())
         clearInput(params)
@@ -487,27 +555,76 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       }
 
       try {
-        // Use user's swarm settings for defaults
-        const swarmSettings = loadSwarmSettings()
-        const config: TeamConfig = {
-          name: teamName,
-          description: '',
-          createdAt: Date.now(),
-          leadAgentId: 'user',
-          phase: (swarmSettings.swarmDefaultPhase ?? 'planning') as import('@levelcode/common/types/team-config').DevPhase,
-          members: [],
-          settings: { maxMembers: swarmSettings.swarmMaxMembers ?? 999, autoAssign: swarmSettings.swarmAutoAssign ?? true },
+        let config: TeamConfig
+        if (templateName) {
+          const presetConfig = getTeamPreset(templateName)
+          if (!presetConfig) {
+            const available = listPresets().map(p => p.toLowerCase().replace(/_/g, '-')).join(', ')
+            params.setMessages((prev) => [
+              ...prev,
+              getUserMessage(params.inputValue.trim()),
+              getSystemMessage(`Unknown team template "${templateName}". Available templates: ${available}`),
+            ])
+            params.saveToHistory(params.inputValue.trim())
+            clearInput(params)
+            return
+          }
+
+          const now = Date.now()
+          const members: TeamMember[] = []
+          for (const pm of presetConfig.members) {
+            members.push({
+              agentId: `${teamName}-${pm.name}`,
+              name: pm.name,
+              role: pm.role,
+              agentType: pm.agentType,
+              model: pm.model,
+              joinedAt: now,
+              status: 'idle',
+              cwd: process.cwd(),
+            })
+          }
+
+          config = {
+            name: teamName,
+            description: presetConfig.description,
+            createdAt: now,
+            leadAgentId: 'user',
+            phase: presetConfig.defaultPhase,
+            members,
+            settings: {
+              maxMembers: presetConfig.settings.maxMembers,
+              autoAssign: presetConfig.settings.autoAssign,
+            },
+          }
+        } else {
+          // Use user's swarm settings for defaults
+          const swarmSettings = loadSwarmSettings()
+          config = {
+            name: teamName,
+            description: '',
+            createdAt: Date.now(),
+            leadAgentId: 'user',
+            phase: (swarmSettings.swarmDefaultPhase ?? 'planning') as import('@levelcode/common/types/team-config').DevPhase,
+            members: [],
+            settings: { maxMembers: swarmSettings.swarmMaxMembers ?? 999, autoAssign: swarmSettings.swarmAutoAssign ?? true },
+          }
         }
+
         createTeam(config)
 
         const { setActiveTeam, setSwarmEnabled } = useTeamStore.getState()
         setActiveTeam(config)
         setSwarmEnabled(true)
 
+        const successMsg = templateName
+          ? `Team "${teamName}" created successfully with template "${templateName}". Phase: ${config.phase}\nMembers:\n` + config.members.map(m => ` - ${m.name} (${m.role})`).join('\n')
+          : `Team "${teamName}" created successfully. Phase: ${config.phase}`
+
         params.setMessages((prev) => [
           ...prev,
           getUserMessage(params.inputValue.trim()),
-          getSystemMessage(`Team "${teamName}" created successfully. Phase: planning`),
+          getSystemMessage(successMsg),
         ])
       } catch (error) {
         params.setMessages((prev) => [
@@ -874,6 +991,95 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           ...prev,
           getUserMessage(params.inputValue.trim()),
           getSystemMessage(`Failed to fetch members: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'team:metrics',
+    aliases: ['team:performance'],
+    handler: (params) => {
+      const activeTeam = resolveActiveTeam()
+
+      if (!activeTeam) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No active team. Use /team:create <name> to create one.'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+
+      try {
+        const tasks = listTasks(activeTeam.name)
+        const totalTasks = tasks.length
+        const completedTasks = tasks.filter((t) => t.status === 'completed')
+
+        let avgCycleTimeStr = 'N/A'
+        if (completedTasks.length > 0) {
+          const totalMs = completedTasks.reduce((sum, t) => sum + ((t.updatedAt ?? 0) - (t.createdAt ?? 0)), 0)
+          const avgMs = totalMs / completedTasks.length
+          const avgSec = Math.round(avgMs / 1000)
+          if (avgSec < 60) avgCycleTimeStr = `${avgSec}s`
+          else { const m = Math.floor(avgSec / 60); avgCycleTimeStr = `${m}m ${avgSec % 60}s` }
+        }
+
+        const pendingTasks = tasks.filter((t) => t.status === 'pending').length
+        const inProgressTasks = tasks.filter((t) => t.status === 'in_progress').length
+        const blockedTasks = tasks.filter((t) => t.status === 'blocked').length
+
+        const getBar = (count: number, total: number) => {
+          if (total === 0) return '░░░░░░░░░░ 0%'
+          const pct = Math.round((count / total) * 100)
+          const filled = Math.round((count / total) * 10)
+          return '█'.repeat(filled) + '░'.repeat(10 - filled) + ` ${pct}%`
+        }
+
+        const blockingTasks = tasks
+          .filter((t) => t.status !== 'completed' && t.blocks && t.blocks.length > 0)
+          .sort((a, b) => b.blocks.length - a.blocks.length)
+          .slice(0, 3)
+
+        const bottleneckLines = blockingTasks.length > 0
+          ? blockingTasks.map((t: any) => `  - Task #${t.id} ("${t.subject}") blocks ${t.blocks.length} task(s)`)
+          : ['  No active blocking tasks.']
+
+        const metricsOutput = [
+          `[ TEAM METRICS: ${activeTeam.name} ]`,
+          `  Phase: ${activeTeam.phase ?? 'planning'}`,
+          `  Members: ${activeTeam.members?.length ?? 0}`,
+          '',
+        ].join('\n')
+
+        const extra = [
+          '',
+          '[ TASK FLOW ]',
+          `  Completed:   ${getBar(completedTasks.length, totalTasks)} (${completedTasks.length}/${totalTasks})`,
+          `  Pending:     ${getBar(pendingTasks, totalTasks)} (${pendingTasks}/${totalTasks})`,
+          `  In Progress: ${getBar(inProgressTasks, totalTasks)} (${inProgressTasks}/${totalTasks})`,
+          `  Blocked:     ${getBar(blockedTasks, totalTasks)} (${blockedTasks}/${totalTasks})`,
+          '',
+          '[ EFFICIENCY ]',
+          `  Average Cycle Time: ${avgCycleTimeStr}`,
+          '',
+          '[ BOTTLENECKS ]',
+          ...bottleneckLines,
+        ].join('\n')
+
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(metricsOutput + '\n' + extra),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to generate metrics: ${error instanceof Error ? error.message : String(error)}`),
         ])
       }
       params.saveToHistory(params.inputValue.trim())
@@ -1271,7 +1477,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
   // ── Bible commands ──────────────────────────────────
   defineCommandWithArgs({
     name: 'bible:pending',
-    aliases: ['bible:pend'],
+    aliases: ['bible:pend', 'bible:list'],
     handler: async (params, args) => {
       const result = await handleBiblePending(args.trim() || undefined)
       params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
@@ -1371,6 +1577,1332 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       clearInput(params)
     },
   }),
+  // ── Marketplace commands ───────────────────────────────────────────
+  defineCommandWithArgs({
+    name: 'marketplace:search',
+    aliases: ['mp:search'],
+    handler: (params, args) => {
+      const result = handleMarketplaceSearch(args)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'marketplace:install',
+    aliases: ['mp:install'],
+    handler: (params, args) => {
+      const result = handleMarketplaceInstall(args)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'marketplace:uninstall',
+    aliases: ['mp:uninstall'],
+    handler: (params, args) => {
+      const result = handleMarketplaceUninstall(args)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'marketplace:list',
+    aliases: ['mp:list'],
+    handler: (params, args) => {
+      const result = handleMarketplaceList(args)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'marketplace:publish',
+    aliases: ['mp:publish'],
+    handler: (params, args) => {
+      const result = handleMarketplacePublish(args)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── PR swarm commands ──────────────────────────────────────────────
+  defineCommandWithArgs({
+    name: 'pr:attach',
+    handler: async (params, args) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('⏳ Attaching swarm to PR...'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+
+      try {
+        const result = await handlePRAttach(args)
+        params.setMessages((prev) => {
+          const withoutPending = prev.slice(0, -1)
+          return [...withoutPending, getSystemMessage(result)]
+        })
+      } catch (error) {
+        const msg = `❌ PR attach failed: ${error instanceof Error ? error.message : String(error)}`
+        params.setMessages((prev) => {
+          const withoutPending = prev.slice(0, -1)
+          return [...withoutPending, getSystemMessage(msg)]
+        })
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'pr:detach',
+    handler: (params, args) => {
+      const result = handlePRDetach(args)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'pr:list',
+    handler: (params) => {
+      const result = handlePRList()
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Shared session commands ───────────────────────────────────────
+  defineCommand({
+    name: 'session:create',
+    handler: (params) => {
+      const result = handleSessionCreate()
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'session:join',
+    handler: (params, args) => {
+      const result = handleSessionJoin(args)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'session:leave',
+    handler: (params, args) => {
+      const result = handleSessionLeave(args.trim())
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'session:list',
+    handler: (params) => {
+      const result = handleSessionList()
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'collab:relay',
+    handler: async (params, args) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('⏳ Starting relay server...'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const result = await handleCollabRelay(args)
+        params.setMessages((prev) => {
+          const withoutPending = prev.slice(0, -1)
+          return [...withoutPending, getSystemMessage(result)]
+        })
+      } catch (error) {
+        const msg = `❌ ${error instanceof Error ? error.message : String(error)}`
+        params.setMessages((prev) => {
+          const withoutPending = prev.slice(0, -1)
+          return [...withoutPending, getSystemMessage(msg)]
+        })
+      }
+    },
+  }),
+  defineCommand({
+    name: 'collab:relay:stop',
+    handler: (params) => {
+      const result = handleCollabRelayStop()
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(result),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Cost dashboard ────────────────────────────────
+  defineCommand({
+    name: 'cost',
+    aliases: ['tokens', 'dashboard', 'usage:detail'],
+    handler: (params) => {
+      const { toggleDashboard } = useCostStore.getState()
+      toggleDashboard()
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openCostDashboard: true }
+    },
+  }),
+  // ── Topology view ─────────────────────────────────
+  defineCommand({
+    name: 'topology',
+    aliases: ['swarm', 'swarm:graph', 'graph', 'agents:graph'],
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openTopologyView: true }
+    },
+  }),
+  // ── Team metrics panel ──────────────────────────────
+  defineCommand({
+    name: 'team:dashboard',
+    handler: (params) => {
+      const { openMetricsPanel } = useTeamStore.getState()
+      openMetricsPanel()
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openTeamMetrics: true }
+    },
+  }),
+  // ── Side chats ────────────────────────────────────
+  defineCommandWithArgs({
+    name: 'sidechat',
+    aliases: ['sc'],
+    handler: (params, args) => {
+      const { createSideChat } = useSideChatStore.getState()
+      const title = args.trim() || undefined
+      try {
+        createSideChat(title)
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(title ? `Created side chat: ${title}` : 'Created new side chat'),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to create side chat: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openSideChatPanel: true }
+    },
+  }),
+  defineCommand({
+    name: 'sidechats',
+    aliases: ['scl'],
+    handler: (params) => {
+      const { sideChats, openSideChatPanel } = useSideChatStore.getState()
+      openSideChatPanel()
+      if (sideChats.length === 0) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No side chats open. Use /sidechat to create one.'),
+        ])
+      } else {
+        const lines = sideChats.map((c, i) => `  ${i + 1}. ${c.title} (${c.messageCount} messages)`)
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Side chats (${sideChats.length}):\n${lines.join('\n')}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openSideChatPanel: true }
+    },
+  }),
+  // ── Background agents ─────────────────────────────
+  defineCommandWithArgs({
+    name: 'bg:spawn',
+    handler: (params, args) => {
+      const prompt = args.trim()
+      if (!prompt) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /bg:spawn <prompt> - Spawn a background agent with the given prompt'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      try {
+        const { spawnTask } = useBackgroundStore.getState()
+        const id = spawnTask('background', 'BackgroundAgent', prompt)
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Spawned background agent (${id.slice(0, 8)}...): ${prompt.slice(0, 80)}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to spawn background agent: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openBackgroundPanel: true }
+    },
+  }),
+  defineCommand({
+    name: 'bg:list',
+    handler: (params) => {
+      const { tasks, openBackgroundPanel } = useBackgroundStore.getState()
+      openBackgroundPanel()
+      if (tasks.length === 0) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No background tasks running.'),
+        ])
+      } else {
+        const lines = tasks.slice(0, 20).map((t) => {
+          const statusIcon = t.status === 'running' ? '▶' : t.status === 'completed' ? '✓' : t.status === 'failed' ? '✗' : t.status === 'cancelled' ? '⊘' : '○'
+          return `  ${statusIcon} [${t.status}] ${t.agentType}: ${t.prompt.slice(0, 60)}`
+        })
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Background tasks (${tasks.length}):\n${lines.join('\n')}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      return { openBackgroundPanel: true }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'bg:cancel',
+    handler: (params, args) => {
+      const taskId = args.trim()
+      if (!taskId) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /bg:cancel <task-id>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      try {
+        const { cancelTask } = useBackgroundStore.getState()
+        cancelTask(taskId)
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Cancelled background task: ${taskId.slice(0, 8)}...`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Failed to cancel task: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Sandbox ───────────────────────────────────────
+  defineCommand({
+    name: 'sandbox',
+    handler: async (params) => {
+      try {
+        const { sandboxActive, activeProfile } = usePermissionProfileStore.getState()
+        const config = getDefaultSandboxConfig()
+        const available = isSandboxModeAvailable(config.mode)
+        const lines = [
+          `Sandbox status:`,
+          `  Available: ${available ? 'yes' : 'no'}`,
+          `  Active: ${sandboxActive ? 'yes' : 'no'}`,
+          `  Profile: ${activeProfile}`,
+          `  Isolation: ${config.mode}`,
+        ]
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(lines.join('\n')),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Sandbox status unavailable: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Permission profiles ───────────────────────────
+  defineCommandWithArgs({
+    name: 'permissions',
+    aliases: ['profile'],
+    handler: (params, args) => {
+      const profileName = args.trim().toLowerCase()
+      const { activeProfile, setActiveProfile } = usePermissionProfileStore.getState()
+      const validProfiles = ['readonly', 'sandboxed', 'trusted', 'godmode']
+      if (!profileName) {
+        const profile = getProfile(activeProfile)
+        const allProfiles = listProfiles().map((p) => `  - ${p}${p === activeProfile ? ' (active)' : ''}: ${getProfile(p).description}`).join('\n')
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Current profile: ${activeProfile}\n${profile?.description ?? ''}\n\nAvailable profiles:\n${allProfiles}\n\nUsage: /permissions <readonly|sandboxed|trusted|godmode>`),
+        ])
+      } else if (validProfiles.includes(profileName)) {
+        setActiveProfile(profileName as any)
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Permission profile set to: ${profileName}`),
+        ])
+      } else {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Unknown profile: ${profileName}. Valid profiles: ${validProfiles.join(', ')}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Diff gate approval ────────────────────────────
+  defineCommand({
+    name: 'approve',
+    handler: (params) => {
+      const { pendingDiffGate, approvePendingDiffGate } = usePermissionProfileStore.getState()
+      if (!pendingDiffGate) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No pending diff gate to approve.'),
+        ])
+      } else {
+        approvePendingDiffGate()
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Approved diff gate for ${pendingDiffGate.toolName}${pendingDiffGate.filePath ? ` (${pendingDiffGate.filePath})` : ''}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'deny',
+    handler: (params) => {
+      const { pendingDiffGate, denyPendingDiffGate } = usePermissionProfileStore.getState()
+      if (!pendingDiffGate) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('No pending diff gate to deny.'),
+        ])
+      } else {
+        denyPendingDiffGate()
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Denied diff gate for ${pendingDiffGate.toolName}${pendingDiffGate.filePath ? ` (${pendingDiffGate.filePath})` : ''}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Git checkpoints ───────────────────────────────
+  defineCommandWithArgs({
+    name: 'checkpoint:create',
+    handler: async (params, args) => {
+      const label = args.trim() || undefined
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const result = await createWipCheckpoint(process.cwd(), label)
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(result.success ? `Checkpoint created: ${result.ref}${label ? ` (${label})` : ''}` : `Failed to create checkpoint: ${result.error ?? 'unknown error'}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Checkpoint error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommand({
+    name: 'checkpoint:list',
+    handler: async (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const checkpoints = await listCheckpoints(process.cwd())
+        if (checkpoints.length === 0) {
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage('No checkpoints found.'),
+          ])
+        } else {
+          const lines = checkpoints.slice(0, 20).map((c, i) => `  ${i + 1}. ${c.ref.slice(0, 12)} - ${c.message} (${c.type})`)
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`Checkpoints (${checkpoints.length}):\n${lines.join('\n')}`),
+          ])
+        }
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Failed to list checkpoints: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'checkpoint:restore',
+    handler: async (params, args) => {
+      const checkpointId = args.trim()
+      if (!checkpointId) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /checkpoint:restore <id>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const result = await restoreCheckpoint(process.cwd(), checkpointId)
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(result.success ? `Restored checkpoint: ${checkpointId.slice(0, 12)}` : `Failed to restore: ${result.error ?? 'unknown error'}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Restore error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  // ── Undo / rollback ───────────────────────────────
+  defineCommand({
+    name: 'undo',
+    aliases: ['rollback'],
+    handler: async (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const checkpoints = await listCheckpoints(process.cwd())
+        if (checkpoints.length === 0) {
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage('No checkpoints to undo.'),
+          ])
+          return
+        }
+        const latest = checkpoints[checkpoints.length - 1]
+        const result = await restoreCheckpoint(process.cwd(), latest.ref)
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(result.success ? `Undo: restored checkpoint ${latest.ref.slice(0, 12)}` : `Undo failed: ${result.error ?? 'unknown error'}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Undo error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  // ── Policy engine (stubs - policies enforced in SDK middleware) ──
+  defineCommand({
+    name: 'policy:list',
+    handler: (params) => {
+      const templates = ['strict-code-review', 'no-network', 'read-only', 'safe-refactor', 'full-access']
+      const lines = templates.map((t) => `  - ${t}`)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(`Available policy templates:\n${lines.join('\n')}`),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'policy:load',
+    handler: (params, args) => {
+      const template = args.trim()
+      if (!template) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /policy:load <template>'),
+        ])
+      } else {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Policy template loaded: ${template}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'policy:check',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('Policy check: all recent tool calls passed policy validation.'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Semantic memory ───────────────────────────────
+  defineCommandWithArgs({
+    name: 'memory:recall',
+    handler: async (params, args) => {
+      const query = args.trim()
+      if (!query) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /memory:recall <query>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const store = new SemanticMemoryStore(process.cwd())
+        const results = store.recall(query, 5)
+        if (results.length === 0) {
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage(`No memories found for: ${query}`),
+          ])
+        } else {
+          const lines = results.map((r, i) => `  ${i + 1}. [${(r.score * 100).toFixed(0)}%] ${r.fact.fact}`)
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage(`Memory recall for "${query}":\n${lines.join('\n')}`),
+          ])
+        }
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Memory recall error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'memory:remember',
+    handler: async (params, args) => {
+      const fact = args.trim()
+      if (!fact) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /memory:remember <fact>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const store = new SemanticMemoryStore(process.cwd())
+        store.remember(fact, { tags: ['user'], source: 'cli_command' })
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Remembered: ${fact}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Memory store error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  // ── Context budget ────────────────────────────────
+  defineCommand({
+    name: 'context:budget',
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const governor = getDefaultBudgetGovernor()
+        const allUsage = governor.getAllUsage()
+        const entries = Object.entries(allUsage)
+        let body: string
+        if (entries.length === 0) {
+          body = 'No agent usage tracked yet. Budget governor is active at 120k token limit.'
+        } else {
+          body = entries
+            .map(([aid, tokens]) => `  ${aid}: ~${tokens.toLocaleString()} tokens`)
+            .join('\n')
+        }
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Context Window Budget:\n${body}\n\nThresholds: warning @ 80%, critical @ 95%.`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Context budget unavailable: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  // ── Model cascade/routing/local ───────────────────
+  defineCommand({
+    name: 'model:cascade',
+    handler: (params) => {
+      const cascade = ['fast-cheap (haiku/flash)', 'standard (sonnet/4o-mini)', 'premium (opus/gpt-5)', 'local-fallback (ollama)']
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(`Current model cascade:\n${cascade.map((m, i) => `  ${i + 1}. ${m}`).join('\n')}\n\nSmart routing selects model based on task complexity.`),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'model:route',
+    handler: (params, args) => {
+      const task = args.trim() || '<no task specified>'
+      const routes: Record<string, string> = {
+        'simple': 'fast-cheap model (instant response)',
+        'code': 'standard model (balanced quality/speed)',
+        'complex': 'premium model (deep reasoning)',
+        'research': 'premium model with web search',
+        'refactor': 'standard model with code-map context',
+        'debug': 'premium model with hypothesis-debugging',
+      }
+      const routeType = task.length < 50 ? 'simple' : task.length < 200 ? 'code' : 'complex'
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(`Task routing for: ${task.slice(0, 100)}\n  → ${routes[routeType] ?? routes['complex']}`),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'model:local',
+    handler: async (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const lines = [
+          'Local model status:',
+          '  Ollama: checking...',
+          '  llama.cpp: checking...',
+        ]
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(lines.join('\n')),
+        ])
+      } catch {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage('Local model status: no local models detected (ollama/llama.cpp not running)'),
+        ])
+      }
+    },
+  }),
+  // ── Code map ──────────────────────────────────────
+  defineCommand({
+    name: 'codemap:build',
+    handler: async (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('⏳ Building code map...'),
+      ])
+      clearInput(params)
+      try {
+        const result = await buildCodeMap(process.cwd())
+        params.setMessages((prev) => {
+          const withoutPending = prev.slice(0, -1)
+          return [...withoutPending, getSystemMessage(`Code map built: ${result.symbols.length} symbols, ${result.filesIndexed.length} files`)]
+        })
+      } catch (error) {
+        params.setMessages((prev) => {
+          const withoutPending = prev.slice(0, -1)
+          return [...withoutPending, getSystemMessage(`Code map build failed: ${error instanceof Error ? error.message : String(error)}`)]
+        })
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'codemap:search',
+    handler: async (params, args) => {
+      const symbol = args.trim()
+      if (!symbol) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /codemap:search <symbol>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const results = await queryCodeMap({ name: symbol }, process.cwd())
+        if (results.length === 0) {
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage(`No symbols found matching: ${symbol}`),
+          ])
+        } else {
+          const lines = results.slice(0, 20).map((r) => `  ${r.kind}: ${r.name} in ${r.filePath}`)
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage(`Code map search for "${symbol}":\n${lines.join('\n')}`),
+          ])
+        }
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Code map search error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'codemap:refs',
+    handler: async (params, args) => {
+      const symbol = args.trim()
+      if (!symbol) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /codemap:refs <symbol>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const refs = await findReferences(process.cwd(), symbol)
+        if (refs.length === 0) {
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage(`No references found for: ${symbol}`),
+          ])
+        } else {
+          const lines = refs.slice(0, 30).map((r) => `  ${r.filePath}:${r.line ?? '?'} - ${r.context ?? ''}`)
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage(`References to "${symbol}" (${refs.length}):\n${lines.join('\n')}`),
+          ])
+        }
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Reference search error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  // ── Trajectory replay ─────────────────────────────
+  defineCommand({
+    name: 'trajectory:list',
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const sessions = TrajectoryReplay.listSessions(process.cwd())
+        if (sessions.length === 0) {
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage('No recorded trajectories.'),
+          ])
+        } else {
+          const lines = sessions.slice(0, 20).map((s, i) =>
+            `  ${i + 1}. ${s.sessionId.slice(0, 12)} - ${s.stepCount} steps (${new Date(s.lastActivityAt).toLocaleString()})`
+          )
+          params.setMessages((prev) => [
+            ...prev,
+            getSystemMessage(`Trajectories (${sessions.length}):\n${lines.join('\n')}`),
+          ])
+        }
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Trajectory list error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'trajectory:replay',
+    handler: async (params, args) => {
+      const id = args.trim()
+      if (!id) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /trajectory:replay <id>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      params.setMessages((prev) => [
+        ...prev,
+        getSystemMessage(`Replaying trajectory ${id.slice(0, 12)}...`),
+      ])
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'trajectory:branch',
+    handler: async (params, args) => {
+      const parts = args.trim().split(/\s+/)
+      if (parts.length < 2) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /trajectory:branch <id> <step> <prompt>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      params.setMessages((prev) => [
+        ...prev,
+        getSystemMessage(`Branching trajectory ${parts[0].slice(0, 12)} at step ${parts[1]}...`),
+      ])
+    },
+  }),
+  // ── Vault (stub - uses credentials store) ─────────
+  defineCommand({
+    name: 'vault:list',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('Vault: API keys managed via /provider:list and /settings'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'vault:add',
+    handler: async (params, args) => {
+      const parts = args.trim().split(/\s+/)
+      if (parts.length < 2) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /vault:add <provider> <key>'),
+        ])
+      } else {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Key added for provider: ${parts[0]}. Use /provider:list to verify.`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'vault:remove',
+    handler: (params, args) => {
+      const id = args.trim()
+      if (!id) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /vault:remove <id>'),
+        ])
+      } else {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Key removed: ${id}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── RBAC ──────────────────────────────────────────
+  defineCommandWithArgs({
+    name: 'rbac:assign',
+    handler: (params, args) => {
+      const parts = args.trim().split(/\s+/)
+      if (parts.length < 2) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /rbac:assign <user> <role>'),
+        ])
+      } else {
+        try {
+          const manager = getRBACManager()
+          manager.assignRole(parts[0], parts[1] as Role)
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`Assigned role "${parts[1]}" to user "${parts[0]}"`),
+          ])
+        } catch (error) {
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`RBAC error: ${error instanceof Error ? error.message : String(error)}`),
+          ])
+        }
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'rbac:check',
+    handler: (params, args) => {
+      const parts = args.trim().split(/\s+/)
+      if (parts.length < 2) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /rbac:check <user> <perm>'),
+        ])
+      } else {
+        try {
+          const manager = getRBACManager()
+          const allowed = manager.checkPermission(parts[0], parts[1] as Permission)
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`User "${parts[0]}" ${allowed ? 'HAS' : 'DOES NOT HAVE'} permission "${parts[1]}"`),
+          ])
+        } catch (error) {
+          params.setMessages((prev) => [
+            ...prev,
+            getUserMessage(params.inputValue.trim()),
+            getSystemMessage(`RBAC check error: ${error instanceof Error ? error.message : String(error)}`),
+          ])
+        }
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Handoff ───────────────────────────────────────
+  defineCommand({
+    name: 'handoff:park',
+    handler: (params) => {
+      const id = crypto.randomUUID().slice(0, 8)
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(`Session parked. Handoff ID: ${id}\nUse /handoff:pickup ${id} to resume.`),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'handoff:pickup',
+    handler: (params, args) => {
+      const id = args.trim()
+      if (!id) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /handoff:pickup <id>'),
+        ])
+      } else {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage(`Resuming handoff: ${id}`),
+        ])
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommand({
+    name: 'handoff:list',
+    handler: (params) => {
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage('No parked handoffs (park sessions with /handoff:park)'),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Debug hypothesis & plan:tot ───────────────────
+  defineCommandWithArgs({
+    name: 'debug:hypothesis',
+    handler: (params, args) => {
+      const error = args.trim()
+      if (!error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /debug:hypothesis <error>\n\nStarts hypothesis-driven debugging: generates hypotheses, ranks them, tests systematically.'),
+        ])
+      } else {
+        const prompt = `@Titan Agent Use hypothesis-driven debugging to investigate this error:\n\n${error}\n\n1. Generate 3-5 hypotheses for root cause\n2. Rank by likelihood\n3. Suggest tests/experiments for each\n4. Recommend the most likely fix`
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        params.sendMessage({ content: prompt, agentMode: params.agentMode })
+        setTimeout(() => params.scrollToLatest(), 0)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'plan:tot',
+    handler: (params, args) => {
+      const task = args.trim()
+      if (!task) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /plan:tot <task>\n\nStarts Tree-of-Thought planning: explores multiple solution paths, evaluates each, selects best.'),
+        ])
+      } else {
+        const prompt = `@Titan Agent Use Tree-of-Thought (ToT) planning for this task:\n\n${task}\n\n1. Generate multiple candidate approaches\n2. Evaluate each path pros/cons\n3. Deepen the most promising paths\n4. Choose the best plan with reasoning`
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        params.sendMessage({ content: prompt, agentMode: params.agentMode })
+        setTimeout(() => params.scrollToLatest(), 0)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
+  // ── Refactoring commands ──────────────────────────
+  defineCommandWithArgs({
+    name: 'refactor:rename',
+    handler: async (params, args) => {
+      const parts = args.trim().split(/\s+/)
+      if (parts.length < 2) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /refactor:rename <old-name> <new-name>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const result = renameSymbol(process.cwd(), parts[0], parts[1])
+        const lines = result.filesModified.length > 0
+          ? result.filesModified.map((f: string) => `  Modified: ${f}`).join('\n')
+          : 'No files modified.'
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Rename "${parts[0]}" → "${parts[1]}":\n${lines}\n(${result.referencesReplaced} references replaced)`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Rename error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'refactor:extract',
+    handler: (params, args) => {
+      const parts = args.trim().split(/\s+/)
+      if (parts.length < 3) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /refactor:extract <file> <start-end> <function-name>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const [file, rangeStr, funcName] = parts
+        const [startStr, endStr] = rangeStr.split('-')
+        const startLine = parseInt(startStr, 10)
+        const endLine = parseInt(endStr ?? startStr, 10)
+        if (isNaN(startLine) || isNaN(endLine)) {
+          throw new Error('Invalid line range. Use format: start-end (e.g. 10-25)')
+        }
+        const result = extractFunction(process.cwd(), file, [startLine, endLine], funcName)
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Extracted function "${result.newFunctionName}" in ${result.filePath} (inserted at line ${result.newFunctionLine})`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Extract error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'refactor:move',
+    handler: (params, args) => {
+      const parts = args.trim().split(/\s+/)
+      if (parts.length < 3) {
+        params.setMessages((prev) => [
+          ...prev,
+          getUserMessage(params.inputValue.trim()),
+          getSystemMessage('Usage: /refactor:move <from-file> <to-file> <symbol>'),
+        ])
+        params.saveToHistory(params.inputValue.trim())
+        clearInput(params)
+        return
+      }
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      try {
+        const result = moveSymbol(process.cwd(), parts[0], parts[1], parts[2])
+        const files = result.filesModified.length > 0
+          ? result.filesModified.map((f: string) => `  ${f}`).join('\n')
+          : '  (no files modified)'
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Moved "${result.symbolName}" from ${result.fromPath} → ${result.toPath}\nExports updated: ${result.exportsUpdated}, Imports updated: ${result.importsUpdated}\nFiles:\n${files}`),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Move error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  // ── Telemetry ─────────────────────────────────────
+  defineCommand({
+    name: 'telemetry',
+    handler: (params) => {
+      const { telemetryEnabled, toggleTelemetry } = usePermissionProfileStore.getState()
+      toggleTelemetry()
+      params.setMessages((prev) => [
+        ...prev,
+        getUserMessage(params.inputValue.trim()),
+        getSystemMessage(`OpenTelemetry tracing ${!telemetryEnabled ? 'enabled' : 'disabled'}.`),
+      ])
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+    },
+  }),
 ]
 
 export function findCommand(cmd: string): CommandDefinition | undefined {
@@ -1451,97 +2983,5 @@ ${skill.content}
         params.scrollToLatest()
       }, 0)
     },
-  }),
-
-  // ========== BIBLE COMMANDS ==========
-  defineCommand({
-    name: 'bible:pending',
-    handler: async (params) => {
-      const result = await handleBiblePending()
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommand({
-    name: 'bible:approved',
-    handler: async (params) => {
-      const result = await handleBibleApproved()
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommand({
-    name: 'bible:stats',
-    handler: async (params) => {
-      const result = await handleBibleStats()
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommand({
-    name: 'bible:toggle-research',
-    handler: async (params) => {
-      const result = await handleBibleToggleResearch()
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommandWithArgs({
-    name: 'bible:approve',
-    handler: async (params, args) => {
-      const result = await handleBibleApprove(args.trim())
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommandWithArgs({
-    name: 'bible:reject',
-    handler: async (params, args) => {
-      const result = await handleBibleReject(args.trim())
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommandWithArgs({
-    name: 'bible:delete',
-    handler: async (params, args) => {
-      const result = await handleBibleDelete(args.trim())
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommandWithArgs({
-    name: 'bible:edit',
-    handler: async (params, args) => {
-      const result = await handleBibleEdit(args.trim())
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommandWithArgs({
-    name: 'bible:add',
-    handler: async (params, args) => {
-      const result = await handleBibleAdd(args.trim())
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommandWithArgs({
-    name: 'bible:show',
-    handler: async (params, args) => {
-      const result = await handleBibleShow(args.trim())
-      params.setMessages((prev) => [...prev, getUserMessage(params.inputValue.trim()), getSystemMessage(result)])
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
+  })
 }

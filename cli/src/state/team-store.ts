@@ -15,6 +15,17 @@ import type {
 } from '@levelcode/common/types/team-config'
 import type { TeamProtocolMessage } from '@levelcode/common/types/team-protocol'
 
+export interface TeamMetrics {
+  totalTasksCompleted: number
+  totalTokensUsed: number
+  totalCostUsd: number
+  agentUtilization: Record<string, number>
+  velocityTasksPerHour: number
+  avgTaskCompletionTimeMs: number
+  errorRate: number
+  lastUpdatedAt: number
+}
+
 interface TeamState {
   activeTeam: TeamConfig | null
   members: TeamMember[]
@@ -22,6 +33,8 @@ interface TeamState {
   tasks: { pending: number; inProgress: number; completed: number; blocked: number }
   messages: TeamProtocolMessage[]
   swarmEnabled: boolean
+  isMetricsPanelOpen: boolean
+  metrics: TeamMetrics
 }
 
 interface TeamActions {
@@ -32,10 +45,25 @@ interface TeamActions {
   addMessage: (message: TeamProtocolMessage) => void
   clearMessages: () => void
   setSwarmEnabled: (enabled: boolean) => void
+  openMetricsPanel: () => void
+  closeMetricsPanel: () => void
+  toggleMetricsPanel: () => void
+  updateMetrics: (updates: Partial<TeamMetrics>) => void
   reset: () => void
 }
 
 type TeamStore = TeamState & TeamActions
+
+const initialMetrics: TeamMetrics = {
+  totalTasksCompleted: 0,
+  totalTokensUsed: 0,
+  totalCostUsd: 0,
+  agentUtilization: {},
+  velocityTasksPerHour: 0,
+  avgTaskCompletionTimeMs: 0,
+  errorRate: 0,
+  lastUpdatedAt: 0,
+}
 
 const initialState: TeamState = {
   activeTeam: null,
@@ -44,6 +72,8 @@ const initialState: TeamState = {
   tasks: { pending: 0, inProgress: 0, completed: 0, blocked: 0 },
   messages: [],
   swarmEnabled: false,
+  isMetricsPanelOpen: false,
+  metrics: initialMetrics,
 }
 
 export const useTeamStore = create<TeamStore>()(
@@ -95,12 +125,33 @@ export const useTeamStore = create<TeamStore>()(
         state.swarmEnabled = enabled
       }),
 
+    openMetricsPanel: () =>
+      set((state) => {
+        state.isMetricsPanelOpen = true
+      }),
+
+    closeMetricsPanel: () =>
+      set((state) => {
+        state.isMetricsPanelOpen = false
+      }),
+
+    toggleMetricsPanel: () =>
+      set((state) => {
+        state.isMetricsPanelOpen = !state.isMetricsPanelOpen
+      }),
+
+    updateMetrics: (updates) =>
+      set((state) => {
+        Object.assign(state.metrics, updates, { lastUpdatedAt: Date.now() })
+      }),
+
     reset: () =>
       set(() => ({
         ...initialState,
         members: [],
         messages: [],
         tasks: { pending: 0, inProgress: 0, completed: 0, blocked: 0 },
+        metrics: { ...initialMetrics },
       })),
   })),
 )
