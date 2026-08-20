@@ -24,6 +24,8 @@
   <a href="#-contributing">Contributing</a>
 </p>
 
+> **Note (2026-08-20)**: Remote master was backed up to branch `backup-2026-08-20` before this push.
+
 ---
 
 ## What is LevelCode?
