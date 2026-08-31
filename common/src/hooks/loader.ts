@@ -1,6 +1,7 @@
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
+
+import { getUserHomeDir } from '../utils/home-dir'
 
 import { hooksConfigSchema } from './types'
 
@@ -33,7 +34,7 @@ function configEnvSuffix(): string {
 
 /** Candidate settings.json paths in load order. */
 export function getHookConfigPaths(projectRoot: string): string[] {
-  const home = os.homedir()
+  const home = getUserHomeDir()
   const commonBase =
     process.env.LEVELCODE_DIR || path.join(home, '.levelcode')
   return [

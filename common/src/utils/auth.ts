@@ -1,12 +1,13 @@
 import path from 'path'
-import os from 'os'
+
+import { getUserHomeDir } from './home-dir'
 
 // ============================================================================
 // Config Directory
 // ============================================================================
 
 export function getConfigDir(): string {
-  const home = os.homedir()
+  const home = getUserHomeDir()
   // Use .levelcode in home directory
   const baseDir = process.env.LEVELCODE_DIR || path.join(home, '.levelcode')
   return baseDir

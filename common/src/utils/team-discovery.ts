@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import { getUserHomeDir } from './home-dir'
 import * as path from 'path'
 import * as os from 'os'
 import { getTeamsDir, loadTeamConfig, validateTeamName } from './team-fs'
@@ -32,7 +33,7 @@ export interface TeamSummary {
 // agentStepId changes every call) can still locate the team.
 
 function getLastActiveTeamPath(): string {
-  return path.join(os.homedir(), '.config', 'levelcode', 'teams', '.last-active-team')
+  return path.join(getUserHomeDir(), '.config', 'levelcode', 'teams', '.last-active-team')
 }
 
 /**

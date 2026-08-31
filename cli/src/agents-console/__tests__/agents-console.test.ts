@@ -9,7 +9,7 @@ import {
   plainTheme,
 } from '../agents-console'
 import { collectAgentsData, renderAgentsCommand } from '../run-agents'
-import { getTeamsDir } from '@levelcode/common/utils/team-fs'
+import { getTeamsDir, getTasksDir } from '@levelcode/common/utils/team-fs'
 
 import type { TeamConfig, TeamMember, TeamTask } from '@levelcode/common/types/team-config'
 
@@ -148,18 +148,9 @@ describe('agents command (disk-backed)', () => {
     }
     process.env.HOME = tmpHome
     process.env.USERPROFILE = tmpHome
-    // bun may cache os.homedir() on first use; clean the cached location.
-    const configRoot = path.dirname(path.dirname(getTeamsDir()))
-    if (fs.existsSync(configRoot)) {
-      fs.rmSync(configRoot, { recursive: true, force: true })
-    }
   })
 
   afterEach(() => {
-    const configRoot = path.dirname(path.dirname(getTeamsDir()))
-    if (fs.existsSync(configRoot)) {
-      fs.rmSync(configRoot, { recursive: true, force: true })
-    }
     for (const [key, value] of Object.entries(origHome)) {
       if (value === undefined) delete process.env[key]
       else process.env[key] = value
@@ -168,7 +159,9 @@ describe('agents command (disk-backed)', () => {
   })
 
   function seedTeam(name: string): void {
-    const teamDir = path.join(tmpHome, '.config', 'levelcode', 'teams', name)
+    // Seed through getTeamsDir()/getTasksDir(): with the isolated-home
+    // preload these resolve to a fresh LEVELCODE_HOME per test.
+    const teamDir = path.join(getTeamsDir(), name)
     fs.mkdirSync(path.join(teamDir, 'inboxes'), { recursive: true })
     const config = makeConfig({
       name,
@@ -180,7 +173,7 @@ describe('agents command (disk-backed)', () => {
       JSON.stringify(config),
       'utf-8',
     )
-    const tasksDir = path.join(tmpHome, '.config', 'levelcode', 'tasks', name)
+    const tasksDir = getTasksDir(name)
     fs.mkdirSync(tasksDir, { recursive: true })
     fs.writeFileSync(
       path.join(tasksDir, '1.json'),

@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import { getUserHomeDir } from './home-dir'
 import * as path from 'path'
 import * as os from 'os'
 import type { TeamConfig, TeamMember, TeamTask } from '../types/team-config'
@@ -71,7 +72,7 @@ function assertPathContained(resolvedPath: string, expectedParent: string): void
 // --- Path helpers ---
 
 function getConfigRoot(): string {
-  return path.join(os.homedir(), '.config', 'levelcode')
+  return path.join(getUserHomeDir(), '.config', 'levelcode')
 }
 
 export function getTeamsDir(): string {

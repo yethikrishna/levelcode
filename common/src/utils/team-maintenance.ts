@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import { getUserHomeDir } from './home-dir'
 import * as path from 'path'
 import * as os from 'os'
 import type { TeamConfig, TeamTask, AgentStatus } from '../types/team-config'
@@ -6,7 +7,7 @@ import { teamConfigSchema, teamTaskSchema } from '../types/team-config-schemas'
 import { loadTeamConfig, listTasks, getTeamsDir, getTasksDir, validateTeamName } from './team-fs'
 
 function getConfigRoot(): string {
-  return path.join(os.homedir(), '.config', 'levelcode')
+  return path.join(getUserHomeDir(), '.config', 'levelcode')
 }
 
 function getTeamDir(teamName: string): string {
