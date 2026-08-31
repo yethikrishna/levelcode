@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Persistent Teams v1 — teams and their state now persist across sessions with improved disk + Zustand sync
 
+## [Unreleased] - Agents Console & Headless Sessions (2026-08-31)
+
+### Added
+- **`levelcode agents` swarm console** — TUI-free view of every team on this machine read from disk (fast path, no agent runtime): member status glyphs, in-progress task per agent, task summaries, last-active marker; `levelcode agents <team>` detail view with per-task blockers. CI-friendly exit codes. Previously the only way to see swarm state was booting the TUI.
+- **Headless session resume** — `levelcode -p --continue [id]` resumes the most recent session (or a given one) by replaying the persisted RunState; headless runs persist their finished session in the TUI's chat format, so sessions are interchangeable between surfaces. Success results carry `session_id` for CI chaining (`run 1 → session_id → run 2 --continue <id>`). Missing session exits 2 with an actionable message.
+- **`doctor` now checks hooks config validity and installed skills** — warns on invalid settings JSON (with the offending path), counts configured hook event types and available SKILL.md skills.
+
+### Changed
+- **`run_terminal_command` output hygiene** — 50k-char cap with silent middle-drop replaced by 30k head+tail plus the full output spilled to `%TEMP%/levelcode-command-output/*.log` with `output_file`/`stderr_file` pointers in the result: the agent can grep the remainder instead of losing it, and a single noisy command can no longer flood the context window (~12k tokens → ~7.5k max).
+
+### Fixed
+- **Phantom dependencies broke fresh installs** — `@types/lru-cache@^10` and `@types/form-data@^4` (hallucinated specifiers; neither version exists on npm) removed from workspace manifests; `bun.lock` refreshed.
+- **Team-test matrix failures on Linux CI** — bun caches `os.homedir()` at first use, so per-test HOME swapping silently left team fixtures in the first temp home; tests now clean the cached teams/tasks roots.
+
 ## [Unreleased] - Hooks, Worktrees & Skills (2026-08-31)
 
 ### Added
