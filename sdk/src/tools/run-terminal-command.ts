@@ -11,7 +11,31 @@ import { getSystemProcessEnv } from '../env'
 
 import type { LevelCodeToolOutput } from '../../../common/src/tools/list'
 
-const COMMAND_OUTPUT_LIMIT = 50_000
+// What stays in the tool result when a command over-produces. ~7.5k tokens
+// worst case; everything beyond this is spilled to a file the agent can
+// read/grep with its normal tools (see spillCommandOutput below).
+const COMMAND_OUTPUT_LIMIT = 30_000
+
+/**
+ * Spill an oversized command output stream to a temp file and return its
+ * path, so the tool result carries head+tail plus a pointer instead of
+ * silently discarding the middle. Best-effort: on any write failure the
+ * caller simply omits the pointer.
+ */
+async function spillCommandOutput(content: string, label: 'stdout' | 'stderr'): Promise<string | undefined> {
+  try {
+    const dir = path.join(os.tmpdir(), 'levelcode-command-output')
+    await fs.promises.mkdir(dir, { recursive: true })
+    const file = path.join(
+      dir,
+      `${Date.now()}-${label}.log`,
+    )
+    await fs.promises.writeFile(file, content, 'utf-8')
+    return file
+  } catch {
+    return undefined
+  }
+}
 
 // Common locations where Git Bash might be installed on Windows
 const GIT_BASH_COMMON_PATHS = [
@@ -197,7 +221,7 @@ export function runTerminalCommand({
     })
 
     // Handle process completion
-    childProcess.on('close', (exitCode) => {
+    childProcess.on('close', async (exitCode) => {
       if (processFinished) return
       processFinished = true
 
@@ -205,18 +229,30 @@ export function runTerminalCommand({
         clearTimeout(timer)
       }
 
-      // Truncate stdout to prevent excessive output
+      const rawStdout = stripColors(stdout)
+      const rawStderr = stripColors(stderr)
+
+      // Truncate stdout to keep the context budget sane; on overflow, spill
+      // the full stream to a file and point the agent at it.
       const truncatedStdout = truncateStringWithMessage({
-        str: stripColors(stdout),
+        str: rawStdout,
+        maxLength: COMMAND_OUTPUT_LIMIT,
+        remove: 'MIDDLE',
+      })
+      const truncatedStderr = truncateStringWithMessage({
+        str: rawStderr,
         maxLength: COMMAND_OUTPUT_LIMIT,
         remove: 'MIDDLE',
       })
 
-      const truncatedStderr = truncateStringWithMessage({
-        str: stripColors(stderr),
-        maxLength: COMMAND_OUTPUT_LIMIT,
-        remove: 'MIDDLE',
-      })
+      const [stdoutFile, stderrFile] = await Promise.all([
+        rawStdout.length > COMMAND_OUTPUT_LIMIT
+          ? spillCommandOutput(rawStdout, 'stdout')
+          : Promise.resolve(undefined),
+        rawStderr.length > COMMAND_OUTPUT_LIMIT
+          ? spillCommandOutput(rawStderr, 'stderr')
+          : Promise.resolve(undefined),
+      ])
 
       // Include stderr in stdout for compatibility with existing behavior
       const combinedOutput = {
@@ -224,6 +260,8 @@ export function runTerminalCommand({
         stdout: truncatedStdout,
         ...(truncatedStderr ? { stderr: truncatedStderr } : {}),
         ...(exitCode !== null ? { exitCode } : {}),
+        ...(stdoutFile ? { output_file: stdoutFile } : {}),
+        ...(stderrFile ? { stderr_file: stderrFile } : {}),
       }
 
       resolve([{ type: 'json', value: combinedOutput }])
