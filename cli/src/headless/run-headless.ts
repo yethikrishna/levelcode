@@ -22,6 +22,7 @@ import { getProjectRoot } from '../project-files'
 import { initializeApp } from '../init/init-app'
 import { getLevelCodeClient } from '../utils/levelcode-client'
 import { isSensitiveFile } from '../utils/create-run-config'
+import { saveHeadlessRunState, loadHeadlessRunState } from './session-store'
 
 import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
 import type { FileFilter, LevelCodeClient } from '@levelcode/sdk'
@@ -38,6 +39,9 @@ export type HeadlessOptions = {
   lenientExit?: boolean
   /** Test seam: run against this client instead of the real one. */
   client?: LevelCodeClient
+  /** Resume the most recent conversation (or continueId if provided). */
+  continueChat?: boolean
+  continueId?: string | null
   /** Test seam: capture output instead of writing to the process streams. */
   sink?: {
     stdout: (chunk: string) => void
@@ -142,10 +146,30 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     }
   }
 
+  let previousRun: unknown
+  if (options.continueChat) {
+    const loaded = loadHeadlessRunState(options.continueId ?? undefined)
+    if (!loaded) {
+      const id = options.continueId ?? '(most recent)'
+      const message = `No resumable session found for ${id}. Run levelcode -p without --continue first, or pass a valid session_id.`
+      if (outputFormat === 'text') {
+        err(`error: ${message}
+`)
+        return { exitCode: 2, result: { type: 'result', subtype: 'error_during_execution' as const, is_error: true, message } }
+      }
+      emit({ type: 'system', subtype: 'init', ok: false })
+      emit({ type: 'result', subtype: 'error_during_execution' as const, is_error: true, message })
+      return { exitCode: 2, result: { type: 'result', subtype: 'error_during_execution' as const, is_error: true, message } }
+    }
+    previousRun = loaded
+  }
+
+  let finishedRun: unknown
   try {
-    await client.run({
+    finishedRun = await client.run({
       agent: agentOverride ?? 'base2',
       prompt,
+      ...(previousRun ? { previousRun: previousRun as never } : {}),
       handleEvent,
       maxAgentSteps: 100,
       fileFilter: ((filePath: string) => {
@@ -169,6 +193,14 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     sawError = true
   }
 
+  // Persist the session for --continue chaining (best-effort).
+  let sessionId: string | null = null
+  if (!sawError && finishedRun) {
+    try {
+      sessionId = saveHeadlessRunState(finishedRun as never)
+    } catch { /* persistence is best-effort */ }
+  }
+
   const result: Record<string, unknown> = {
     type: 'result',
     subtype: sawError
@@ -180,6 +212,7 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     num_tool_calls: numToolCalls,
     result: finalText,
     project: path.basename(projectRoot),
+    ...(sessionId ? { session_id: sessionId } : {}),
   }
 
   if (outputFormat === 'stream-json') {

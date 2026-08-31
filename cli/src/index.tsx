@@ -21,6 +21,7 @@ const options = program.opts<{
   agent?: string
   cwd?: string
   worktree?: string
+  continue?: boolean | string
 }>()
 
 // `doctor` runs from node builtins only — never load the heavy runtime.
@@ -65,6 +66,11 @@ if (argv1 === 'doctor') {
       outputFormat: format as 'text' | 'json' | 'stream-json',
       agentOverride: options.agent?.trim() || null,
       cwdOverride,
+      continueChat: Boolean(options.continue),
+      continueId:
+        typeof options.continue === 'string' && options.continue.trim().length > 0
+          ? options.continue.trim()
+          : null,
     })
     process.exit(exitCode)
   })

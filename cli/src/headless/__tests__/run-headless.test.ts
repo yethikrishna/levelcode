@@ -1,9 +1,14 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
 
 import { runHeadless } from '../run-headless'
+import { loadHeadlessRunState, saveHeadlessRunState } from '../session-store'
+import { setProjectRoot } from '../../project-files'
 
 import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
-import type { LevelCodeClient } from '@levelcode/sdk'
+import type { LevelCodeClient, RunState } from '@levelcode/sdk'
 
 type Sink = { stdout: string[]; stderr: string[] }
 
@@ -159,6 +164,108 @@ describe('runHeadless', () => {
     })
 
     expect(result.total_cost_usd).toBe(7.5)
+  })
+})
+
+describe('runHeadless session resume', () => {
+  let tmpDir: string
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-resume-'))
+    setProjectRoot(tmpDir)
+  })
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('errors with exit code 2 when --continue finds no session', async () => {
+    const { capture } = makeSink()
+    const { exitCode, result } = await runHeadless({
+      prompt: 'next turn',
+      outputFormat: 'json',
+      agentOverride: null,
+      continueChat: true,
+      client: fakeClient([]),
+      sink: capture,
+    })
+
+    expect(exitCode).toBe(2)
+    expect(result.is_error).toBe(true)
+    expect(String(result.message)).toContain('No resumable session')
+  })
+
+  it('passes the loaded RunState as previousRun to the client', async () => {
+    const state = { sessionState: { mainAgentState: { messageHistory: [] } } } as unknown as RunState
+    const chatId = saveHeadlessRunState(state)
+    expect(chatId).toBeTruthy()
+
+    let sawPreviousRun: unknown
+    const client = {
+      run: async (opts: any) => {
+        sawPreviousRun = opts.previousRun
+        await opts.handleEvent?.({ type: 'text', text: 'resumed' })
+        return state
+      },
+    } as unknown as LevelCodeClient
+
+    const { exitCode, result } = await runHeadless({
+      prompt: 'next turn',
+      outputFormat: 'json',
+      agentOverride: null,
+      continueChat: true,
+      continueId: chatId!,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(0)
+    // Saved state round-trips through JSON, so compare by structure.
+    expect(sawPreviousRun).toEqual(state)
+    expect(result.result).toBe('resumed')
+  })
+
+  it('saves the finished run and reports session_id on success', async () => {
+    const state = { sessionState: { mainAgentState: { messageHistory: [] } } } as unknown as RunState
+    const client = {
+      run: async ({ handleEvent }: any) => {
+        await handleEvent?.({ type: 'text', text: 'done' })
+        return state
+      },
+    } as unknown as LevelCodeClient
+
+    const { capture } = makeSink()
+    const { exitCode, result } = await runHeadless({
+      prompt: 'first turn',
+      outputFormat: 'json',
+      agentOverride: null,
+      client,
+      sink: capture,
+    })
+
+    expect(exitCode).toBe(0)
+    expect(result.session_id).toMatch(/^[0-9a-f-]{36}$/)
+
+    // The saved session is resumable
+    const loaded = loadHeadlessRunState(result.session_id as string)
+    expect(loaded).not.toBeNull()
+  })
+
+  it('does not save a session after a failed run', async () => {
+    const client = {
+      run: async () => {
+        throw new Error('boom')
+      },
+    } as unknown as LevelCodeClient
+
+    const { result } = await runHeadless({
+      prompt: 'failing',
+      outputFormat: 'json',
+      agentOverride: null,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(result.is_error).toBe(true)
+    expect(result.session_id).toBeUndefined()
   })
 })
 
