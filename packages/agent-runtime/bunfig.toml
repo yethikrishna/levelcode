@@ -1,2 +1,2 @@
 [test]
-preload = ["../../sdk/test/setup-env.ts", "../../test/setup-bigquery-mocks.ts"]
+preload = ["../../test/setup-isolated-home.ts", "../../sdk/test/setup-env.ts", "../../test/setup-bigquery-mocks.ts"]

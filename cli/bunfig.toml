@@ -1,0 +1,5 @@
+[test]
+# Isolated home per test: bun caches os.homedir() at first use, so tests
+# must not share (or touch) the real user home. All user-data paths go
+# through getUserHomeDir() which honors LEVELCODE_HOME.
+preload = ["../test/setup-isolated-home.ts"]
