@@ -98,6 +98,14 @@ afterEach(() => {
   } else {
     delete process.env.USERPROFILE
   }
+  // Remove the (possibly cached) teams/tasks roots, not just tmpDir:
+  // bun caches os.homedir() on first use, so later tests may still write
+  // into the FIRST test's temp home.
+  for (const dir of [getTeamsDir(), path.join(path.dirname(getTeamsDir()), 'tasks')]) {
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  }
   if (fs.existsSync(tmpDir)) {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   }

@@ -9,6 +9,7 @@ import {
   plainTheme,
 } from '../agents-console'
 import { collectAgentsData, renderAgentsCommand } from '../run-agents'
+import { getTeamsDir } from '@levelcode/common/utils/team-fs'
 
 import type { TeamConfig, TeamMember, TeamTask } from '@levelcode/common/types/team-config'
 
@@ -147,9 +148,18 @@ describe('agents command (disk-backed)', () => {
     }
     process.env.HOME = tmpHome
     process.env.USERPROFILE = tmpHome
+    // bun may cache os.homedir() on first use; clean the cached location.
+    const configRoot = path.dirname(path.dirname(getTeamsDir()))
+    if (fs.existsSync(configRoot)) {
+      fs.rmSync(configRoot, { recursive: true, force: true })
+    }
   })
 
   afterEach(() => {
+    const configRoot = path.dirname(path.dirname(getTeamsDir()))
+    if (fs.existsSync(configRoot)) {
+      fs.rmSync(configRoot, { recursive: true, force: true })
+    }
     for (const [key, value] of Object.entries(origHome)) {
       if (value === undefined) delete process.env[key]
       else process.env[key] = value
