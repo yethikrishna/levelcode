@@ -1,4 +1,3 @@
-```json
 {
   "name": "@levelcode/prompt-engineering",
   "version": "1.0.0",
@@ -76,4 +75,3 @@
     "directory": "packages/prompt-engineering"
   }
 }
-```

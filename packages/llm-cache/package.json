@@ -1,4 +1,3 @@
-```json
 {
   "name": "@levelcode/llm-cache",
   "version": "1.0.0",
@@ -92,4 +91,3 @@
     "access": "public"
   }
 }
-```
