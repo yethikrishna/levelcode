@@ -1,0 +1,4 @@
+[test]
+# Isolated home per test (LEVELCODE_HOME), test-env defaults (NEXT_PUBLIC_*
+# vars so analytics stays off), and BigQuery mocks.
+preload = ["../../test/setup-isolated-home.ts", "../../sdk/test/setup-env.ts", "../../test/setup-bigquery-mocks.ts"]

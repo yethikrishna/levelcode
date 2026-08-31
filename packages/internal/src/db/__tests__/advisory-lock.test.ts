@@ -1,4 +1,5 @@
 import {
+  afterAll,
   afterEach,
   beforeEach,
   describe,
@@ -7,6 +8,14 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+
+// Snapshot the real postgres module BEFORE mock.module registers: bun's
+// `import * as` namespaces are live bindings, so a static import would later
+// reflect the mock. Used to restore real behavior in afterAll because
+// mock.module is process-global for the whole run — without this,
+// transaction.test.ts (loaded after, alphabetically) gets a mocked postgres
+// whose factory output lacks .options and crashes drizzle at module load.
+const realPostgresModule = { ...(await import('postgres')) }
 
 import { ADVISORY_LOCK_IDS } from '../advisory-lock'
 
@@ -42,6 +51,7 @@ describe('advisory-lock', () => {
     postgresMock = mock(() => callableConnection)
 
     mock.module('postgres', () => ({
+      ...realPostgresModule,
       default: postgresMock,
     }))
 
@@ -57,6 +67,11 @@ describe('advisory-lock', () => {
 
   afterEach(() => {
     mock.restore()
+  })
+
+  // Restore real behavior for any later-loaded file (see note above).
+  afterAll(() => {
+    mock.module('postgres', () => realPostgresModule)
   })
 
   describe('ADVISORY_LOCK_IDS', () => {
