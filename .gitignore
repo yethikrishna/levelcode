@@ -22,6 +22,11 @@ npm-app/src/__tests__/data/
 .levelcode*
 **.log
 
+# Scratch files from coding sessions
+/_*
+/temp-*
+*.tsbuildinfo
+
 debug/
 
 # Nx cache directories
