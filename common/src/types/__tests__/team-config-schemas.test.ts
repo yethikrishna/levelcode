@@ -56,11 +56,17 @@ describe('team-config-schemas', () => {
       })
     }
 
-    it('should reject invalid roles', () => {
-      const invalidRoles = ['admin', 'superuser', 'CEO', 'engineer', '', 'COORDINATOR', 'Manager']
+    it('should reject empty and whitespace-only roles (roles are otherwise free-form)', () => {
+      // Roles were unlocked to any non-empty string so agents can create
+      // custom roles; only emptiness and non-strings are invalid.
+      const invalidRoles = ['']
       for (const role of invalidRoles) {
         const result = teamRoleSchema.safeParse(role)
         expect(result.success).toBe(false)
+      }
+      for (const customRole of ['admin', 'CEO', 'COORDINATOR', 'Manager']) {
+        const result = teamRoleSchema.safeParse(customRole)
+        expect(result.success).toBe(true)
       }
     })
 
@@ -162,8 +168,8 @@ describe('team-config-schemas', () => {
       expect(result.success).toBe(false)
     })
 
-    it('should reject invalid role', () => {
-      const result = teamMemberSchema.safeParse({ ...validMember, role: 'boss' })
+    it('should reject empty role', () => {
+      const result = teamMemberSchema.safeParse({ ...validMember, role: '' })
       expect(result.success).toBe(false)
     })
 
@@ -258,7 +264,7 @@ describe('team-config-schemas', () => {
     })
 
     it('should reject invalid member within members array', () => {
-      const invalidMember = { ...validMember, role: 'boss' }
+      const invalidMember = { ...validMember, name: 'has spaces' }
       const result = teamConfigSchema.safeParse({
         ...validConfig,
         members: [invalidMember],
@@ -269,7 +275,7 @@ describe('team-config-schemas', () => {
 
   describe('teamTaskSchema', () => {
     const validTask = {
-      id: 'task-001',
+      id: '001',
       subject: 'Fix authentication bug',
       description: 'The login flow fails when using SSO',
       status: 'pending' as const,
@@ -284,7 +290,7 @@ describe('team-config-schemas', () => {
       const result = teamTaskSchema.safeParse(validTask)
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data.id).toBe('task-001')
+        expect(result.data.id).toBe('001')
         expect(result.data.subject).toBe('Fix authentication bug')
         expect(result.data.status).toBe('pending')
         expect(result.data.phase).toBe('beta')

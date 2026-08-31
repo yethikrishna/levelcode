@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test'
 
 import {
   useTeamStore,
@@ -10,17 +10,49 @@ import {
 
 import type { TeamConfig, TeamTask } from '@levelcode/common/types/team-config'
 
+// Snapshot the real team-fs BEFORE mock.module registers: bun's
+// `import * as` namespaces are live bindings, so a static import would later
+// reflect the mock and any delegation would recurse into itself.
+const realTeamFs = { ...(await import('@levelcode/common/utils/team-fs')) }
+
 // ── Mocks ────────────────────────────────────────────────────────────
 
+// bun's mock.module is process-global for the entire test run: every test
+// file loaded after this one resolves its imports against this mock. So the
+// factory spreads the real module (unmocked exports like createTeam keep
+// working) and the three overridden functions delegate to the real ones
+// after this file's tests finish — leak-through stays harmless even for
+// bindings captured earlier. beforeEach keeps stub defaults during this
+// file's own tests so nothing touches the real home dir.
 const mockLoadTeamConfig = mock((_name: string) => null as TeamConfig | null)
 const mockSaveTeamConfig = mock((_name: string, _config: TeamConfig) => {})
-const mockListTasks = mock(() => [] as TeamTask[])
+const mockListTasks = mock((_teamName: string) => [] as TeamTask[])
 
+// Spread the real module first: bun's mock.module is sticky for the whole
+// test process, so a partial mock would leave every later-loaded file
+// (alphabetically `packages/...`) with undefined team-fs functions.
 mock.module('@levelcode/common/utils/team-fs', () => ({
+  ...realTeamFs,
   loadTeamConfig: mockLoadTeamConfig,
   saveTeamConfig: mockSaveTeamConfig,
   listTasks: mockListTasks,
 }))
+
+// By the time this file's tests finish, other test files may already hold
+// bindings resolved against the mock above. Re-point the three overrides at
+// the real implementations so anything loaded later (or holding stale
+// bindings) gets real team-fs behavior instead of stubs.
+afterAll(() => {
+  mockLoadTeamConfig.mockImplementation(
+    (name: string) => realTeamFs.loadTeamConfig(name) as TeamConfig | null,
+  )
+  mockSaveTeamConfig.mockImplementation((name: string, config: TeamConfig) => {
+    void realTeamFs.saveTeamConfig(name, config)
+  })
+  mockListTasks.mockImplementation(
+    (teamName: string) => realTeamFs.listTasks(teamName) as TeamTask[],
+  )
+})
 
 // ── Helpers ──────────────────────────────────────────────────────────
 

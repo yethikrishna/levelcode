@@ -127,65 +127,65 @@ describe('task-assignment', () => {
   // findAvailableTasks
   // -----------------------------------------------------------------------
   describe('findAvailableTasks', () => {
-    it('should return unowned, unblocked, pending tasks', () => {
+    it('should return unowned, unblocked, pending tasks', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending' }))
 
       const available = findAvailableTasks('test-team')
       expect(available).toHaveLength(2)
       expect(available.map((t) => t.id)).toEqual(['1', '2'])
     })
 
-    it('should exclude tasks that already have an owner', () => {
+    it('should exclude tasks that already have an owner', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending', owner: 'someone' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending', owner: 'someone' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending' }))
 
       const available = findAvailableTasks('test-team')
       expect(available).toHaveLength(1)
       expect(available[0]!.id).toBe('2')
     })
 
-    it('should exclude non-pending tasks', () => {
+    it('should exclude non-pending tasks', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress' }))
-      createTask('test-team', makeTask({ id: '2', status: 'completed' }))
-      createTask('test-team', makeTask({ id: '3', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'completed' }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending' }))
 
       const available = findAvailableTasks('test-team')
       expect(available).toHaveLength(1)
       expect(available[0]!.id).toBe('3')
     })
 
-    it('should exclude tasks blocked by incomplete dependencies', () => {
+    it('should exclude tasks blocked by incomplete dependencies', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
 
       const available = findAvailableTasks('test-team')
       expect(available).toHaveLength(1)
       expect(available[0]!.id).toBe('1')
     })
 
-    it('should return tasks sorted by ID ascending', () => {
+    it('should return tasks sorted by ID ascending', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '10', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '3', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '7', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '10', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '7', status: 'pending' }))
 
       const available = findAvailableTasks('test-team')
       expect(available.map((t) => t.id)).toEqual(['3', '7', '10'])
     })
 
-    it('should return empty array when no tasks exist', () => {
+    it('should return empty array when no tasks exist', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
+      await createTeam(config)
 
       const available = findAvailableTasks('test-team')
       expect(available).toEqual([])
@@ -196,7 +196,7 @@ describe('task-assignment', () => {
   // findIdleAgents
   // -----------------------------------------------------------------------
   describe('findIdleAgents', () => {
-    it('should return agents with idle status', () => {
+    it('should return agents with idle status', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' }),
@@ -204,22 +204,22 @@ describe('task-assignment', () => {
           makeMember({ name: 'dev-3', agentId: 'a3', status: 'idle' }),
         ],
       })
-      createTeam(config)
+      await createTeam(config)
 
       const idle = findIdleAgents('test-team')
       expect(idle).toHaveLength(2)
       expect(idle.map((a) => a.name).sort()).toEqual(['dev-1', 'dev-3'])
     })
 
-    it('should exclude idle agents who own an in_progress task', () => {
+    it('should exclude idle agents who own an in_progress task', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' }),
           makeMember({ name: 'dev-2', agentId: 'a2', status: 'idle' }),
         ],
       })
-      createTeam(config)
-      createTask(
+      await createTeam(config)
+      await createTask(
         'test-team',
         makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }),
       )
@@ -229,19 +229,19 @@ describe('task-assignment', () => {
       expect(idle[0]!.name).toBe('dev-2')
     })
 
-    it('should return empty array for nonexistent team', () => {
+    it('should return empty array for nonexistent team', async () => {
       const idle = findIdleAgents('nonexistent-team')
       expect(idle).toEqual([])
     })
 
-    it('should return empty array when all agents are active', () => {
+    it('should return empty array when all agents are active', async () => {
       const config = makeTeamConfig({
         members: [
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'active' }),
           makeMember({ name: 'dev-2', agentId: 'a2', status: 'active' }),
         ],
       })
-      createTeam(config)
+      await createTeam(config)
 
       const idle = findIdleAgents('test-team')
       expect(idle).toEqual([])
@@ -260,9 +260,9 @@ describe('task-assignment', () => {
         ],
         settings: { maxMembers: 20, autoAssign: true },
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending', metadata: { seniority: 'senior' } }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', metadata: { seniority: 'junior' } }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending', metadata: { seniority: 'senior' } }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', metadata: { seniority: 'junior' } }))
 
       const assignments = await autoAssignTasks('test-team')
       expect(assignments).toHaveLength(2)
@@ -283,8 +283,8 @@ describe('task-assignment', () => {
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
         settings: { maxMembers: 20, autoAssign: false },
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
       const assignments = await autoAssignTasks('test-team')
       expect(assignments).toEqual([])
@@ -297,9 +297,9 @@ describe('task-assignment', () => {
         ],
         settings: { maxMembers: 20, autoAssign: true },
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending' }))
 
       const assignments = await autoAssignTasks('test-team')
       expect(assignments).toHaveLength(1)
@@ -312,8 +312,8 @@ describe('task-assignment', () => {
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
         settings: { maxMembers: 20, autoAssign: true },
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
       await autoAssignTasks('test-team')
 
@@ -327,8 +327,8 @@ describe('task-assignment', () => {
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
         settings: { maxMembers: 20, autoAssign: true },
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
       await autoAssignTasks('test-team')
 
@@ -350,8 +350,8 @@ describe('task-assignment', () => {
         ],
         settings: { maxMembers: 20, autoAssign: true },
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending', metadata: { seniority: 'senior' } }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending', metadata: { seniority: 'senior' } }))
 
       const assignments = await autoAssignTasks('test-team')
       expect(assignments).toEqual([])
@@ -366,8 +366,8 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
       const result = await claimTask('test-team', 'dev-1', '1')
       expect(result.success).toBe(true)
@@ -382,8 +382,8 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'idle' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
       await claimTask('test-team', 'dev-1', '1')
 
@@ -395,17 +395,17 @@ describe('task-assignment', () => {
 
     it('should fail if task does not exist', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
+      await createTeam(config)
 
-      const result = await claimTask('test-team', 'dev-1', 'nonexistent')
+      const result = await claimTask('test-team', 'dev-1', '99999')
       expect(result.success).toBe(false)
       expect(result.error).toContain('not found')
     })
 
     it('should fail if task is not pending', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress' }))
 
       const result = await claimTask('test-team', 'dev-1', '1')
       expect(result.success).toBe(false)
@@ -414,8 +414,8 @@ describe('task-assignment', () => {
 
     it('should fail if task already has an owner', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending', owner: 'other-dev' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending', owner: 'other-dev' }))
 
       const result = await claimTask('test-team', 'dev-1', '1')
       expect(result.success).toBe(false)
@@ -424,9 +424,9 @@ describe('task-assignment', () => {
 
     it('should fail if task is blocked by unresolved dependencies', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
 
       const result = await claimTask('test-team', 'dev-1', '2')
       expect(result.success).toBe(false)
@@ -442,8 +442,8 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
       const result = await releaseTask('test-team', '1')
       expect(result.success).toBe(true)
@@ -457,8 +457,8 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
       await releaseTask('test-team', '1')
 
@@ -470,17 +470,17 @@ describe('task-assignment', () => {
 
     it('should fail if task does not exist', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
+      await createTeam(config)
 
-      const result = await releaseTask('test-team', 'nonexistent')
+      const result = await releaseTask('test-team', '99999')
       expect(result.success).toBe(false)
       expect(result.error).toContain('not found')
     })
 
     it('should succeed even if task has no owner', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
 
       const result = await releaseTask('test-team', '1')
       expect(result.success).toBe(true)
@@ -498,8 +498,8 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
       const result = await completeTask('test-team', '1')
       expect(result.success).toBe(true)
@@ -512,8 +512,8 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
 
       await completeTask('test-team', '1')
 
@@ -539,8 +539,8 @@ describe('task-assignment', () => {
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' }),
         ],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1', subject: 'Fix bug' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1', subject: 'Fix bug' }))
 
       await completeTask('test-team', '1')
 
@@ -555,17 +555,17 @@ describe('task-assignment', () => {
 
     it('should fail if task does not exist', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
+      await createTeam(config)
 
-      const result = await completeTask('test-team', 'nonexistent')
+      const result = await completeTask('test-team', '99999')
       expect(result.success).toBe(false)
       expect(result.error).toContain('not found')
     })
 
     it('should fail if task is already completed', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'completed' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'completed' }))
 
       const result = await completeTask('test-team', '1')
       expect(result.success).toBe(false)
@@ -576,10 +576,10 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
-      createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1'] }))
 
       const result = await completeTask('test-team', '1')
       expect(result.success).toBe(true)
@@ -590,11 +590,11 @@ describe('task-assignment', () => {
       const config = makeTeamConfig({
         members: [makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' })],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending' }))
       // Task 3 is blocked by both 1 and 2; completing 1 alone does not unblock it
-      createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1', '2'] }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1', '2'] }))
 
       const result = await completeTask('test-team', '1')
       expect(result.success).toBe(true)
@@ -606,53 +606,53 @@ describe('task-assignment', () => {
   // isTaskBlocked
   // -----------------------------------------------------------------------
   describe('isTaskBlocked', () => {
-    it('should return false for a task with no blockers', () => {
+    it('should return false for a task with no blockers', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', blockedBy: [] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', blockedBy: [] }))
 
       expect(isTaskBlocked('test-team', '1')).toBe(false)
     })
 
-    it('should return true when a blocker is not completed', () => {
+    it('should return true when a blocker is not completed', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
 
       expect(isTaskBlocked('test-team', '2')).toBe(true)
     })
 
-    it('should return false when all blockers are completed', () => {
+    it('should return false when all blockers are completed', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'completed' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'completed' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
 
       expect(isTaskBlocked('test-team', '2')).toBe(false)
     })
 
-    it('should return true for a nonexistent task', () => {
+    it('should return true for a nonexistent task', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
+      await createTeam(config)
 
-      expect(isTaskBlocked('test-team', 'nonexistent')).toBe(true)
+      expect(isTaskBlocked('test-team', '99999')).toBe(true)
     })
 
-    it('should return true when a blocker task does not exist', () => {
+    it('should return true when a blocker task does not exist', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', blockedBy: ['nonexistent'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', blockedBy: ['99999'] }))
 
       expect(isTaskBlocked('test-team', '1')).toBe(true)
     })
 
-    it('should handle multiple blockers where some are completed and some are not', () => {
+    it('should handle multiple blockers where some are completed and some are not', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'completed' }))
-      createTask('test-team', makeTask({ id: '2', status: 'in_progress' }))
-      createTask('test-team', makeTask({ id: '3', blockedBy: ['1', '2'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'completed' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'in_progress' }))
+      await createTask('test-team', makeTask({ id: '3', blockedBy: ['1', '2'] }))
 
       expect(isTaskBlocked('test-team', '3')).toBe(true)
     })
@@ -662,56 +662,56 @@ describe('task-assignment', () => {
   // getUnblockedTasks
   // -----------------------------------------------------------------------
   describe('getUnblockedTasks', () => {
-    it('should return pending tasks with all dependencies resolved', () => {
+    it('should return pending tasks with all dependencies resolved', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'completed' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
-      createTask('test-team', makeTask({ id: '3', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'completed' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending' }))
 
       const unblocked = getUnblockedTasks('test-team')
       expect(unblocked).toHaveLength(2)
       expect(unblocked.map((t) => t.id)).toEqual(['2', '3'])
     })
 
-    it('should exclude tasks that are still blocked', () => {
+    it('should exclude tasks that are still blocked', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
 
       const unblocked = getUnblockedTasks('test-team')
       expect(unblocked).toHaveLength(1)
       expect(unblocked[0]!.id).toBe('1')
     })
 
-    it('should exclude non-pending tasks', () => {
+    it('should exclude non-pending tasks', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress' }))
-      createTask('test-team', makeTask({ id: '2', status: 'completed' }))
-      createTask('test-team', makeTask({ id: '3', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'completed' }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending' }))
 
       const unblocked = getUnblockedTasks('test-team')
       expect(unblocked).toHaveLength(1)
       expect(unblocked[0]!.id).toBe('3')
     })
 
-    it('should sort results by numeric ID ascending', () => {
+    it('should sort results by numeric ID ascending', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '20', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '5', status: 'pending' }))
-      createTask('test-team', makeTask({ id: '12', status: 'pending' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '20', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '5', status: 'pending' }))
+      await createTask('test-team', makeTask({ id: '12', status: 'pending' }))
 
       const unblocked = getUnblockedTasks('test-team')
       expect(unblocked.map((t) => t.id)).toEqual(['5', '12', '20'])
     })
 
-    it('should return empty array when there are no pending tasks', () => {
+    it('should return empty array when there are no pending tasks', async () => {
       const config = makeTeamConfig()
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'completed' }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'completed' }))
 
       const unblocked = getUnblockedTasks('test-team')
       expect(unblocked).toEqual([])
@@ -728,10 +728,10 @@ describe('task-assignment', () => {
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' }),
         ],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
-      createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['1'] }))
 
       // Before completion, tasks 2 and 3 are blocked
       expect(isTaskBlocked('test-team', '2')).toBe(true)
@@ -757,10 +757,10 @@ describe('task-assignment', () => {
           makeMember({ name: 'dev-1', agentId: 'a1', status: 'active', currentTaskId: '1' }),
         ],
       })
-      createTeam(config)
-      createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
-      createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
-      createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['2'] }))
+      await createTeam(config)
+      await createTask('test-team', makeTask({ id: '1', status: 'in_progress', owner: 'dev-1' }))
+      await createTask('test-team', makeTask({ id: '2', status: 'pending', blockedBy: ['1'] }))
+      await createTask('test-team', makeTask({ id: '3', status: 'pending', blockedBy: ['2'] }))
 
       // Complete task 1 -> unblocks task 2 but NOT task 3
       const result1 = await completeTask('test-team', '1')
@@ -779,31 +779,31 @@ describe('task-assignment', () => {
   // isAgentSuitableForTask (role suitability)
   // -----------------------------------------------------------------------
   describe('isAgentSuitableForTask', () => {
-    it('should allow a senior-engineer for a senior-level task', () => {
+    it('should allow a senior-engineer for a senior-level task', async () => {
       const agent = makeMember({ role: 'senior-engineer' })
       const task = makeTask({ metadata: { seniority: 'senior' } })
       expect(isAgentSuitableForTask(agent, task)).toBe(true)
     })
 
-    it('should not allow an intern for a senior-level task', () => {
+    it('should not allow an intern for a senior-level task', async () => {
       const agent = makeMember({ role: 'intern' })
       const task = makeTask({ metadata: { seniority: 'senior' } })
       expect(isAgentSuitableForTask(agent, task)).toBe(false)
     })
 
-    it('should allow any role for a task with no seniority metadata', () => {
+    it('should allow any role for a task with no seniority metadata', async () => {
       const agent = makeMember({ role: 'intern' })
       const task = makeTask()
       expect(isAgentSuitableForTask(agent, task)).toBe(true)
     })
 
-    it('should allow a mid-level-engineer for a mid-level task', () => {
+    it('should allow a mid-level-engineer for a mid-level task', async () => {
       const agent = makeMember({ role: 'mid-level-engineer' })
       const task = makeTask({ metadata: { seniority: 'mid' } })
       expect(isAgentSuitableForTask(agent, task)).toBe(true)
     })
 
-    it('should not allow a junior-engineer for a mid-level task', () => {
+    it('should not allow a junior-engineer for a mid-level task', async () => {
       const agent = makeMember({ role: 'junior-engineer' })
       const task = makeTask({ metadata: { seniority: 'mid' } })
       expect(isAgentSuitableForTask(agent, task)).toBe(false)

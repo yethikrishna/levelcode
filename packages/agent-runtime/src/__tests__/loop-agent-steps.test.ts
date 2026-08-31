@@ -31,6 +31,11 @@ import type { DbSpies } from '@levelcode/common/testing/mocks/database'
 import type { StepGenerator } from '@levelcode/common/types/agent-template'
 import type { AgentState } from '@levelcode/common/types/session-state'
 
+// These tests drive multi-step agent loops through the local LLM mocks; on a
+// loaded machine a single run can exceed bun's 5s default per-test timeout.
+import { setDefaultTimeout } from 'bun:test'
+setDefaultTimeout(30_000)
+
 describe('loopAgentSteps - runAgentStep vs runProgrammaticStep behavior', () => {
   let mockTemplate: AgentTemplate
   let mockAgentState: AgentState

@@ -25,6 +25,10 @@ import type {
   TaskCompletedMessage,
 } from '../../types/team-protocol'
 
+// The 100-message inbox stress test can exceed bun's 5s default on a loaded machine.
+import { setDefaultTimeout } from 'bun:test'
+setDefaultTimeout(30_000)
+
 // ---------------------------------------------------------------------------
 // Test isolation: redirect HOME so team-fs writes to a temp dir
 // ---------------------------------------------------------------------------

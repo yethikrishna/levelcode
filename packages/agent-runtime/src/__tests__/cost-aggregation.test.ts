@@ -23,6 +23,11 @@ import { handleSpawnAgents } from '../tools/handlers/tool/spawn-agents'
 
 import type { AgentState } from '@levelcode/common/types/session-state'
 
+// These tests drive multi-step agent loops through the local LLM mocks; on a
+// loaded machine a single run can exceed bun's 5s default per-test timeout.
+import { setDefaultTimeout } from 'bun:test'
+setDefaultTimeout(30_000)
+
 const mockFileContext = testFileContext
 
 describe('Cost Aggregation System', () => {

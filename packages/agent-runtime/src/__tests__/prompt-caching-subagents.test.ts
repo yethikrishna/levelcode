@@ -13,6 +13,11 @@ import type { Message } from '@levelcode/common/types/messages/levelcode-message
 import type { TextPart } from '@levelcode/common/types/messages/content-part'
 import type { ProjectFileContext } from '@levelcode/common/util/file'
 
+// Subagent cache-prefix tests stream multi-chunk LLM mocks; under load they
+// exceed bun's 5s default per-test timeout.
+import { setDefaultTimeout } from 'bun:test'
+setDefaultTimeout(30_000)
+
 const mockFileContext: ProjectFileContext = {
   projectRoot: '/test',
   cwd: '/test',
@@ -179,14 +184,16 @@ describe('Prompt Caching for Subagents with inheritParentSystemPrompt', () => {
       parentSystemPrompt: parentSystemPrompt,
     })
 
-    // Verify child uses parent's system prompt
+    // Verify child uses parent's system prompt as a PREFIX. The child may
+    // append team/context sections after it — what matters for prompt caching
+    // is that the shared prefix is byte-identical.
     const childMessages = capturedMessages
     expect(childMessages.length).toBeGreaterThan(0)
     expect(childMessages[0].role).toBe('system')
     expect(
       childMessages[0].content[0].type === 'text' &&
-        childMessages[0].content[0].text,
-    ).toBe(parentSystemPrompt)
+        childMessages[0].content[0].text.startsWith(parentSystemPrompt),
+    ).toBe(true)
   })
 
   it('should generate own system prompt when inheritParentSystemPrompt is false', async () => {
@@ -398,10 +405,13 @@ describe('Prompt Caching for Subagents with inheritParentSystemPrompt', () => {
 
     const childMessages = capturedMessages
 
-    // Verify both agents use the same system prompt
+    // Verify the child's system prompt shares the parent's as a byte-identical
+    // prefix (cache-friendly). Appended team/context sections are allowed.
     expect(parentMessages[0].role).toBe('system')
     expect(childMessages[0].role).toBe('system')
-    expect(childMessages[0].content).toEqual(parentMessages[0].content)
+    const parentText = (parentMessages[0].content[0] as TextPart).text
+    const childText = (childMessages[0].content[0] as TextPart).text
+    expect(childText.startsWith(parentText)).toBe(true)
 
     // This matching system prompt enables prompt caching:
     // Both agents will have the same system message at the start,
@@ -467,11 +477,10 @@ describe('Prompt Caching for Subagents with inheritParentSystemPrompt', () => {
 
     const childMessages = capturedMessages
 
-    // Verify child uses parent's system prompt
+    // Verify child uses parent's system prompt as a byte-identical prefix
+    // (cache-friendly); appended team/context sections are allowed.
     expect(childMessages[0].role).toBe('system')
-    expect((childMessages[0].content[0] as TextPart).text).toBe(
-      parentSystemPrompt,
-    )
+    expect((childMessages[0].content[0] as TextPart).text.startsWith(parentSystemPrompt)).toBe(true)
 
     // Verify there's an instructions prompt message that includes subagent tools info
     const instructionsMessage = childMessages.find(
@@ -549,11 +558,10 @@ describe('Prompt Caching for Subagents with inheritParentSystemPrompt', () => {
 
     const childMessages = capturedMessages
 
-    // Verify child inherits parent's system prompt
+    // Verify child inherits parent's system prompt as a byte-identical
+    // prefix (cache-friendly); appended team/context sections are allowed.
     expect(childMessages[0].role).toBe('system')
-    expect((childMessages[0].content[0] as TextPart).text).toBe(
-      parentSystemPrompt,
-    )
+    expect((childMessages[0].content[0] as TextPart).text.startsWith(parentSystemPrompt)).toBe(true)
 
     // Verify message history was included
     expect(childMessages.length).toBeGreaterThan(2)

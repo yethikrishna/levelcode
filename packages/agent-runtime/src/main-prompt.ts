@@ -252,6 +252,21 @@ export async function callMainPrompt(
 
   const { sessionState, output } = result
 
+  // A failed run must surface as an error event, not a bare finish: the TUI
+  // and headless consumers otherwise report success with no output.
+  if (output?.type === 'error') {
+    sendAction({
+      action: {
+        type: 'response-chunk',
+        userInputId: promptId,
+        chunk: {
+          type: 'error',
+          message: output.message,
+        },
+      },
+    })
+  }
+
   sendAction({
     action: {
       type: 'response-chunk',
