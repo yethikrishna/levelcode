@@ -376,6 +376,24 @@ describe('team-fs', () => {
       const tasks = listTasks('nonexistent-team')
       expect(tasks).toEqual([])
     })
+
+    it('should skip corrupted task files instead of throwing', () => {
+      const config = makeTeamConfig()
+      createTeam(config)
+      // Synchronous file creation to place a corrupt file alongside valid ones
+      const fs = require('fs') as typeof import('fs')
+      const tasksDir = getTasksDir('test-team')
+      fs.writeFileSync(path.join(tasksDir, 'bad.json'), '{ not valid json', 'utf-8')
+      fs.writeFileSync(
+        path.join(tasksDir, 'schema-invalid.json'),
+        JSON.stringify({ id: '9' }),
+        'utf-8',
+      )
+
+      const tasks = listTasks('test-team')
+      expect(tasks.map((t) => t.id)).not.toContain('9')
+      expect(tasks.every((t) => t.subject.length > 0)).toBe(true)
+    })
   })
 
   describe('getTask', () => {

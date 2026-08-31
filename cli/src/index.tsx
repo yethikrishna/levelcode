@@ -31,6 +31,14 @@ if (argv1 === 'doctor') {
     process.stdout.write(m.formatDoctorReport(checks))
     process.exit(m.doctorExitCode(checks))
   })
+} else if (argv1 === 'agents') {
+  // Swarm console: reads on-disk team state, no agent runtime needed.
+  const teamName = process.argv[3]
+  void import('./agents-console/run-agents').then((m) => {
+    const { output, exitCode } = m.renderAgentsCommand(teamName)
+    process.stdout.write(output)
+    process.exit(exitCode)
+  })
 } else if (options.print) {
   // Headless mode is built for pipes and CI: no TTY required, no renderer.
   const prompt = program.args.join(' ').trim()

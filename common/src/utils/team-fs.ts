@@ -242,17 +242,22 @@ export function listTasks(teamName: string): TeamTask[] {
     return []
   }
   const files = fs.readdirSync(tasksDir).filter((f) => f.endsWith('.json'))
-  return files.map((f) => {
-    const raw = fs.readFileSync(path.join(tasksDir, f), 'utf-8')
-    const parsed = JSON.parse(raw)
-    const result = teamTaskSchema.safeParse(parsed)
-    if (!result.success) {
-      throw new Error(
-        `Corrupted task file "${f}" in team "${teamName}": ${result.error.message}`
-      )
+  // One corrupted task file must not break the whole team view (status
+  // boards, task tools, compliance). Corrupt files are skipped.
+  const tasks: TeamTask[] = []
+  for (const f of files) {
+    try {
+      const raw = fs.readFileSync(path.join(tasksDir, f), 'utf-8')
+      const parsed: unknown = JSON.parse(raw)
+      const result = teamTaskSchema.safeParse(parsed)
+      if (result.success) {
+        tasks.push(result.data)
+      }
+    } catch {
+      // Unreadable or invalid JSON: skip
     }
-    return result.data
-  })
+  }
+  return tasks
 }
 
 export function getTask(teamName: string, taskId: string): TeamTask | null {
