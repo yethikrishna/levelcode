@@ -10,6 +10,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Persistent Teams v1 — teams and their state now persist across sessions with improved disk + Zustand sync
 
+## [Unreleased] - TUI Quality Pass (2026-08-31)
+
+### Added
+- `levelcode doctor` — dependency & environment health panel, CI-usable exit code
+- `levelcode -p "prompt"` headless print mode with `--output-format text|json|stream-json` (PrintModeEvent NDJSON)
+- `cli/docs/TUI-DESIGN-BRIEF.md` — aggregated 2026 SOTA TUI research (OpenTUI, Ink v7, Bubble Tea v2, Ratatui 0.30, terminal design systems, agentic CLI UX) into an adoptable roadmap
+
+### Changed
+- **CLI launcher restructure** — `src/index.tsx` is now a dependency-light entry that parses flags first; `--help`, `--version`, and unknown-flag errors resolve in milliseconds instead of blocking on the multi-megabyte runtime import. The heavy app bootstrap moved to `src/cli-main.tsx` (lazy-loaded only when the TUI actually boots)
+- **Command palette now drives the real command registry** — all ~90 slash commands grouped by namespace (`team:`, `model:`, …) replace the 13 hard-coded no-op entries; scored fuzzy matching (`utils/fuzzy-match.ts`), match highlighting, `[args]` commands prefill the input, windowed scrolling for long lists, Ctrl+U/Ctrl+W editing, Home/End
+- **Spinner craft** — cli-spinners-standard cadences (80ms braille), single-width-glyph invariant, terminal `done` state (✓), `LEVELCODE_NO_MOTION=1` reduced-motion freeze, `LEVELCODE_SPINNER_INTERVAL_MS` retune
+
+### Fixed
+- All 8 failing E2E/CLI tests: `--help`, `-h`, `--version`, `-v`, `--agent`, `--clear-logs`, invalid flags previously timed out because the entire SDK bundle loaded before flag parsing (cold-cache import measured at 84s on Windows)
+- Non-TTY invocations now refuse gracefully with guidance instead of rendering escape sequences into pipes
+- Flaky timeouts under load: local-agents suite and image-dimensions compression tests get explicit timeouts instead of the 5s default
+- **276-test failure wave in root `bun test`** — `cli/src/state/__tests__/team-store-sync.test.ts` left a partial `mock.module('@levelcode/common/utils/team-fs')` registered process-wide (bun's module mocks are sticky across test files); the mock now spreads the real module and re-delegates to real behavior in `afterAll`
+- **Silent-error runs** — `packages/agent-runtime/src/main-prompt.ts` emitted a clean `finish` event even when the model stream failed; failed runs now emit an `error` event before `finish`, and headless mode reports `error_during_execution` with exit code 1 instead of a false success
+- Windows path handling: `getFiles` containment now uses the `path.relative` idiom instead of a `startsWith` prefix check, and tool-output keys are normalized to forward slashes; code-search / read-files / user-knowledge test fixtures made platform-agnostic
+- `LevelCodeClient` team API ergonomics: `getTeamStatus` returns `null` (instead of throwing) for missing/corrupted teams, `deleteTeam` is idempotent, `createTeam` honors an explicit `leadAgentId`
+- Prompt-caching subagent tests updated to prefix semantics (child prompt must share the parent's byte-identical prefix; appended team context is allowed) matching the team-context feature
+- CI workflows: `evals.yml` pointed at the deleted `git-evals/run-eval-set.ts` (now runs the bundled `run-buffbench`), nightly e2e referenced a nonexistent `.agents` e2e suite (removed), `bun run typecheck` passes again (process.env architecture violations routed through SDK env helpers)
+- Repo hygiene: 8 root scratch files (`_*.mjs`, `temp-*`) removed from git and gitignored, dead `python-app/` and `backend/` stubs (with committed `.pyc` artifacts) removed, `.bun-version` aligned to 1.3.5, stale README links/roadmap corrected
+- Side chats actually wired: F2 toggles the panel, the panel renders as a TUI overlay, and the two duplicate side-chat zustand stores are unified into one engine with a mirrored facade
+
 ## [0.3.3] - 2026-02-09
 
 ### Fixed

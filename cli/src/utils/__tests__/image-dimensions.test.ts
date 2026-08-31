@@ -1,8 +1,12 @@
 import { mkdirSync, rmSync } from 'fs'
 import path from 'path'
 
-import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach, mock, setDefaultTimeout } from 'bun:test'
 import { Jimp } from 'jimp'
+
+// Jimp encode/decode runs against real image bytes; on cold caches or loaded
+// machines a single compression can exceed the 5s default.
+setDefaultTimeout(20_000)
 
 import { setProjectRoot } from '../../project-files'
 import { calculateDisplaySize } from '../image-display'

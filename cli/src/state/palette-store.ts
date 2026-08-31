@@ -5,7 +5,11 @@ export type PaletteAction = {
   id: string
   icon: string
   label: string
+  description?: string
+  /** What to show in the shortcut column: a key chord or the slash form. */
   shortcut?: string
+  /** True when the command needs arguments typed into the chat input. */
+  takesArgs?: boolean
   section: 'quick' | 'recent' | 'commands'
   action: () => void
 }

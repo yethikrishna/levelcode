@@ -44,6 +44,13 @@ const writeAgentFile = (
   contents: string,
 ) => writeFileSync(path.join(agentsDir, fileName), contents, 'utf8')
 
+// These tests import @levelcode/sdk, whose multi-megabyte bundle takes
+// tens of seconds to load on cold caches; the 5s default timeout produces
+// flaky failures purely from import cost.
+import { setDefaultTimeout } from 'bun:test'
+
+setDefaultTimeout(30_000)
+
 describe('Local Agent Integration', () => {
   let tempDir: string
   let agentsDir: string

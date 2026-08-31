@@ -1,9 +1,9 @@
-import { PRSwarmManager, parsePRRef } from '@levelcode/sdk'
+import { PRSwarmManager, parsePRRef, getGithubTokenFromEnv } from '@levelcode/sdk'
 
 const swarmManagers = new Map<string, PRSwarmManager>()
 
 function getManager(token?: string): PRSwarmManager {
-  const key = token ?? process.env.GITHUB_TOKEN ?? 'default'
+  const key = token ?? getGithubTokenFromEnv() ?? 'default'
   if (!swarmManagers.has(key)) {
     swarmManagers.set(key, new PRSwarmManager(token))
   }

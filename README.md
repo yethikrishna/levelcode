@@ -260,6 +260,29 @@ levelcode --continue
 levelcode --help
 ```
 
+### Headless Mode (CI & scripting)
+
+Run one prompt through the agent without the TUI and get machine-readable
+output — pipe targets for CI, shell one-liners, and the dashboard all consume
+the same NDJSON event protocol:
+
+```bash
+# Human-readable: assistant text streams to stdout, errors to stderr
+levelcode -p "explain what this repo does"
+
+# Single JSON result object (CI-friendly exit codes: 0 = success, 1 = error)
+levelcode -p --output-format json "fix the failing test in src/auth.test.ts"
+
+# Full NDJSON event stream (start / tool_call / tool_result / text / finish / result)
+levelcode -p --output-format stream-json "refactor the config module" | jq -c 'select(.type=="tool_call")'
+```
+
+### Health Check
+
+```bash
+levelcode doctor   # checks runtime, provider keys, config, ripgrep, git, sandbox
+```
+
 ---
 
 ## SDK Usage
@@ -441,7 +464,6 @@ export default defineConfig({
 | [Configuration](docs/configuration.md) | All configuration options |
 | [SDK Reference](docs/sdk-reference.md) | Complete SDK API documentation |
 | [Custom Agents](docs/custom-agents.md) | Creating custom agents |
-| [Custom Tools](docs/custom-tools.md) | Building custom tools |
 | [Agent Swarms](docs/agent-swarms.md) | Multi-agent team coordination and swarm workflows |
 | [Architecture](docs/architecture.md) | How LevelCode works |
 
@@ -464,10 +486,10 @@ bun install
 # Run in development mode
 bun dev
 
-# Run tests
+# Run tests (all workspaces; each package can also run `bun test` itself)
 bun test
 
-# Type check
+# Env-architecture check (per-package TypeScript: `bun x tsc --noEmit`)
 bun typecheck
 ```
 
@@ -487,12 +509,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 - [x] Standalone Mode (no backend required)
 - [x] Direct OpenRouter/Anthropic API support
-- [ ] VS Code Extension
-- [ ] JetBrains Plugin
-- [ ] Web Interface
+- [x] Web Interface ([web/](web/))
+- [x] Plugin Marketplace (bundled in the CLI)
+- [ ] VS Code Extension (early source in [editors/vscode](editors/vscode/), not yet published)
+- [ ] JetBrains Plugin (early source in [editors/jetbrains](editors/jetbrains/))
 - [ ] Team Collaboration
 - [ ] Self-Hosted Server Mode
-- [ ] Plugin Marketplace
 
 ---
 

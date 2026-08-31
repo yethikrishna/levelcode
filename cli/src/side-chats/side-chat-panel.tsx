@@ -4,7 +4,7 @@ import React, { useMemo, useState, useRef } from 'react'
 
 import { Clickable } from '../components/clickable'
 import { useTheme } from '../hooks/use-theme'
-import { useSideChats } from './side-chat-manager'
+import { useSideChats, SIDE_CHAT_KEYBINDING } from './side-chat-manager'
 import { useEvent } from '../hooks/use-event'
 
 import type { SideChat, SideChatMessage } from './side-chat-manager'
@@ -186,7 +186,7 @@ export const SideChatPanel: React.FC<SideChatPanelProps> = ({
 
   const headerBar = useMemo(() => {
     const count = sideChats.length
-    return `Side Chats (${count}) [Ctrl+B] [Tab] focus [Ctrl+W] close`
+    return `Side Chats (${count}) [${SIDE_CHAT_KEYBINDING}] [Tab] focus [Ctrl+W] close`
   }, [sideChats.length])
 
   if (sideChats.length === 0) {
@@ -215,7 +215,7 @@ export const SideChatPanel: React.FC<SideChatPanelProps> = ({
         </text>
         <box style={{ height: 1, flexShrink: 0 }} />
         <text style={{ wrapMode: 'none' }}>
-          <span fg={theme.muted}>{'  '}Ctrl+B toggle panel</span>
+          <span fg={theme.muted}>{'  '}{SIDE_CHAT_KEYBINDING} toggle panel</span>
         </text>
       </box>
     )

@@ -37,6 +37,9 @@ import { StatusBar } from './components/status-bar'
 import { TeamPanel } from './components/team-panel'
 import { TeamSettingsScreen } from './components/team-settings-screen'
 import { TopBanner } from './components/top-banner'
+import { SideChatPanel } from './side-chats/side-chat-panel'
+import { SIDE_CHAT_KEYBINDING } from './side-chats/side-chat-manager'
+import { useSideChatStore } from './state/side-chat-store'
 import { getSlashCommandsWithSkills } from './data/slash-commands'
 import { useAgentValidation } from './hooks/use-agent-validation'
 import { useAskUserBridge } from './hooks/use-ask-user-bridge'
@@ -912,6 +915,31 @@ export const Chat = ({
     handleCommandResult(result)
   }, [onSubmitPrompt, inputValue, agentMode, handleCommandResult])
 
+  // Bridge for the command palette: no-arg commands run through the same
+  // pipeline as submitting "/name" from the input; arg-taking commands are
+  // prefilled into the input so the user can complete them.
+  const executeCommandFromPalette = useCallback(
+    async (commandString: string) => {
+      const result = await onSubmitPrompt(commandString, agentMode)
+      handleCommandResult(result)
+      setInputFocused(true)
+    },
+    [onSubmitPrompt, agentMode, handleCommandResult, setInputFocused],
+  )
+
+  const prefillCommandFromPalette = useCallback(
+    (commandString: string) => {
+      setInputValue({
+        text: commandString,
+        cursorPosition: commandString.length,
+        lastEditDueToNav: false,
+      })
+      setInputFocused(true)
+      inputRef.current?.focus()
+    },
+    [setInputValue, setInputFocused, inputRef],
+  )
+
   const totalMentionMatches = agentMatches.length + fileMatches.length
   const historyNavUpEnabled =
     lastEditDueToNav ||
@@ -1238,12 +1266,14 @@ export const Chat = ({
     disabled: askUserState !== null || reviewMode || providerWizardMode || modelPickerMode || providerSettingsMode || helpModalMode || oauthFlowMode,
   })
 
-  // F1 opens help modal (separate handler since it's not in the chat keyboard action system)
+  // F1 opens help modal, F2 toggles the side chats panel (separate handler
+  // since neither is in the chat keyboard action system)
+  const isSideChatPanelOpen = useSideChatStore((s) => s.isSideChatPanelOpen)
+  const toggleSideChatPanel = useSideChatStore((s) => s.toggleSideChatPanel)
   useKeyboard(
     useCallback(
       (key: KeyEvent) => {
         if (
-          key.name === 'f1' &&
           !askUserState &&
           !reviewMode &&
           !providerWizardMode &&
@@ -1251,10 +1281,22 @@ export const Chat = ({
           !providerSettingsMode &&
           !helpModalMode
         ) {
-          setHelpModalMode(true)
+          if (key.name === 'f1') {
+            setHelpModalMode(true)
+          } else if (key.name === 'f2') {
+            toggleSideChatPanel()
+          }
         }
       },
-      [askUserState, reviewMode, providerWizardMode, modelPickerMode, providerSettingsMode, helpModalMode],
+      [
+        askUserState,
+        reviewMode,
+        providerWizardMode,
+        modelPickerMode,
+        providerSettingsMode,
+        helpModalMode,
+        toggleSideChatPanel,
+      ],
     ),
   )
 
@@ -1642,8 +1684,26 @@ export const Chat = ({
         </box>
       </box>
 
-      <CommandPalette />
+      <CommandPalette
+        onExecuteCommand={executeCommandFromPalette}
+        onPrefillInput={prefillCommandFromPalette}
+      />
       <ToastContainer />
+      {isSideChatPanelOpen && (
+        <box
+          style={{
+            position: 'absolute',
+            right: 1,
+            top: 2,
+            zIndex: 150,
+          }}
+        >
+          <SideChatPanel
+            width={Math.min(64, Math.max(40, Math.floor(terminalWidth * 0.55)))}
+            height={Math.floor(terminalHeight * 0.7)}
+          />
+        </box>
+      )}
     </box>
   )
 }
