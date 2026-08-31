@@ -56,13 +56,13 @@ describe('headless session store', () => {
     expect(second).toBeTruthy()
 
     // Linux mtime granularity can make both saves appear simultaneous;
-    // age the first session explicitly so the ordering is deterministic.
+    // age the first chat DIRECTORY (what getMostRecentChatDir sorts by).
     const past = new Date(Date.now() - 60_000)
-    fs.utimesSync(
-      path.join(getProjectDataDir(), 'chats', first!, 'run-state.json'),
-      past,
-      past,
-    )
+    const firstChatDir = path.join(getProjectDataDir(), 'chats', first!)
+    fs.utimesSync(firstChatDir, past, past)
+    for (const file of fs.readdirSync(firstChatDir)) {
+      fs.utimesSync(path.join(firstChatDir, file), past, past)
+    }
 
     const loaded = loadHeadlessRunState()
     expect(
