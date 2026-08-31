@@ -83,10 +83,11 @@ function checkRipgrep(): Check {
   }
 }
 
-function checkGit(): Check {
-  const inRepo = fs.existsSync(path.join(process.cwd(), '.git'))
+function checkGit(overrides: { projectRoot?: string } = {}): Check {
+  const root = overrides.projectRoot ?? process.cwd()
+  const inRepo = fs.existsSync(path.join(root, '.git'))
   if (inRepo) {
-    return { name: 'git repository', status: 'ok', detail: process.cwd() }
+    return { name: 'git repository', status: 'ok', detail: root }
   }
   return {
     name: 'git repository',
@@ -136,6 +137,149 @@ function checkNodeCompat(): Check {
   }
 }
 
+// ── Hooks & skills checks (syntax-level, dependency-light) ──────────────
+
+const SETTINGS_CANDIDATES = (projectRoot: string, homeDir?: string): string[] => {
+  const home = homeDir ?? os.homedir()
+  const envSuffix =
+    process.env.NEXT_PUBLIC_CB_ENVIRONMENT &&
+    process.env.NEXT_PUBLIC_CB_ENVIRONMENT !== 'prod'
+      ? `-${process.env.NEXT_PUBLIC_CB_ENVIRONMENT}`
+      : ''
+  const levelcodeBase =
+    process.env.LEVELCODE_DIR || path.join(home, '.levelcode')
+  return [
+    path.join(home, '.config', `levelcode${envSuffix}`, 'settings.json'),
+    path.join(levelcodeBase, 'settings.json'),
+    path.join(projectRoot, '.levelcode', 'settings.json'),
+  ]
+}
+
+export type HooksCheckOverrides = { projectRoot?: string; homeDir?: string }
+
+function checkHooksConfig(overrides: HooksCheckOverrides = {}): Check {
+  const projectRoot = overrides.projectRoot ?? process.cwd()
+  // Dedupe by resolved path: when the project lives inside the home dir,
+  // several candidates can resolve to the same settings file.
+  const seen = new Set<string>()
+  const candidates = SETTINGS_CANDIDATES(projectRoot, overrides.homeDir).filter((candidate) => {
+    const resolved = path.resolve(candidate)
+    if (seen.has(resolved)) return false
+    seen.add(resolved)
+    return true
+  })
+
+  let configured = 0
+  const problems: string[] = []
+
+  for (const candidate of candidates) {
+    let raw: string
+    try {
+      raw = fs.readFileSync(candidate, 'utf-8')
+    } catch {
+      continue
+    }
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      const hooks =
+        parsed && typeof parsed === 'object' && 'hooks' in parsed
+          ? (parsed as { hooks?: unknown }).hooks
+          : undefined
+      if (hooks === undefined) continue
+      if (hooks && typeof hooks === 'object') {
+        configured += Object.keys(hooks as Record<string, unknown>).length
+      } else {
+        problems.push(candidate)
+      }
+    } catch {
+      problems.push(candidate)
+    }
+  }
+
+  if (problems.length > 0) {
+    return {
+      name: 'hooks config',
+      status: 'warn',
+      detail: `${problems.length} settings file(s) with invalid JSON`,
+      hint: `Fix or remove: ${problems[0]}${problems.length > 1 ? ` (+${problems.length - 1} more)` : ''}`,
+    }
+  }
+  if (configured === 0) {
+    return {
+      name: 'hooks config',
+      status: 'ok',
+      detail: 'none configured (see docs/hooks.md)',
+    }
+  }
+  return {
+    name: 'hooks config',
+    status: 'ok',
+    detail: `${configured} event type(s) configured`,
+  }
+}
+
+const SKILLS_DIRS = (projectRoot: string, homeDir: string): string[] => [
+  path.join(projectRoot, '.agents', 'skills'),
+  path.join(projectRoot, '.claude', 'skills'),
+  path.join(projectRoot, '.levelcode', 'skills'),
+  path.join(homeDir, '.claude', 'skills'),
+  path.join(homeDir, '.agents', 'skills'),
+  path.join(homeDir, '.config', 'levelcode', 'skills'),
+  path.join(homeDir, '.levelcode', 'skills'),
+]
+
+function countSkillsIn(dir: string): number {
+  try {
+    return fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter(
+        (e) => e.isDirectory() && fs.existsSync(path.join(dir, e.name, 'SKILL.md')),
+      ).length
+  } catch {
+    return 0
+  }
+}
+
+export type SkillsCheckOverrides = { projectRoot?: string; homeDir?: string }
+
+function checkSkills(overrides: SkillsCheckOverrides = {}): Check {
+  const projectRoot = overrides.projectRoot ?? process.cwd()
+  const homeDir = overrides.homeDir ?? os.homedir()
+
+  // Dedupe by resolved path: project and home lists overlap when the
+  // project lives inside the home directory.
+  const seen = new Set<string>()
+  const uniqueDirs = SKILLS_DIRS(projectRoot, homeDir).filter((dir) => {
+    const resolved = path.resolve(dir)
+    if (seen.has(resolved)) return false
+    seen.add(resolved)
+    return true
+  })
+
+  let total = 0
+  const sources: string[] = []
+  for (const dir of uniqueDirs) {
+    const n = countSkillsIn(dir)
+    if (n > 0) {
+      total += n
+      sources.push(dir)
+    }
+  }
+
+  if (total === 0) {
+    return {
+      name: 'skills',
+      status: 'ok',
+      detail: 'none installed (.agents/skills/<name>/SKILL.md)',
+    }
+  }
+  return {
+    name: 'skills',
+    status: 'ok',
+    detail: `${total} skill(s) in ${sources.length} location(s)`,
+  }
+}
+
 function checkSandboxSupport(): Check {
   if (process.platform === 'darwin') {
     return { name: 'sandbox (Seatbelt)', status: 'ok', detail: 'macOS sandbox-exec available' }
@@ -158,13 +302,20 @@ function checkSandboxSupport(): Check {
   return { name: 'sandbox', status: 'warn', detail: `unknown platform ${process.platform}` }
 }
 
-export function runDoctorChecks(): Check[] {
+export type DoctorCheckOverrides = {
+  projectRoot?: string
+  homeDir?: string
+}
+
+export function runDoctorChecks(overrides: DoctorCheckOverrides = {}): Check[] {
   return [
     checkNodeCompat(),
     checkProviderKeys(),
     checkConfigDir(),
+    checkHooksConfig(overrides),
+    checkSkills(overrides),
     checkRipgrep(),
-    checkGit(),
+    checkGit(overrides),
     checkSandboxSupport(),
   ]
 }
