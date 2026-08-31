@@ -55,6 +55,15 @@ describe('headless session store', () => {
     expect(first).toBeTruthy()
     expect(second).toBeTruthy()
 
+    // Linux mtime granularity can make both saves appear simultaneous;
+    // age the first session explicitly so the ordering is deterministic.
+    const past = new Date(Date.now() - 60_000)
+    fs.utimesSync(
+      path.join(getProjectDataDir(), 'chats', first!, 'run-state.json'),
+      past,
+      past,
+    )
+
     const loaded = loadHeadlessRunState()
     expect(
       (loaded as unknown as { sessionState: { mainAgentState: { messageHistory: Array<{ content: string }> } } })
