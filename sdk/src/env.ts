@@ -71,6 +71,14 @@ export const getAnthropicBaseUrlFromEnv = (): string | undefined => {
 }
 
 /**
+ * GitHub token for PR/CI integrations. Users may set either GITHUB_TOKEN
+ * or the GH CLI's GH_TOKEN.
+ */
+export const getGithubTokenFromEnv = (): string | undefined => {
+  return process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN
+}
+
+/**
  * Standalone mode: bypass all backend dependencies, route LLM calls directly.
  * Default mode when no backend URL (NEXT_PUBLIC_LEVELCODE_APP_URL) is configured.
  * Also activates when a direct provider key (OPENROUTER_API_KEY or ANTHROPIC_API_KEY)

@@ -8,6 +8,8 @@ import {
   createRgJsonMatch,
   createRgJsonContext,
 } from '@levelcode/common/testing/mocks'
+import path from 'path'
+
 import { describe, expect, it, mock, beforeEach, afterEach } from 'bun:test'
 
 import { codeSearch } from '../tools/code-search'
@@ -799,7 +801,8 @@ describe('codeSearch', () => {
       expect(mockSpawn).toHaveBeenCalled()
       const spawnOptions = mockSpawn.mock.calls[0]![2] as { cwd: string }
       // When cwd is '.', it should resolve to the project root
-      expect(spawnOptions.cwd).toBe('/test/project')
+      // (path.resolve handles drive-root differences between POSIX and Windows)
+      expect(spawnOptions.cwd).toBe(path.resolve('/test/project'))
     })
 
     it('should handle cwd: "subdir" correctly', async () => {
@@ -823,7 +826,7 @@ describe('codeSearch', () => {
       // Verify spawn was called with correct cwd
       expect(mockSpawn).toHaveBeenCalled()
       const spawnOptions = mockSpawn.mock.calls[0]![2] as { cwd: string }
-      expect(spawnOptions.cwd).toBe('/test/project/subdir')
+      expect(spawnOptions.cwd).toBe(path.resolve('/test/project', 'subdir'))
     })
 
     it('should reject cwd outside project directory', async () => {

@@ -55,6 +55,7 @@ function toCreateArgs(config: TeamConfig): [string, CreateTeamOptions] {
   return [
     config.name,
     {
+      leadAgentId: config.leadAgentId,
       description: config.description,
       phase: config.phase,
       members: config.members.map((m) => ({

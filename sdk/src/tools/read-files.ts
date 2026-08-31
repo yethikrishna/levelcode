@@ -39,16 +39,27 @@ export async function getFiles(params: {
     const relativePath = filePath.startsWith(cwd)
       ? path.relative(cwd, filePath)
       : filePath
+    // Result keys use forward slashes regardless of platform: tool output is
+    // consumed by the model and matches ripgrep/git conventions.
+    const resultKey = relativePath.split(path.sep).join('/')
     const fullPath = path.join(cwd, relativePath)
-    if (isAbsolute(relativePath) || !fullPath.startsWith(cwd)) {
-      result[relativePath] = FILE_READ_STATUS.OUTSIDE_PROJECT
+    // Containment via path.relative: a naive startsWith prefix check breaks
+    // when cwd is a root-relative POSIX path on Windows ('/project' joins to
+    // '\project\...'). relative() normalizes both sides per-platform.
+    const containment = path.relative(cwd, fullPath)
+    if (
+      isAbsolute(relativePath) ||
+      containment.startsWith('..') ||
+      isAbsolute(containment)
+    ) {
+      result[resultKey] = FILE_READ_STATUS.OUTSIDE_PROJECT
       continue
     }
 
     // Apply file filter if provided
     const filterResult = fileFilter?.(relativePath)
     if (filterResult?.status === 'blocked') {
-      result[relativePath] = FILE_READ_STATUS.IGNORED
+      result[resultKey] = FILE_READ_STATUS.IGNORED
       continue
     }
     const isExampleFile = filterResult?.status === 'allow-example'
@@ -62,7 +73,7 @@ export async function getFiles(params: {
         fs,
       })
       if (ignored) {
-        result[relativePath] = FILE_READ_STATUS.IGNORED
+        result[resultKey] = FILE_READ_STATUS.IGNORED
         continue
       }
     }
@@ -70,13 +81,13 @@ export async function getFiles(params: {
     try {
       const stats = await fs.stat(fullPath)
       if (stats.size > MAX_FILE_SIZE) {
-        result[relativePath] =
+        result[resultKey] =
           FILE_READ_STATUS.TOO_LARGE +
           ` [${(stats.size / (1024 * 1024)).toFixed(2)}MB]`
       } else {
         const content = await fs.readFile(fullPath, 'utf8')
         // Prepend TEMPLATE marker for example files
-        result[relativePath] = isExampleFile
+        result[resultKey] = isExampleFile
           ? FILE_READ_STATUS.TEMPLATE + '\n' + content
           : content
       }
@@ -87,9 +98,9 @@ export async function getFiles(params: {
         'code' in error &&
         error.code === 'ENOENT'
       ) {
-        result[relativePath] = FILE_READ_STATUS.DOES_NOT_EXIST
+        result[resultKey] = FILE_READ_STATUS.DOES_NOT_EXIST
       } else {
-        result[relativePath] = FILE_READ_STATUS.ERROR
+        result[resultKey] = FILE_READ_STATUS.ERROR
       }
     }
   }

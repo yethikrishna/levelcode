@@ -36,6 +36,8 @@ export type CreateTeamOptions = {
   description?: string
   phase?: DevPhase
   preset?: string
+  /** Explicit lead agent id; defaults to the creating client's fingerprint. */
+  leadAgentId?: string
   members?: Array<{
     name: string
     role: TeamRole
@@ -116,7 +118,7 @@ export function sdkCreateTeam(
     name,
     description: options?.description ?? presetConfig?.description ?? '',
     createdAt: now,
-    leadAgentId,
+    leadAgentId: options?.leadAgentId ?? leadAgentId,
     phase: options?.phase ?? presetConfig?.defaultPhase ?? 'planning',
     members,
     settings: {
@@ -137,22 +139,25 @@ export function sdkCreateTeam(
 
 /**
  * Deletes a team by name and removes all associated data.
+ * Idempotent: deleting a team that does not exist is a no-op.
  */
 export function sdkDeleteTeam(name: string): void {
   const existing = findTeamByName(name)
   if (!existing) {
-    throw new Error(`Team "${name}" not found`)
+    return
   }
   fsDeleteTeam(name)
 }
 
 /**
  * Gets the full status of a team including config and tasks.
+ * Returns null when the team does not exist or its config is unreadable,
+ * rather than throwing — callers treat "no team" as a normal outcome.
  */
-export function sdkGetTeamStatus(name: string): TeamStatus {
+export function sdkGetTeamStatus(name: string): TeamStatus | null {
   const config = findTeamByName(name)
   if (!config) {
-    throw new Error(`Team "${name}" not found`)
+    return null
   }
   const tasks = listTasks(name)
   return {

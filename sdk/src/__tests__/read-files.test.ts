@@ -12,6 +12,8 @@ import {
 } from 'bun:test'
 
 
+import path from 'path'
+
 import { getFiles } from '../tools/read-files'
 
 import type { LevelCodeFileSystem } from '@levelcode/common/types/filesystem'
@@ -25,17 +27,28 @@ function createMockFs(config: {
 }): LevelCodeFileSystem {
   const { files = {}, errors = {} } = config
 
+  // Fixture keys are written as POSIX literals; lookups receive paths built
+  // with path.join, which differ on Windows ('/project' vs '\project').
+  // Normalize both sides so the mock is platform-agnostic.
+  const normalizedFiles = Object.fromEntries(
+    Object.entries(files).map(([key, value]) => [path.normalize(key), value]),
+  )
+  const normalizedErrors = Object.fromEntries(
+    Object.entries(errors).map(([key, value]) => [path.normalize(key), value]),
+  )
+  const lookupKey = (filePath: PathLike) => path.normalize(String(filePath))
+
   return {
     readFile: async (filePath: PathLike) => {
-      const pathStr = String(filePath)
+      const pathStr = lookupKey(filePath)
       if (errors[pathStr]) {
         throw createNodeError(
           errors[pathStr].message || 'Unknown error',
           errors[pathStr].code || 'UNKNOWN',
         )
       }
-      if (files[pathStr]) {
-        return files[pathStr].content
+      if (normalizedFiles[pathStr]) {
+        return normalizedFiles[pathStr].content
       }
       throw createNodeError(
         `ENOENT: no such file or directory: ${pathStr}`,
@@ -43,16 +56,16 @@ function createMockFs(config: {
       )
     },
     stat: async (filePath: PathLike) => {
-      const pathStr = String(filePath)
-      if (errors[pathStr]) {
+      const pathStr = lookupKey(filePath)
+      if (normalizedErrors[pathStr]) {
         throw createNodeError(
-          errors[pathStr].message || 'Unknown error',
-          errors[pathStr].code || 'UNKNOWN',
+          normalizedErrors[pathStr].message || 'Unknown error',
+          normalizedErrors[pathStr].code || 'UNKNOWN',
         )
       }
-      if (files[pathStr]) {
+      if (normalizedFiles[pathStr]) {
         return {
-          size: files[pathStr].size ?? files[pathStr].content.length,
+          size: normalizedFiles[pathStr].size ?? normalizedFiles[pathStr].content.length,
           isDirectory: () => false,
           isFile: () => true,
           atimeMs: Date.now(),

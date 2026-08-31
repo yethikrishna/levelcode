@@ -1,15 +1,22 @@
-import { describe, expect, test, mock, afterEach } from 'bun:test'
+import { describe, expect, test, mock, beforeEach, afterEach } from 'bun:test'
 
 import { LevelCodeClient } from '../client'
 
 describe('LevelCodeClient', () => {
   const originalFetch = globalThis.fetch
 
+  beforeEach(() => {
+    // checkConnection short-circuits to `true` in standalone mode; setting a
+    // LEVELCODE_API_KEY forces the backend healthz path these tests exercise.
+    process.env.LEVELCODE_API_KEY = 'test-levelcode-key'
+  })
+
   const setFetchMock = (mockFetch: ReturnType<typeof mock>) => {
     globalThis.fetch = mockFetch as unknown as typeof fetch
   }
 
   afterEach(() => {
+    delete process.env.LEVELCODE_API_KEY
     globalThis.fetch = originalFetch
   })
 

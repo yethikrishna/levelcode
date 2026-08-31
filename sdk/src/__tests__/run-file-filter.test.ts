@@ -1,4 +1,6 @@
 
+import path from 'path'
+
 import * as mainPromptModule from '@levelcode/agent-runtime/main-prompt'
 import { FILE_READ_STATUS } from '@levelcode/common/old-constants'
 import * as projectFileTree from '@levelcode/common/project-file-tree'
@@ -28,11 +30,18 @@ function createMockFs(config: {
 }): LevelCodeFileSystem {
   const { files = {} } = config
 
+  // Fixture keys are POSIX literals; lookups are built with path.join and
+  // differ on Windows. Normalize both sides.
+  const normalizedFiles = Object.fromEntries(
+    Object.entries(files).map(([key, value]) => [path.normalize(key), value]),
+  )
+  const lookupKey = (filePath: PathLike) => path.normalize(String(filePath))
+
   return {
     readFile: async (filePath: PathLike) => {
-      const pathStr = String(filePath)
-      if (files[pathStr]) {
-        return files[pathStr].content
+      const pathStr = lookupKey(filePath)
+      if (normalizedFiles[pathStr]) {
+        return normalizedFiles[pathStr].content
       }
       throw createNodeError(
         `ENOENT: no such file or directory: ${pathStr}`,
@@ -40,10 +49,10 @@ function createMockFs(config: {
       )
     },
     stat: async (filePath: PathLike) => {
-      const pathStr = String(filePath)
-      if (files[pathStr]) {
+      const pathStr = lookupKey(filePath)
+      if (normalizedFiles[pathStr]) {
         return {
-          size: files[pathStr].size ?? files[pathStr].content.length,
+          size: normalizedFiles[pathStr].size ?? normalizedFiles[pathStr].content.length,
           isDirectory: () => false,
           isFile: () => true,
           atimeMs: Date.now(),

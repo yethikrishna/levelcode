@@ -1,3 +1,5 @@
+import path from 'path'
+
 import { createMockFs } from '@levelcode/common/testing/mocks/filesystem'
 import { createMockLogger } from '@levelcode/common/testing/mocks/logger'
 import { describe, it, expect } from 'bun:test'
@@ -28,8 +30,8 @@ describe('loadUserKnowledgeFiles', () => {
   it('should load ~/.knowledge.md when it exists', async () => {
     const mockFs = createMockFs({
       readdirImpl: async () => ['.knowledge.md', '.bashrc'],
-      readFileImpl: async (path: string) => {
-        if (path === '/mock/home/.knowledge.md') {
+      readFileImpl: async (filePath: string) => {
+        if (filePath === path.join(MOCK_HOME, '.knowledge.md')) {
           return '# My user knowledge'
         }
         throw new Error('File not found')
@@ -49,8 +51,8 @@ describe('loadUserKnowledgeFiles', () => {
   it('should load ~/.AGENTS.md when ~/.knowledge.md does not exist', async () => {
     const mockFs = createMockFs({
       readdirImpl: async () => ['.AGENTS.md', '.bashrc'],
-      readFileImpl: async (path: string) => {
-        if (path === '/mock/home/.AGENTS.md') {
+      readFileImpl: async (filePath: string) => {
+        if (filePath === path.join(MOCK_HOME, '.AGENTS.md')) {
           return '# Agents config'
         }
         throw new Error('File not found')
@@ -70,8 +72,8 @@ describe('loadUserKnowledgeFiles', () => {
   it('should load ~/.CLAUDE.md when neither knowledge.md nor AGENTS.md exist', async () => {
     const mockFs = createMockFs({
       readdirImpl: async () => ['.CLAUDE.md', '.bashrc'],
-      readFileImpl: async (path: string) => {
-        if (path === '/mock/home/.CLAUDE.md') {
+      readFileImpl: async (filePath: string) => {
+        if (filePath === path.join(MOCK_HOME, '.CLAUDE.md')) {
           return '# Claude instructions'
         }
         throw new Error('File not found')
@@ -91,11 +93,11 @@ describe('loadUserKnowledgeFiles', () => {
   it('should prefer knowledge.md over AGENTS.md when both exist', async () => {
     const mockFs = createMockFs({
       readdirImpl: async () => ['.AGENTS.md', '.knowledge.md', '.bashrc'],
-      readFileImpl: async (path: string) => {
-        if (path === '/mock/home/.knowledge.md') {
+      readFileImpl: async (filePath: string) => {
+        if (filePath === path.join(MOCK_HOME, '.knowledge.md')) {
           return '# Knowledge content'
         }
-        if (path === '/mock/home/.AGENTS.md') {
+        if (filePath === path.join(MOCK_HOME, '.AGENTS.md')) {
           return '# Agents content'
         }
         throw new Error('File not found')
@@ -115,11 +117,11 @@ describe('loadUserKnowledgeFiles', () => {
   it('should prefer AGENTS.md over CLAUDE.md when both exist', async () => {
     const mockFs = createMockFs({
       readdirImpl: async () => ['.CLAUDE.md', '.AGENTS.md'],
-      readFileImpl: async (path: string) => {
-        if (path === '/mock/home/.AGENTS.md') {
+      readFileImpl: async (filePath: string) => {
+        if (filePath === path.join(MOCK_HOME, '.AGENTS.md')) {
           return '# Agents content'
         }
-        if (path === '/mock/home/.CLAUDE.md') {
+        if (filePath === path.join(MOCK_HOME, '.CLAUDE.md')) {
           return '# Claude content'
         }
         throw new Error('File not found')
@@ -144,14 +146,14 @@ describe('loadUserKnowledgeFiles', () => {
         '.CLAUDE.md',
         '.bashrc',
       ],
-      readFileImpl: async (path: string) => {
-        if (path === '/mock/home/.knowledge.md') {
+      readFileImpl: async (filePath: string) => {
+        if (filePath === path.join(MOCK_HOME, '.knowledge.md')) {
           return '# Knowledge'
         }
-        if (path === '/mock/home/.AGENTS.md') {
+        if (filePath === path.join(MOCK_HOME, '.AGENTS.md')) {
           return '# Agents'
         }
-        if (path === '/mock/home/.CLAUDE.md') {
+        if (filePath === path.join(MOCK_HOME, '.CLAUDE.md')) {
           return '# Claude'
         }
         throw new Error('File not found')
@@ -173,8 +175,8 @@ describe('loadUserKnowledgeFiles', () => {
     it('should find ~/.KNOWLEDGE.md (uppercase) case-insensitively', async () => {
       const mockFs = createMockFs({
         readdirImpl: async () => ['.KNOWLEDGE.md', '.bashrc', '.gitconfig'],
-        readFileImpl: async (path: string) => {
-          if (path === '/mock/home/.KNOWLEDGE.md') {
+        readFileImpl: async (filePath: string) => {
+          if (filePath === path.join(MOCK_HOME, '.KNOWLEDGE.md')) {
             return '# User knowledge (uppercase)'
           }
           throw new Error('File not found')
@@ -195,8 +197,8 @@ describe('loadUserKnowledgeFiles', () => {
     it('should find ~/.agents.md (lowercase) case-insensitively', async () => {
       const mockFs = createMockFs({
         readdirImpl: async () => ['.agents.md', '.bashrc'],
-        readFileImpl: async (path: string) => {
-          if (path === '/mock/home/.agents.md') {
+        readFileImpl: async (filePath: string) => {
+          if (filePath === path.join(MOCK_HOME, '.agents.md')) {
             return '# Agents file (lowercase)'
           }
           throw new Error('File not found')
@@ -217,8 +219,8 @@ describe('loadUserKnowledgeFiles', () => {
     it('should find ~/.claude.md (lowercase) case-insensitively', async () => {
       const mockFs = createMockFs({
         readdirImpl: async () => ['.claude.md', '.bashrc'],
-        readFileImpl: async (path: string) => {
-          if (path === '/mock/home/.claude.md') {
+        readFileImpl: async (filePath: string) => {
+          if (filePath === path.join(MOCK_HOME, '.claude.md')) {
             return '# Claude (lowercase)'
           }
           throw new Error('File not found')
@@ -239,8 +241,8 @@ describe('loadUserKnowledgeFiles', () => {
     it('should find ~/.Knowledge.md (mixed case) case-insensitively', async () => {
       const mockFs = createMockFs({
         readdirImpl: async () => ['.Knowledge.md', '.bashrc'],
-        readFileImpl: async (path: string) => {
-          if (path === '/mock/home/.Knowledge.md') {
+        readFileImpl: async (filePath: string) => {
+          if (filePath === path.join(MOCK_HOME, '.Knowledge.md')) {
             return '# Mixed case'
           }
           throw new Error('File not found')
@@ -261,11 +263,11 @@ describe('loadUserKnowledgeFiles', () => {
     it('should prioritize knowledge.md over AGENTS.md regardless of case', async () => {
       const mockFs = createMockFs({
         readdirImpl: async () => ['.AGENTS.md', '.Knowledge.md', '.bashrc'],
-        readFileImpl: async (path: string) => {
-          if (path === '/mock/home/.Knowledge.md') {
+        readFileImpl: async (filePath: string) => {
+          if (filePath === path.join(MOCK_HOME, '.Knowledge.md')) {
             return '# Knowledge content'
           }
-          if (path === '/mock/home/.AGENTS.md') {
+          if (filePath === path.join(MOCK_HOME, '.AGENTS.md')) {
             return '# Agents content'
           }
           throw new Error('File not found')
@@ -286,8 +288,8 @@ describe('loadUserKnowledgeFiles', () => {
     it('should preserve the original filename case in the key', async () => {
       const mockFs = createMockFs({
         readdirImpl: async () => ['.KNOWLEDGE.MD', '.bashrc'],
-        readFileImpl: async (path: string) => {
-          if (path === '/mock/home/.KNOWLEDGE.MD') {
+        readFileImpl: async (filePath: string) => {
+          if (filePath === path.join(MOCK_HOME, '.KNOWLEDGE.MD')) {
             return '# All caps'
           }
           throw new Error('File not found')
@@ -328,11 +330,11 @@ describe('loadUserKnowledgeFiles', () => {
     it('should handle readFile failure gracefully and try next priority', async () => {
       const mockFs = createMockFs({
         readdirImpl: async () => ['.knowledge.md', '.AGENTS.md'],
-        readFileImpl: async (path: string) => {
-          if (path === '/mock/home/.knowledge.md') {
+        readFileImpl: async (filePath: string) => {
+          if (filePath === path.join(MOCK_HOME, '.knowledge.md')) {
             throw new Error('Read error')
           }
-          if (path === '/mock/home/.AGENTS.md') {
+          if (filePath === path.join(MOCK_HOME, '.AGENTS.md')) {
             return '# Agents fallback'
           }
           throw new Error('File not found')

@@ -29,6 +29,7 @@ import { SmartModelRouter, getSmartModelRouter } from '@levelcode/common/provide
 import { AdaptiveToolSelector, getDefaultAdaptiveToolSelector } from '@levelcode/common/agents/adaptive-tools'
 
 import { getErrorStatusCode } from './error-utils'
+import { getSystemProcessEnv } from './env'
 import { getAgentRuntimeImpl } from './impl/agent-runtime'
 import { getUserInfoFromApiKey } from './impl/database'
 import { initialSessionState, applyOverridesToSessionState } from './run-state'
@@ -887,7 +888,7 @@ async function handleToolCall({
           const sandboxed = sandboxCommand(cmdInput.command, {
             cwd: execCwd,
             timeoutSeconds: cmdInput.timeout_seconds ?? 30,
-            allowedEnvVars: Object.keys(env ?? process.env),
+            allowedEnvVars: Object.keys(env ?? getSystemProcessEnv()),
           })
           result = [{
             type: 'json',

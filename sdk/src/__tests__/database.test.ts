@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 import { getUserInfoFromApiKey } from '../impl/database'
 
@@ -6,6 +6,13 @@ import type { Logger } from '@levelcode/common/types/contracts/logger'
 
 describe('getUserInfoFromApiKey', () => {
   const originalFetch = globalThis.fetch
+
+  beforeEach(() => {
+    // getUserInfoFromApiKey short-circuits to a standalone stub when no
+    // LEVELCODE_API_KEY is set; force the backend fetch path these tests
+    // exercise.
+    process.env.LEVELCODE_API_KEY = 'test-levelcode-key'
+  })
 
   const createLoggerMocks = (): Logger =>
     ({
@@ -16,6 +23,7 @@ describe('getUserInfoFromApiKey', () => {
     }) as unknown as Logger
 
   afterEach(() => {
+    delete process.env.LEVELCODE_API_KEY
     globalThis.fetch = originalFetch
     mock.restore()
   })

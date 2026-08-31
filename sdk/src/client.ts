@@ -121,9 +121,10 @@ export class LevelCodeClient {
    * Get the full status of a team including its config, tasks, and member count.
    *
    * @param name - Name of the team.
-   * @returns TeamStatus with config, tasks array, and memberCount.
+   * @returns TeamStatus with config, tasks array, and memberCount; null when
+   *          the team does not exist (or its config is unreadable).
    */
-  public getTeamStatus(name: string): TeamStatus {
+  public getTeamStatus(name: string): TeamStatus | null {
     return sdkGetTeamStatus(name)
   }
 
@@ -146,6 +147,9 @@ export class LevelCodeClient {
   public async runWithTeam(options: RunWithTeamOptions): Promise<RunState> {
     const { teamName, memberName, role, ...runOptions } = options
     const status = sdkGetTeamStatus(teamName)
+    if (!status) {
+      throw new Error(`Team "${teamName}" not found`)
+    }
     const isMember = status.config.members.some(
       (m) => m.name === memberName,
     )

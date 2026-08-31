@@ -7,6 +7,7 @@ import type {
   AttachOptions,
   CheckRun,
 } from './github-pr-types'
+import { getGithubTokenFromEnv } from '../env'
 
 const GITHUB_API = 'https://api.github.com'
 
@@ -40,7 +41,7 @@ export class PRSwarmManager {
   private activeSwarms = new Map<string, AbortController>()
 
   constructor(token?: string) {
-    this.token = token ?? process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? ''
+    this.token = token ?? getGithubTokenFromEnv() ?? ''
   }
 
   /**
