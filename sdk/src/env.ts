@@ -79,6 +79,14 @@ export const getGithubTokenFromEnv = (): string | undefined => {
 }
 
 /**
+ * Root of the levelcode data directory (~/.levelcode by default).
+ * Tests may point it elsewhere.
+ */
+export const getLevelCodeDirFromEnv = (): string | undefined => {
+  return process.env.LEVELCODE_DIR
+}
+
+/**
  * Standalone mode: bypass all backend dependencies, route LLM calls directly.
  * Default mode when no backend URL (NEXT_PUBLIC_LEVELCODE_APP_URL) is configured.
  * Also activates when a direct provider key (OPENROUTER_API_KEY or ANTHROPIC_API_KEY)

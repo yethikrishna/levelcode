@@ -283,6 +283,33 @@ levelcode -p --output-format stream-json "refactor the config module" | jq -c 's
 levelcode doctor   # checks runtime, provider keys, config, ripgrep, git, sandbox
 ```
 
+### Lifecycle Hooks
+
+Config-defined commands at well-defined points of the agent loop — guardrails,
+formatting, notifications, audit. `PreToolUse` can block tool calls; all other
+failures fail open. See [docs/hooks.md](docs/hooks.md).
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "write_file", "hooks": [{ "command": "bun .levelcode/hooks/guard-write.ts" }] }
+    ]
+  }
+}
+```
+
+### Worktree Isolation
+
+Run any session (interactive or headless) inside an isolated git worktree —
+parallel agents and CI runs never touch your main checkout. Files listed in
+`.worktreeinclude` (env files, local config) are copied into new worktrees.
+See [docs/worktrees.md](docs/worktrees.md).
+
+```bash
+levelcode -p --worktree ci-fix-42 "fix the failing test"
+```
+
 ---
 
 ## SDK Usage

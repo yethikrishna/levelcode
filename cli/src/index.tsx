@@ -20,6 +20,7 @@ const options = program.opts<{
   outputFormat?: string
   agent?: string
   cwd?: string
+  worktree?: string
 }>()
 
 // `doctor` runs from node builtins only — never load the heavy runtime.
@@ -45,11 +46,17 @@ if (argv1 === 'doctor') {
     process.exit(2)
   }
   void import('./headless/run-headless').then(async (m) => {
+    const { resolveWorktreeBoot } = await import('./utils/worktree-boot')
+    const cwdOverride = await resolveWorktreeBoot(
+      options.worktree,
+      options.cwd,
+      (msg) => console.error(`error: ${msg}`),
+    )
     const { exitCode } = await m.runHeadless({
       prompt,
       outputFormat: format as 'text' | 'json' | 'stream-json',
       agentOverride: options.agent?.trim() || null,
-      cwdOverride: options.cwd,
+      cwdOverride,
     })
     process.exit(exitCode)
   })

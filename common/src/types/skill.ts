@@ -26,6 +26,11 @@ export const SkillFrontmatterSchema = z.object({
   description: z.string().min(1).max(SKILL_DESCRIPTION_MAX_LENGTH),
   license: z.string().optional(),
   metadata: SkillMetadataSchema.optional(),
+  /**
+   * agentskills.io spec field: comma/space-delimited tool allowlist.
+   * Parsed into allowedTools on the definition.
+   */
+  'allowed-tools': z.string().optional(),
 })
 
 export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>
@@ -42,6 +47,8 @@ export const SkillDefinitionSchema = z.object({
   license: z.string().optional(),
   /** Optional key-value metadata */
   metadata: SkillMetadataSchema.optional(),
+  /** Parsed from the `allowed-tools` frontmatter field (agentskills.io) */
+  allowedTools: z.array(z.string()).optional(),
   /** Full SKILL.md content (including frontmatter) */
   content: z.string(),
   /** Source file path */

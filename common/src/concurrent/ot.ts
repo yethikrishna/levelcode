@@ -170,11 +170,11 @@ export function transform(
       prim2 = shortenPrimitive(prim2, minLen)
     }
 
-    if (prim1 && 'count' in prim1 && prim1.type !== 'insert' && prim1.count <= 0) {
+    if (prim1 && 'count' in prim1 && prim1.count <= 0) {
       i1++
       prim1 = op1[i1] ?? null
     }
-    if (prim2 && 'count' in prim2 && prim2.type !== 'insert' && prim2.count <= 0) {
+    if (prim2 && 'count' in prim2 && prim2.count <= 0) {
       i2++
       prim2 = op2[i2] ?? null
     }
@@ -283,11 +283,11 @@ export function compose(op1: TextOperation, op2: TextOperation): TextOperation {
       prim2 = shortenPrimitive(prim2, minLen)
     }
 
-    if (prim1 && 'count' in prim1 && prim1.type !== 'insert' && prim1.count <= 0) {
+    if (prim1 && 'count' in prim1 && prim1.count <= 0) {
       i1++
       prim1 = op1[i1] ?? null
     }
-    if (prim2 && 'count' in prim2 && prim2.type !== 'insert' && prim2.count <= 0) {
+    if (prim2 && 'count' in prim2 && prim2.count <= 0) {
       i2++
       prim2 = op2[i2] ?? null
     }

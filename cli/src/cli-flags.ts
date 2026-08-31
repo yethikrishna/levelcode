@@ -50,6 +50,10 @@ export function createProgram(): Command {
       '--cwd <directory>',
       'Set the working directory (default: current directory)',
     )
+    .option(
+      '--worktree <name>',
+      'Create (or re-enter) an isolated git worktree at .levelcode/worktrees/<name> and run there',
+    )
     .option('--free', 'Start in FREE mode')
     .option('--lite', 'Start in FREE mode (deprecated, use --free)')
     .option('--max', 'Start in MAX mode')

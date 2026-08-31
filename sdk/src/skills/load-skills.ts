@@ -12,6 +12,7 @@ import {
   type SkillDefinition,
   type SkillsMap,
 } from '@levelcode/common/types/skill'
+import { getLevelCodeDirFromEnv } from '../env'
 import matter from 'gray-matter'
 
 // Re-export from common for backward compatibility
@@ -93,11 +94,21 @@ function loadSkillFromFile(
     return null
   }
 
+  const allowedToolsRaw = frontmatter['allowed-tools']
+  const allowedTools =
+    typeof allowedToolsRaw === 'string'
+      ? allowedToolsRaw
+          .split(/[,\s]+/)
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : undefined
+
   return {
     name: frontmatter.name,
     description: frontmatter.description,
     license: frontmatter.license,
     metadata: frontmatter.metadata,
+    allowedTools,
     content,
     filePath: skillFilePath,
   }
@@ -162,19 +173,27 @@ function discoverSkillsFromDirectory(
  * 
  * Order (later overrides earlier):
  * - ~/.claude/skills/ (global Claude-compatible)
- * - ~/.agents/skills/ (global LevelCode)
+ * - ~/.agents/skills/ (global Claude-compatible)
+ * - ~/.config/levelcode/skills/ (global LevelCode)
+ * - ~/.levelcode/skills/ (global LevelCode, LEVELCODE_DIR-aware)
  * - {cwd}/.claude/skills/ (project Claude-compatible)
- * - {cwd}/.agents/skills/ (project LevelCode)
+ * - {cwd}/.agents/skills/ (project Claude-compatible)
+ * - {cwd}/.levelcode/skills/ (project LevelCode, highest priority)
  */
 function getDefaultSkillsDirs(cwd: string): string[] {
   const home = os.homedir()
+  const levelcodeBase =
+    getLevelCodeDirFromEnv() ?? path.join(home, '.levelcode')
   return [
     // Global directories (Claude-compatible first, then LevelCode)
     path.join(home, '.claude', SKILLS_DIR_NAME),
     path.join(home, '.agents', SKILLS_DIR_NAME),
+    path.join(home, '.config', 'levelcode', SKILLS_DIR_NAME),
+    path.join(levelcodeBase, SKILLS_DIR_NAME),
     // Project directories (Claude-compatible first, then LevelCode)
     path.join(cwd, '.claude', SKILLS_DIR_NAME),
     path.join(cwd, '.agents', SKILLS_DIR_NAME),
+    path.join(cwd, '.levelcode', SKILLS_DIR_NAME),
   ]
 }
 

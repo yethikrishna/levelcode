@@ -6,6 +6,8 @@ import {
   getMinimumPhaseForTool,
   TEAM_TOOL_NAMES,
 } from '@levelcode/common/utils/dev-phases'
+import { createHookRunner } from '@levelcode/common/hooks/runner'
+import { logToolCall } from '@levelcode/common/utils/compliance-logging'
 import { cloneDeep } from 'lodash'
 
 import { getMCPToolData } from '../mcp'
@@ -94,6 +96,25 @@ export function parseRawToolCall<T extends ToolName = ToolName>(params: {
     input: result.data,
     toolCallId: rawToolCall.toolCallId,
   } as LevelCodeToolCall<T>
+}
+
+// ── Lifecycle hooks (PreToolUse / PostToolUse) + compliance logging ──
+// One runner per process; hook config is read lazily from
+// settings.json (user + project .levelcode/) and cached per project root.
+const hookRunner = createHookRunner()
+
+/** Best-effort failure detection for compliance logging. */
+function outputHasError(output: ToolResultOutput[]): boolean {
+  return output.some((part) => {
+    if (part.type !== 'json') return false
+    const value = part.value as Record<string, unknown> | null
+    if (value === null || typeof value !== 'object') return false
+    return 'error' in value || 'errorMessage' in value
+  })
+}
+
+function truncateForHook(s: string, max = 2000): string {
+  return s.length <= max ? s : s.slice(0, max) + '…'
 }
 
 export type ExecuteToolCallParams<T extends string = ToolName> = {
@@ -349,6 +370,37 @@ export async function executeToolCall<T extends ToolName>(
     }
   }
 
+  // PreToolUse hooks: config-defined commands may block the tool call.
+  // Runs after built-in deny checks so hooks see only tools that would
+  // otherwise execute. Fail-open by design (hooks are not a sandbox).
+  if (!params.signal.aborted) {
+    try {
+      const pre = await hookRunner.runEvent('PreToolUse', {
+        event: 'PreToolUse',
+        cwd: process.cwd(),
+        tool_name: toolName,
+        tool_input: (effectiveInput ?? input) as Record<string, unknown>,
+      })
+      if (pre.blocked) {
+        onResponseChunk({
+          type: 'error',
+          message: `Tool \`${toolName}\` blocked by PreToolUse hook: ${pre.reason ?? 'denied'}`,
+        })
+        logger.info(
+          { toolName, reason: pre.reason },
+          'Tool call blocked by PreToolUse hook',
+        )
+        return previousToolCallFinished
+      }
+    } catch (hookError) {
+      // The hook engine itself must never take the loop down.
+      logger.debug(
+        { error: hookError },
+        'PreToolUse hook evaluation failed; continuing',
+      )
+    }
+  }
+
   // Only emit tool_call event after permission check passes
   onResponseChunk({
     type: 'tool_call',
@@ -413,6 +465,55 @@ export async function executeToolCall<T extends ToolName>(
 
     if (!excludeToolFromMessageHistory && !params.skipDirectResultPush) {
       agentState.messageHistory.push(toolResult)
+    }
+
+    // ── Compliance logging (team runs only) ──
+    // The compliance logger was previously dead code; this is its single
+    // chokepoint: every executed tool call in a team context is recorded
+    // with a signed entry.
+    try {
+      const teamContext = findTeamContext(userInputId)
+      if (teamContext) {
+        logToolCall(
+          teamContext.teamName,
+          toolCallId,
+          agentState.agentId,
+          toolName,
+          (effectiveInput ?? input) as Record<string, unknown>,
+          outputHasError(output) ? 'failure' : 'success',
+        )
+      }
+    } catch (complianceError) {
+      logger.debug(
+        { error: complianceError },
+        'Compliance logging failed; continuing',
+      )
+    }
+
+    // ── PostToolUse hooks + additionalContext ──
+    if (!params.signal.aborted) {
+      try {
+        const post = await hookRunner.runEvent('PostToolUse', {
+          event: 'PostToolUse',
+          cwd: process.cwd(),
+          tool_name: toolName,
+          tool_input: (effectiveInput ?? input) as Record<string, unknown>,
+          tool_result: truncateForHook(
+            JSON.stringify(output).slice(0, 4000),
+          ),
+        })
+        if (post.additionalContext.trim().length > 0) {
+          logger.info(
+            { toolName, context: post.additionalContext.trim() },
+            'PostToolUse hook additionalContext',
+          )
+        }
+      } catch (hookError) {
+        logger.debug(
+          { error: hookError },
+          'PostToolUse hook evaluation failed; continuing',
+        )
+      }
     }
 
     // After tool completes, resolve any pending creditsUsed promise

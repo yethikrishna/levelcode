@@ -97,6 +97,30 @@ the agent loop, keep this contract intact: **a failed run must emit an
 and consumers must never report success without a `finish` or text
 (`cli/src/headless/run-headless.ts` enforces this).
 
+### Lifecycle hooks & the tool-executor chokepoint
+
+All tools funnel through `executeToolCall`
+(`packages/agent-runtime/src/tools/tool-executor.ts`). That is where:
+- `PreToolUse` hooks can **block** a tool call (after built-in deny checks),
+- `PostToolUse` hooks run after results are recorded,
+- team runs write signed compliance log entries
+  (`common/src/utils/compliance-logging.ts` — previously dead code).
+
+The hooks engine lives in `common/src/hooks/` (`types.ts`, `loader.ts`,
+`runner.ts`, `decision.ts`; docs in `docs/hooks.md`). Contract: exit 2 or
+`{"decision":"block"}` blocks PreToolUse; any other failure **fails open**.
+Never make hooks a security control — use permission profiles for that.
+SessionStart/Stop fire in `sdk/src/run.ts` around the run promise.
+
+### Worktrees
+
+`common/src/utils/worktree-isolation.ts` creates agent/named worktrees
+(`.levelcode/worktrees/…`, branches `agent/…` / `worktree/…`). New worktrees
+copy repo-root files listed in `.worktreeinclude` (env files etc. that git
+doesn't track). `levelcode --worktree <name>` boots a session inside one;
+`--worktree` + `-p` gives CI fully isolated runs. All git calls use
+`execFileSync` argv arrays — never interpolate into shell strings there.
+
 ## Conventions
 
 - TypeScript strict; ESM (`"type": "module"`).

@@ -15,6 +15,7 @@ import { cloneDeep } from 'lodash'
 
 import { CostGuard, createCostGuard } from './cost-guard'
 import { redactSecrets } from '@levelcode/common/utils/secrets-redact'
+import { createHookRunner } from '@levelcode/common/hooks/runner'
 import { SemanticMemoryStore } from '@levelcode/common/memory/semantic-memory'
 import { AgentScratchpad, getDefaultScratchpad } from '@levelcode/common/memory/scratchpad'
 import { ContextBudgetGovernor, getDefaultBudgetGovernor } from '@levelcode/common/context/budget-governor'
@@ -353,6 +354,23 @@ async function runOnce({
     _reject = rej
   })
 
+  // ── SessionStart hook (best-effort) ──
+  const hookRunner = createHookRunner()
+  try {
+    const start = await hookRunner.runEvent('SessionStart', {
+      event: 'SessionStart',
+      cwd: cwd ?? process.cwd(),
+    })
+    if (start.additionalContext.trim().length > 0 && handleEvent) {
+      // Surface hook-provided context as a text event so consumers (TUI,
+      // headless) can show it; hooks are advisory, never blocking here.
+      await handleEvent({
+        type: 'text',
+        text: start.additionalContext.trim(),
+      })
+    }
+  } catch { /* hooks are best-effort */ }
+
   async function onError(error: { message: string }) {
     if (handleEvent) {
       await handleEvent({ type: 'error', message: error.message })
@@ -690,7 +708,15 @@ async function runOnce({
     })
   })
 
-  return promise
+  // Stop hooks fire exactly once per run, on every termination path
+  // (success, handled error, thrown error) via the shared promise.
+  return promise.finally(() => {
+    try {
+      void hookRunner
+        .runEvent('Stop', { event: 'Stop', cwd: cwd ?? process.cwd() })
+        .catch(() => { /* hooks are best-effort */ })
+    } catch { /* hooks are best-effort */ }
+  })
 }
 
 function requireCwd(cwd: string | undefined, toolName: string): string {

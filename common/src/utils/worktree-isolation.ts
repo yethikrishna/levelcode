@@ -1,8 +1,8 @@
-import { execSync, spawn } from 'child_process'
+import { execFileSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import { sync as mkdirpSync } from 'mkdirp'
-const mkdirp = mkdirpSync
+
+const mkdirp = (dir: string) => fs.mkdirSync(dir, { recursive: true })
 
 export interface WorktreeInfo {
   branch: string
@@ -12,12 +12,71 @@ export interface WorktreeInfo {
   createdAt: number
 }
 
-const WORKTREE_DIR = '.claude/worktrees'
+const WORKTREE_DIR = '.levelcode/worktrees'
+const WORKTREEINCLUDE_FILE = '.worktreeinclude'
+
+function git(repoRoot: string, args: string[]): string {
+  return execFileSync('git', args, {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  })
+}
+
+/**
+ * Copy files listed in `.worktreeinclude` from the repo root into a fresh
+ * worktree. Git worktrees only contain tracked files — env files, secrets
+ * and local config that builds/tests need are gitignored. One path per
+ * line, `#` comments allowed, trailing `/*` copies a directory's files.
+ */
+export function applyWorktreeInclude(repoRoot: string, worktreePath: string): string[] {
+  const includeFile = path.join(repoRoot, WORKTREEINCLUDE_FILE)
+  let raw: string
+  try {
+    raw = fs.readFileSync(includeFile, 'utf-8')
+  } catch {
+    return [] // No .worktreeinclude: nothing to copy
+  }
+
+  const copied: string[] = []
+  for (const line of raw.split(/\r?\n/)) {
+    const entry = line.trim()
+    if (!entry || entry.startsWith('#')) continue
+
+    const isDirGlob = entry.endsWith('/*')
+    const relPath = isDirGlob ? entry.slice(0, -2) : entry
+    const src = path.join(repoRoot, relPath)
+
+    try {
+      if (isDirGlob || fs.statSync(src).isDirectory()) {
+        // Directory copy: all immediate files
+        const entries = fs.readdirSync(src, { withFileTypes: true })
+        const destDir = path.join(worktreePath, relPath)
+        mkdirp(destDir)
+        for (const e of entries) {
+          if (e.isFile()) {
+            fs.copyFileSync(path.join(src, e.name), path.join(destDir, e.name))
+            copied.push(path.join(relPath, e.name))
+          }
+        }
+      } else {
+        const dest = path.join(worktreePath, relPath)
+        mkdirp(path.dirname(dest))
+        fs.copyFileSync(src, dest)
+        copied.push(relPath)
+      }
+    } catch {
+      // Listed but missing at the root: skip silently
+    }
+  }
+  return copied
+}
 
 /**
  * Create a new git worktree for an agent.
  * Each agent gets its own branch + worktree directory.
  * This prevents file-level conflicts between parallel agents.
+ * Files listed in .worktreeinclude are copied from the repo root.
  */
 export function createAgentWorktree(
   repoRoot: string,
@@ -33,21 +92,27 @@ export function createAgentWorktree(
 
   // Remove existing worktree if it exists (clean slate)
   try {
-    execSync(`git worktree remove -f "${worktreePath}"`, { cwd: repoRoot, stdio: 'pipe' })
+    git(repoRoot, ['worktree', 'remove', '-f', worktreePath])
   } catch {
     // Ignore errors if worktree doesn't exist
   }
 
   // Create new branch and worktree
+  let branchExists = false
   try {
-    // Check if branch already exists
-    execSync(`git rev-parse --verify ${branchName}`, { cwd: repoRoot, stdio: 'pipe' })
-    // Branch exists, just create worktree
-    execSync(`git worktree add "${worktreePath}" "${branchName}"`, { cwd: repoRoot, stdio: 'pipe' })
+    git(repoRoot, ['rev-parse', '--verify', branchName])
+    branchExists = true
   } catch {
-    // Branch doesn't exist, create new branch
-    execSync(`git worktree add -b "${branchName}" "${worktreePath}" HEAD`, { cwd: repoRoot, stdio: 'pipe' })
+    branchExists = false
   }
+
+  if (branchExists) {
+    git(repoRoot, ['worktree', 'add', worktreePath, branchName])
+  } else {
+    git(repoRoot, ['worktree', 'add', '-b', branchName, worktreePath, 'HEAD'])
+  }
+
+  applyWorktreeInclude(repoRoot, worktreePath)
 
   return {
     branch: branchName,
@@ -59,33 +124,91 @@ export function createAgentWorktree(
 }
 
 /**
+ * Create (or reuse) a named worktree on branch `worktree/<name>`.
+ * Used by `levelcode --worktree <name>`: the session boots inside the
+ * worktree so interactive and headless runs are isolated from the main
+ * checkout. Returns the worktree path.
+ */
+export function createNamedWorktree(repoRoot: string, name: string): string {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name)) {
+    throw new Error(
+      `Invalid worktree name "${name}": use letters, digits, dot, dash, underscore`,
+    )
+  }
+  const worktreePath = path.join(repoRoot, WORKTREE_DIR, name)
+  const branchName = `worktree/${name}`
+  mkdirp(path.dirname(worktreePath))
+
+  // Existing worktree for this name: reuse it (resume semantics)
+  if (fs.existsSync(path.join(worktreePath, '.git'))) {
+    applyWorktreeInclude(repoRoot, worktreePath)
+    return worktreePath
+  }
+
+  // Remove a stale registration if the directory exists without .git
+  try {
+    git(repoRoot, ['worktree', 'remove', '-f', worktreePath])
+  } catch {
+    // not registered
+  }
+
+  let branchExists = false
+  try {
+    git(repoRoot, ['rev-parse', '--verify', branchName])
+    branchExists = true
+  } catch {
+    branchExists = false
+  }
+
+  if (branchExists) {
+    git(repoRoot, ['worktree', 'add', worktreePath, branchName])
+  } else {
+    git(repoRoot, ['worktree', 'add', '-b', branchName, worktreePath, 'HEAD'])
+  }
+
+  applyWorktreeInclude(repoRoot, worktreePath)
+  return worktreePath
+}
+
+/**
+ * Remove a named worktree created by createNamedWorktree (keeps the branch).
+ */
+export function removeNamedWorktree(repoRoot: string, name: string): boolean {
+  const worktreePath = path.join(repoRoot, WORKTREE_DIR, name)
+  try {
+    git(repoRoot, ['worktree', 'remove', '-f', worktreePath])
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Remove an agent's worktree and branch.
  */
 export function removeAgentWorktree(repoRoot: string, agentId: string): void {
-  const worktreeBase = path.join(repoRoot, WORKTREE_DIR, agentId)
-
   try {
     // List worktrees and remove them
-    const worktrees = execSync(`git worktree list --porcelain`, { cwd: repoRoot, encoding: 'utf-8' })
+    const worktrees = git(repoRoot, ['worktree', 'list', '--porcelain'])
 
     for (const line of worktrees.split('\n')) {
       if (line.startsWith('worktree ')) {
         const wtPath = line.replace('worktree ', '').trim()
         if (wtPath.includes(`/${agentId}/`)) {
-          execSync(`git worktree remove -f "${wtPath}"`, { cwd: repoRoot, stdio: 'pipe' })
+          git(repoRoot, ['worktree', 'remove', '-f', wtPath])
         }
       }
     }
 
     // Delete branches for this agent
-    const branches = execSync(`git branch --list "agent/${agentId}/*"`, { cwd: repoRoot, encoding: 'utf-8' })
+    const branches = git(repoRoot, ['branch', '--list', `agent/${agentId}/*`])
     for (const branchLine of branches.split('\n')) {
       const branch = branchLine.replace(/^[* ]+/, '').trim()
       if (branch) {
-        execSync(`git branch -D "${branch}"`, { cwd: repoRoot, stdio: 'pipe' })
+        git(repoRoot, ['branch', '-D', branch])
       }
     }
-  } catch (error) {
+  } catch {
     // Ignore errors during cleanup
   }
 }
@@ -99,20 +222,15 @@ export function commitInWorktree(
   files?: string[],
 ): { success: boolean; commitHash?: string; error?: string } {
   try {
-    // Stage files
     if (files && files.length > 0) {
-      const fileList = files.map(f => `"${f}"`).join(' ')
-      execSync(`git add ${fileList}`, { cwd: worktreePath, stdio: 'pipe' })
+      git(worktreePath, ['add', '--', ...files])
     } else {
-      execSync(`git add -A`, { cwd: worktreePath, stdio: 'pipe' })
+      git(worktreePath, ['add', '-A'])
     }
 
-    // Commit
-    execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { cwd: worktreePath, stdio: 'pipe' })
+    git(worktreePath, ['commit', '-m', message])
 
-    // Get commit hash
-    const hash = execSync(`git rev-parse HEAD`, { cwd: worktreePath, encoding: 'utf-8' }).trim()
-
+    const hash = git(worktreePath, ['rev-parse', 'HEAD']).trim()
     return { success: true, commitHash: hash }
   } catch (error) {
     return {
@@ -131,10 +249,7 @@ export function getWorktreeDiffStats(worktreePath: string, baseBranch = 'HEAD'):
   files: number
 } {
   try {
-    const output = execSync(`git diff --stat "${baseBranch}"`, {
-      cwd: worktreePath,
-      encoding: 'utf-8',
-    })
+    const output = git(worktreePath, ['diff', '--stat', baseBranch])
 
     // Parse diff stats
     const match = output.match(/(\d+) insertion[s]?\(\+\)[,\s]*(\d+) deletion[s]?\(\-\)/)
@@ -157,10 +272,7 @@ export function getWorktreeDiffStats(worktreePath: string, baseBranch = 'HEAD'):
  */
 export function hasUncommittedChanges(worktreePath: string): boolean {
   try {
-    const status = execSync(`git status --porcelain`, {
-      cwd: worktreePath,
-      encoding: 'utf-8',
-    })
+    const status = git(worktreePath, ['status', '--porcelain'])
     return status.trim().length > 0
   } catch {
     return false
@@ -175,7 +287,7 @@ export function rollbackWorktree(
   target: string = 'HEAD~1',
 ): { success: boolean; error?: string } {
   try {
-    execSync(`git reset --hard "${target}"`, { cwd: worktreePath, stdio: 'pipe' })
+    git(worktreePath, ['reset', '--hard', target])
     return { success: true }
   } catch (error) {
     return {
@@ -190,10 +302,7 @@ export function rollbackWorktree(
  */
 export function listAgentWorktrees(repoRoot: string): WorktreeInfo[] {
   try {
-    const output = execSync(`git worktree list --porcelain`, {
-      cwd: repoRoot,
-      encoding: 'utf-8',
-    })
+    const output = git(repoRoot, ['worktree', 'list', '--porcelain'])
 
     const worktrees: WorktreeInfo[] = []
     let currentPath = ''
@@ -205,14 +314,15 @@ export function listAgentWorktrees(repoRoot: string): WorktreeInfo[] {
       } else if (line.startsWith('branch ')) {
         currentBranch = line.replace('branch ', '').replace('refs/heads/', '').trim()
 
-        // Only include agent worktrees
-        if (currentBranch.startsWith('agent/')) {
-          const parts = currentBranch.replace('agent/', '').split('/')
+        // Include agent and named (worktree/) worktrees
+        if (currentBranch.startsWith('agent/') || currentBranch.startsWith('worktree/')) {
+          const prefix = currentBranch.startsWith('agent/') ? 'agent/' : 'worktree/'
+          const parts = currentBranch.replace(prefix, '').split('/')
           worktrees.push({
             branch: currentBranch,
             path: currentPath,
-            agentId: parts[0] ?? 'unknown',
-            taskId: parts.slice(1).join('/') || undefined,
+            agentId: prefix === 'worktree/' ? nameOf(currentBranch) : parts[0] ?? 'unknown',
+            taskId: prefix === 'agent/' ? parts.slice(1).join('/') || undefined : undefined,
             createdAt: Date.now(), // We don't have the actual creation time
           })
         }
@@ -223,4 +333,8 @@ export function listAgentWorktrees(repoRoot: string): WorktreeInfo[] {
   } catch {
     return []
   }
+}
+
+function nameOf(branch: string): string {
+  return branch.replace('worktree/', '')
 }

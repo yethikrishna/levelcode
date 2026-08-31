@@ -71,7 +71,7 @@ const backgroundTaskSchema = z.object({
     message: z.string(),
   })).default([]),
   workerPid: z.number().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 function validateTaskId(taskId: string): void {

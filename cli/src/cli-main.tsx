@@ -87,6 +87,19 @@ function parseArgs(): ParsedArgs {
   if (options.max) initialMode = 'MAX'
   if (options.plan) initialMode = 'PLAN'
 
+  // --worktree resolves synchronously (git exec) before the TUI boots: the
+  // whole session then runs inside the worktree.
+  let effectiveCwd = options.cwd
+  if (options.worktree) {
+    // Lazy require keeps the module graph unchanged for non-worktree boots.
+    const { createNamedWorktree } =
+      require('@levelcode/common/utils/worktree-isolation') as typeof import('@levelcode/common/utils/worktree-isolation')
+    effectiveCwd = createNamedWorktree(
+      options.cwd ?? process.cwd(),
+      options.worktree,
+    )
+  }
+
   return {
     initialPrompt: args.length > 0 ? args.join(' ') : null,
     agent: options.agent,
@@ -96,7 +109,7 @@ function parseArgs(): ParsedArgs {
       typeof continueFlag === 'string' && continueFlag.trim().length > 0
         ? continueFlag.trim()
         : null,
-    cwd: options.cwd,
+    cwd: effectiveCwd,
     initialMode,
   }
 }

@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Persistent Teams v1 — teams and their state now persist across sessions with improved disk + Zustand sync
 
+## [Unreleased] - Hooks, Worktrees & Skills (2026-08-31)
+
+### Added
+- **Lifecycle hooks engine** (`common/src/hooks/`, docs in `docs/hooks.md`) — config-defined commands at `SessionStart` / `PreToolUse` / `PostToolUse` / `Stop`. `PreToolUse` can block tool calls (exit 2 or `{"decision":"block"}` — the Claude Code / Codex convention); everything else fails open by design. Config loads from `~/.config/levelcode/settings.json`, `~/.levelcode/settings.json`, and project `.levelcode/settings.json`; handlers accept `command` (shell) or `argv` (portable), with per-hook timeouts. 19 tests exercise the engine end-to-end with real subprocesses.
+- **Worktree isolation** — `levelcode --worktree <name>` boots any session (TUI or `--worktree` + `-p` for CI) inside `.levelcode/worktrees/<name>` on branch `worktree/<name>`; re-entering reuses the worktree (resume semantics). New `.worktreeinclude` convention copies gitignored files (`.env`, local config) into fresh worktrees so builds/tests actually run. `common/src/utils/worktree-isolation.ts` hardened: all git invocations via `execFileSync` argv arrays (no shell interpolation), `.claude/worktrees` → `.levelcode/worktrees`, `mkdirp` dependency dropped. 11 tests against real temp repos.
+- **Skills ecosystem compat** — `allowed-tools` frontmatter field (agentskills.io) parsed into `allowedTools`; user-level skill dirs `~/.config/levelcode/skills/` and `~/.levelcode/skills/` (plus project `.levelcode/skills/`) now scanned alongside the Claude-compatible dirs. First tests for the skills loader (8).
+
+### Changed
+- **Compliance logging is now real** — the previously dead `compliance-logging.ts` module is wired at the tool-executor chokepoint: every executed tool call in a team context writes a signed entry (`tool-call`, success/failure, args, traceId) to `~/.levelcode/swarm/<team>/compliance/events.jsonl`.
+- `common` now passes `tsc --noEmit` clean (fixed zod v4 `z.record` arity in background-agent, dead comparisons in `concurrent/ot.ts`).
+
+### Fixed
+- **CI on Linux**: `packages/llm-cache/package.json` and `packages/prompt-engineering/package.json` were markdown-fenced (`\`\`\`json`) AI-session artifacts — `bun install --frozen-lockfile` failed on any fresh checkout; both repaired and re-serialized.
+
 ## [Unreleased] - TUI Quality Pass (2026-08-31)
 
 ### Added
