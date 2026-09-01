@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react'
 
 import { setCurrentChatId } from '../project-files'
+import {
+  estimateTokens as estimateContextTokens,
+  getDefaultBudgetGovernor,
+} from '@levelcode/common/context/budget-governor'
 import { createStreamController } from './stream-state'
 import { useChatStore } from '../state/chat-store'
 import { getLevelCodeClient } from '../utils/levelcode-client'
@@ -112,6 +116,13 @@ export const useSendMessage = ({
 }: UseSendMessageOptions): {
   sendMessage: SendMessageFn
   clearMessages: () => void
+  compactHistory: () => {
+    ok: boolean
+    tokensFreed: number
+    originalTokens: number
+    prunedTokens: number
+    error?: string
+  }
 } => {
   // Pull setters directly from store - these are stable references that don't need
   // to trigger re-renders, so using getState() outside of callbacks is intentional.
@@ -189,6 +200,63 @@ export const useSendMessage = ({
   function clearMessages() {
     previousRunStateRef.current = null
   }
+
+  /**
+   * Manually compact the current conversation: prune the live RunState's
+   * message history through the ContextBudgetGovernor and swap it into the
+   * store, so the next send continues from the compacted context.
+   */
+  const compactHistory = useCallback((): {
+    ok: boolean
+    tokensFreed: number
+    originalTokens: number
+    prunedTokens: number
+    error?: string
+  } => {
+    try {
+      const { runState, setRunState } = useChatStore.getState()
+      const history = runState?.sessionState?.mainAgentState?.messageHistory
+      if (!history || history.length === 0) {
+        return { ok: false, tokensFreed: 0, originalTokens: 0, prunedTokens: 0, error: 'No conversation to compact.' }
+      }
+
+      const governor = getDefaultBudgetGovernor()
+      const before = estimateContextTokens(history)
+      // Prune to ~60% of the observed size so compaction frees real headroom
+      // regardless of the current budget state.
+      const budget = Math.floor(before * 0.6)
+      const result = governor.pruneToBudget(history as never, budget)
+
+      const defined = runState as Required<RunState>
+      const nextRunState: RunState = {
+        ...defined,
+        sessionState: {
+          ...defined.sessionState,
+          mainAgentState: {
+            ...defined.sessionState.mainAgentState,
+            messageHistory: result.prunedMessages as never,
+          },
+        },
+      }
+      setRunState(nextRunState)
+      previousRunStateRef.current = nextRunState
+
+      return {
+        ok: true,
+        tokensFreed: result.tokensFreed || before - result.prunedTokens,
+        originalTokens: result.originalTokens || before,
+        prunedTokens: result.prunedTokens,
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        tokensFreed: 0,
+        originalTokens: 0,
+        prunedTokens: 0,
+        error: error instanceof Error ? error.message : String(error),
+      }
+    }
+  }, [])
 
   const prepareUserMessage = useCallback(
     (params: {
@@ -537,5 +605,6 @@ export const useSendMessage = ({
   return {
     sendMessage,
     clearMessages,
+    compactHistory,
   }
 }

@@ -141,6 +141,13 @@ export type RouterParams = {
   streamMessageIdRef: React.MutableRefObject<string | null>
   addToQueue: (message: string, attachments?: PendingAttachment[]) => void
   clearMessages: () => void
+  compactHistory: () => {
+    ok: boolean
+    tokensFreed: number
+    originalTokens: number
+    prunedTokens: number
+    error?: string
+  }
   saveToHistory: (message: string) => void
   scrollToLatest: () => void
   sendMessage: SendMessageFn
@@ -2338,6 +2345,31 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           getSystemMessage(`Context budget unavailable: ${error instanceof Error ? error.message : String(error)}`),
         ])
       }
+    },
+  }),
+  defineCommand({
+    name: 'compact',
+    aliases: ['context:compact'],
+    handler: (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      const result = params.compactHistory()
+      if (!result.ok) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Compact failed: ${result.error}`),
+        ])
+        return
+      }
+      const fmt = (n: number) => `~${(n / 1000).toFixed(1)}k tokens`
+      params.setMessages((prev) => [
+        ...prev,
+        getSystemMessage(
+          `Conversation compacted: ${fmt(result.originalTokens)} → ${fmt(result.prunedTokens)} ` +
+            `(freed ${fmt(result.tokensFreed)}). The next message continues from the ` +
+            'compact summary — re-read files or re-run commands if you need details from earlier.',
+        ),
+      ])
     },
   }),
   // ── Model cascade/routing/local ───────────────────

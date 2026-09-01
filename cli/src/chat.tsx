@@ -437,7 +437,7 @@ export const Chat = ({
     }
   }, [isStreaming, pendingBashMessages, setMessages])
 
-  const { sendMessage, clearMessages } = useSendMessage({
+  const { sendMessage, clearMessages, compactHistory } = useSendMessage({
     inputRef,
     activeSubagentsRef,
     isChainInProgressRef,
@@ -502,6 +502,7 @@ export const Chat = ({
           streamMessageIdRef,
           addToQueue,
           clearMessages,
+          compactHistory,
           saveToHistory,
           scrollToLatest,
           sendMessage,
