@@ -119,6 +119,13 @@ import {
   handleCollabRelayStop,
 } from './session'
 import { checkMcpServers, formatMcpStatus } from './mcp-status'
+import {
+  setEffortLevel,
+  getEffortLevel,
+  parseEffortLevel,
+  EFFORT_MAX_STEPS,
+  EFFORT_LEVELS,
+} from '../utils/effort'
 import { loadMCPConfigSync } from '@levelcode/sdk'
 
 import type { PhaseTransitionHookEvent } from '@levelcode/common/types/team-hook-events'
@@ -2374,6 +2381,44 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           getSystemMessage(`Context budget unavailable: ${error instanceof Error ? error.message : String(error)}`),
         ])
       }
+    },
+  }),
+  defineCommandWithArgs({
+    name: 'effort',
+    aliases: ['context:effort'],
+    handler: (params, args) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      const requested = args.trim()
+      if (!requested) {
+        const current = getEffortLevel()
+        const levels = EFFORT_LEVELS.map(
+          (l) => `${l === current ? '●' : '○'} ${l} (${EFFORT_MAX_STEPS[l]} steps)`,
+        ).join('\n')
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Effort dial:
+${levels}
+
+Change with /effort <level>. Applies to the next message.`),
+        ])
+        return
+      }
+      const level = parseEffortLevel(requested)
+      if (!level) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Unknown effort level "${requested}". Valid: ${EFFORT_LEVELS.join(', ')}.`),
+        ])
+        return
+      }
+      setEffortLevel(level)
+      params.setMessages((prev) => [
+        ...prev,
+        getSystemMessage(
+          `Effort set to ${level} (${EFFORT_MAX_STEPS[level]} steps max). Applies from your next message.`,
+        ),
+      ])
     },
   }),
   defineCommand({
