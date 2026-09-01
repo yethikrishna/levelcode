@@ -65,6 +65,7 @@ if (argv1 === 'doctor') {
     // Fast path never runs initializeApp; set the project root explicitly.
     const { setProjectRoot } = await import('./project-files')
     setProjectRoot(process.cwd())
+    const jsonOut = process.argv.includes('--json')
     // `sessions <id>`: inspect one session's message history (fork points).
     const sessions = m.listSavedSessions()
     const detailId = program.args.slice(1).find((a) => !a.startsWith('-'))
@@ -81,6 +82,16 @@ if (argv1 === 'doctor') {
         process.stdout.write(`Session "${match.chatId}" is unreadable.\n`)
         process.exit(1)
       }
+      if (jsonOut) {
+        process.stdout.write(
+          JSON.stringify({
+            chatId: match.chatId,
+            historyLength: detail.historyLength,
+            messages: detail.messages,
+          }) + '\n',
+        )
+        process.exit(0)
+      }
       const lines: string[] = [
         `Session ${match.chatId} (${detail.historyLength} messages)`,
         `Fork: levelcode -p --fork ${match.chatId} --at-message <n> "prompt"`,
@@ -90,6 +101,10 @@ if (argv1 === 'doctor') {
         lines.push(`  [${String(message.index).padStart(3)}] ${message.role.padEnd(10)} ${message.preview}`)
       }
       process.stdout.write(lines.join('\n') + '\n')
+      process.exit(0)
+    }
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify({ sessions }) + '\n')
       process.exit(0)
     }
     if (sessions.length === 0) {

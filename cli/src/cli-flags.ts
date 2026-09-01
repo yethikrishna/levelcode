@@ -95,7 +95,10 @@ export function createProgram(): Command {
       '--output-schema <file>',
       'With -p: path to a JSON schema the structured result must satisfy',
     )
-    .option('--json', 'With `doctor`: machine-readable JSON output')
+    .option(
+      '--json',
+      'With `doctor` or `sessions`: machine-readable JSON output',
+    )
     .helpOption('-h, --help', 'Show this help message')
     .option(
       '-p, --print',
