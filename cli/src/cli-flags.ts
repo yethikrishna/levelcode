@@ -76,6 +76,7 @@ export function createProgram(): Command {
     .option('--lite', 'Start in FREE mode (deprecated, use --free)')
     .option('--max', 'Start in MAX mode')
     .option('--plan', 'Start in PLAN mode')
+    .option('--json', 'With `doctor`: machine-readable JSON output')
     .helpOption('-h, --help', 'Show this help message')
     .option(
       '-p, --print',

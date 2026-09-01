@@ -13,7 +13,7 @@ import { createRequire } from 'module'
 
 type CheckStatus = 'ok' | 'warn' | 'fail'
 
-type Check = {
+export type Check = {
   name: string
   status: CheckStatus
   detail: string
@@ -318,6 +318,31 @@ export function runDoctorChecks(overrides: DoctorCheckOverrides = {}): Check[] {
     checkGit(overrides),
     checkSandboxSupport(),
   ]
+}
+
+/** Machine-readable doctor output for CI pipelines. */
+export function formatDoctorJson(checks: Check[]): string {
+  return (
+    JSON.stringify(
+      {
+        ok: doctorExitCode(checks) === 0,
+        summary: {
+          total: checks.length,
+          ok: checks.filter((c) => c.status === 'ok').length,
+          warnings: checks.filter((c) => c.status === 'warn').length,
+          failures: checks.filter((c) => c.status === 'fail').length,
+        },
+        checks: checks.map((c) => ({
+          name: c.name,
+          status: c.status,
+          detail: c.detail,
+          hint: c.hint,
+        })),
+      },
+      null,
+      2,
+    ) + '\n'
+  )
 }
 
 export function formatDoctorReport(checks: Check[]): string {

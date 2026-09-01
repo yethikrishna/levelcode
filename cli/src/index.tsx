@@ -31,7 +31,11 @@ const argv1 = process.argv[2]
 if (argv1 === 'doctor') {
   void import('./doctor/doctor').then((m) => {
     const checks = m.runDoctorChecks()
-    process.stdout.write(m.formatDoctorReport(checks))
+    if (process.argv.includes('--json')) {
+      process.stdout.write(m.formatDoctorJson(checks))
+    } else {
+      process.stdout.write(m.formatDoctorReport(checks))
+    }
     process.exit(m.doctorExitCode(checks))
   })
 } else if (argv1 === 'agents') {

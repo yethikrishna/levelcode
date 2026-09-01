@@ -3,8 +3,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import {
   runDoctorChecks,
   formatDoctorReport,
+  formatDoctorJson,
   doctorExitCode,
 } from '../../doctor/doctor'
+import type { Check } from '../../doctor/doctor'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -72,6 +74,27 @@ describe('doctor hooks/skills checks', () => {
     const skills = checks.find((c) => c.name === 'skills')!
     expect(hooks.detail).toContain('2 event type(s)')
     expect(skills.detail).toContain('1 skill(s)')
+  })
+})
+
+describe('formatDoctorJson', () => {
+  it('emits parseable JSON with summary and per-check entries', () => {
+    const checks: Check[] = [
+      { name: 'a', status: 'ok', detail: 'fine' },
+      { name: 'b', status: 'fail', detail: 'broken', hint: 'fix me' },
+    ]
+    const parsed = JSON.parse(formatDoctorJson(checks))
+    expect(parsed.ok).toBe(false)
+    expect(parsed.summary).toEqual({ total: 2, ok: 1, warnings: 0, failures: 1 })
+    expect(parsed.checks).toHaveLength(2)
+    expect(parsed.checks[1].hint).toBe('fix me')
+  })
+
+  it('reports ok true when all checks pass', () => {
+    const parsed = JSON.parse(
+      formatDoctorJson([{ name: 'a', status: 'ok', detail: 'fine' }]),
+    )
+    expect(parsed.ok).toBe(true)
   })
 })
 
