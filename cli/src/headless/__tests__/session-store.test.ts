@@ -181,6 +181,46 @@ describe('headless session store', () => {
         /exceeds history length \(4\)/,
       )
     })
+
+    it('drops tool calls left unanswered by the truncation point', () => {
+      const originalId = saveHeadlessRunState({
+        sessionState: {
+          mainAgentState: {
+            messageHistory: [
+              { role: 'user', content: 'read the file' },
+              {
+                role: 'assistant',
+                content: [
+                  { type: 'text', text: 'Reading it now.' },
+                  { type: 'tool-call', toolCallId: 'tc1', toolName: 'read_files', input: {} },
+                ],
+              },
+              { role: 'tool', toolCallId: 'tc1', toolName: 'read_files', content: 'file body' },
+              { role: 'assistant', content: [{ type: 'text', text: 'Here is the file.' }] },
+            ],
+          },
+        },
+        output: { type: 'lastMessage', value: [] },
+      } as unknown as RunState)!
+
+      // Cut right after the tool-call message: tc1 has no tool response.
+      const forked = forkSavedSession(originalId, { atMessage: 2 })!
+      const history = (forked.runState as unknown as {
+        sessionState: { mainAgentState: { messageHistory: Array<Record<string, unknown>> } }
+      }).sessionState.mainAgentState.messageHistory
+
+      // The unanswered tool-call part is stripped; user + text part survive.
+      expect(history).toHaveLength(2)
+      expect(history[1]!.role).toBe('assistant')
+      expect(history[1]!.content).toEqual([{ type: 'text', text: 'Reading it now.' }])
+
+      // Cut after the tool response keeps the full exchange intact.
+      const forked2 = forkSavedSession(originalId, { atMessage: 4 })!
+      const history2 = (forked2.runState as unknown as {
+        sessionState: { mainAgentState: { messageHistory: unknown[] } }
+      }).sessionState.mainAgentState.messageHistory
+      expect(history2).toHaveLength(4)
+    })
   })
 
   describe('getSessionMessages', () => {

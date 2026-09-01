@@ -147,11 +147,54 @@ export function listSavedSessions(): SavedSessionSummary[] {
 }
 
 /**
+ * Drop tool calls whose responses fell off the end of a truncated history.
+ * Anthropic's API rejects an assistant tool-call with no matching tool
+ * message, so a fork cut right after a tool_use would crash on resume.
+ * Mirrors the agent-runtime's filterUnfinishedToolCalls (kept local: the
+ * cli fast path must not import the runtime).
+ */
+function dropUnansweredToolCalls(
+  history: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  const answered = new Set<string>()
+  for (const message of history) {
+    if (message.role === 'tool') {
+      const id = (message as { toolCallId?: unknown }).toolCallId
+      if (typeof id === 'string') answered.add(id)
+    }
+  }
+
+  const out: Array<Record<string, unknown>> = []
+  for (const message of history) {
+    if (message.role !== 'assistant') {
+      out.push(message)
+      continue
+    }
+    // String-content assistant messages can't hold tool calls — keep as-is.
+    if (!Array.isArray(message.content)) {
+      out.push(message)
+      continue
+    }
+    const kept = message.content.filter(
+      (part) =>
+        (part as { type?: string; toolCallId?: string })?.type !== 'tool-call' ||
+        answered.has((part as { toolCallId?: string }).toolCallId ?? ''),
+    )
+    if (kept.length > 0) {
+      out.push({ ...message, content: kept })
+    }
+  }
+  return out
+}
+
+/**
  * Fork a saved session: clone its RunState into a new session marked with
  * lineage, and return both ids. The original session is untouched.
  *
  * opts.atMessage truncates the cloned history to its first N messages —
- * branch the conversation from an earlier point instead of the end.
+ * branch the conversation from an earlier point instead of the end. The
+ * truncated history is sanitized so it never ends in an unanswered tool
+ * call (those crash the resumed run at the model boundary).
  */
 export function forkSavedSession(
   sourceChatId: string,
@@ -177,7 +220,9 @@ export function forkSavedSession(
     truncated.sessionState = { ...defined.sessionState }
     truncated.sessionState.mainAgentState = {
       ...defined.sessionState.mainAgentState,
-      messageHistory: history.slice(0, opts.atMessage),
+      messageHistory: dropUnansweredToolCalls(
+        history.slice(0, opts.atMessage) as Array<Record<string, unknown>>,
+      ) as typeof history,
     }
     const forkedChatId = saveHeadlessRunState(truncated, { forkedFrom: sourceChatId })
     if (!forkedChatId) return null
