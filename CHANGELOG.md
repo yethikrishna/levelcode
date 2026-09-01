@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - CLI session/credential storage ignored `LEVELCODE_HOME` — `getConfigDir` used raw `os.homedir()`, breaking hermetic test/live environments and diverging from the monorepo home-dir convention. Both cli and sdk now resolve through `getUserHomeDir()`.
 - Resuming or forking a run-state persisted without `fileContext` (or with a partial agent state) crashed mid-run at `fileContext.agentTemplates` / `agentState.childRunIds` with an opaque TypeError after the fork clone was already on disk. `applyOverridesToSessionState` backfills defaults, so legacy/hand-crafted saves resume cleanly and the model call fails with a real reason.
+- CI never ran the sdk `e2e/` suite — the test job only globbed `src/`, so the 72-test mocked e2e suite could drift silently for months (and had). CI now runs unit + e2e files in one `bun test` invocation.
 
 ## [Unreleased] - Persistent Teams v1
 
