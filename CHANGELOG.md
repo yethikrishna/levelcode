@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Persistent Teams v1 — teams and their state now persist across sessions with improved disk + Zustand sync
 
+## [Unreleased] - Compaction, Effort Dial & MCP Health (2026-08-31)
+
+### Added
+- **`/compact`** (alias `/context:compact`) — manual context compaction: prunes the live RunState's message history through the ContextBudgetGovernor (system messages preserved, middle summarized with a GCC token, recent messages kept) so the next send continues from ~60% of the prior context. The governor existed and ran automatically at 80%/95% thresholds; this is the on-demand lever.
+- **`--effort low|medium|high|max`** — one flag scaling maxAgentSteps (30/100/200/400) for the whole session, interactive and headless. `medium` preserves the historical default; invalid levels rejected at flag parse. The mapping lives in one pure module ready to carry per-agent step budgets.
+- **`/mcp`** — live MCP server health view: connects to every configured server (8s per-server timeout), lists tool counts, renders reachable/unreachable with a summary, notes that failed servers are skipped for tool calls.
+- **read_files inline cap** — files over 64k characters return head+tail with a truncation notice and the file path instead of flooding the context (~250k tokens for a 1MB file → ~16k max).
+
+### Changed
+- **eval-regression workflow is path-gated** — the baseline+PR buffbench pass (an hour of model calls) now runs only when a PR touches the agent loop, prompts, tools, context management, or eval machinery; docs/web/UI-only PRs skip it.
+
+### Fixed
+- sdk `run-file-filter` suite gets timeout headroom (LLM-mock flows under load exceeded the 5s default).
+
 ## [Unreleased] - Agents Console & Headless Sessions (2026-08-31)
 
 ### Added
