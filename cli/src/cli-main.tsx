@@ -87,6 +87,13 @@ function parseArgs(): ParsedArgs {
   if (options.max) initialMode = 'MAX'
   if (options.plan) initialMode = 'PLAN'
 
+  // The effort dial scales max steps for every send in this session.
+  if (options.effort) {
+    const { setEffortLevel } =
+      require('./utils/effort') as typeof import('./utils/effort')
+    setEffortLevel(options.effort)
+  }
+
   // --worktree resolves synchronously (git exec) before the TUI boots: the
   // whole session then runs inside the worktree.
   let effectiveCwd = options.cwd

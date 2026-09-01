@@ -1,5 +1,7 @@
 import path from 'path'
 
+import { getEffortLevel, maxStepsForEffort } from './effort'
+
 import {
   createEventHandler,
   createStreamChunkHandler,
@@ -109,7 +111,7 @@ export const createRunConfig = (params: CreateRunConfigParams) => {
     content,
     previousRun: previousRunState ?? undefined,
     agentDefinitions,
-    maxAgentSteps: 100,
+    maxAgentSteps: maxStepsForEffort(getEffortLevel()),
     handleStreamChunk: createStreamChunkHandler(eventHandlerState),
     handleEvent: createEventHandler(eventHandlerState),
     signal: params.signal,

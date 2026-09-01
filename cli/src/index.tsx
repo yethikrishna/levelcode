@@ -21,6 +21,7 @@ const options = program.opts<{
   agent?: string
   cwd?: string
   worktree?: string
+  effort?: string
   continue?: boolean | string
 }>()
 
@@ -55,6 +56,10 @@ if (argv1 === 'doctor') {
     process.exit(2)
   }
   void import('./headless/run-headless').then(async (m) => {
+    if (options.effort) {
+      const { setEffortLevel } = await import('./utils/effort')
+      setEffortLevel(options.effort as never)
+    }
     const { resolveWorktreeBoot } = await import('./utils/worktree-boot')
     const cwdOverride = await resolveWorktreeBoot(
       options.worktree,

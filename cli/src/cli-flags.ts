@@ -9,7 +9,7 @@
 
 import { createRequire } from 'module'
 
-import { Command } from 'commander'
+import { Command, InvalidArgumentError } from 'commander'
 
 export function loadPackageVersion(): string {
   const fromEnv = process.env.LEVELCODE_CLI_VERSION
@@ -53,6 +53,20 @@ export function createProgram(): Command {
     .option(
       '--worktree <name>',
       'Create (or re-enter) an isolated git worktree at .levelcode/worktrees/<name> and run there',
+    )
+    .option(
+      '--effort <level>',
+      'How hard the agent works: low (30 steps) | medium (100) | high (200) | max (400)',
+      (value: string) => {
+        const valid = ['low', 'medium', 'high', 'max']
+        const normalized = value.toLowerCase()
+        if (!valid.includes(normalized)) {
+          throw new InvalidArgumentError(
+            `--effort must be one of: ${valid.join(', ')}`,
+          )
+        }
+        return normalized
+      },
     )
     .option('--free', 'Start in FREE mode')
     .option('--lite', 'Start in FREE mode (deprecated, use --free)')
