@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Persistent Teams v1 — teams and their state now persist across sessions with improved disk + Zustand sync
 
+## [Unreleased] - Watch Mode, Forking & Machine Contracts (2026-09-01)
+
+### Added
+- **`levelcode agents --watch [interval]`** — live-refreshing swarm view (default 5s, screen-cleared, Ctrl+C exits). The console was static; swarms move.
+- **`doctor --json`** — machine-readable health `{ok, summary, checks[]}` for CI pipelines gating on environment health; exit codes unchanged.
+- **Compliance tail in `agents <team>`** — signed audit trail per team: total events, tool-call/file-change counts, last 5 entries with timestamps and agent ids (read from `~/.levelcode/swarm/<team>/compliance.jsonl`).
+- **`levelcode sessions`** — lists saved sessions newest-first with id, mtime, message count, first user prompt, and fork lineage.
+- **`levelcode -p --fork <session-id>`** — branches from a saved session: clone marked `forked-from`, original untouched, result event carries `forked_from`. Try alternative approaches from the same context.
+- **`--output-schema <file>`** — validated structured output for headless runs: forces structured_output mode, validates client-side with ajv (draft-07); failures exit 1 with `schema_errors`, successes carry `schema_valid: true`. CI can gate on machine-checkable answers.
+- **`/effort <level>`** — change the effort dial mid-session (with `--effort` at boot; shared state).
+- **Context metrics in headless results** — `context_tokens` and `history_messages` from the runtime, so CI can alert on runaway context growth across chained runs.
+
+### Fixed
+- `levelcode sessions` fast path never set the project root — the listing always degraded to empty (regression-tested via the live flow: seed → list → fork → list).
+
 ## [Unreleased] - Compaction, Effort Dial & MCP Health (2026-08-31)
 
 ### Added
