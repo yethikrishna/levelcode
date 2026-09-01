@@ -341,6 +341,15 @@ export function createAgentState(
     })
   }
 
+  // The child can never outlive its parent's budget: the effort dial caps
+  // the parent (maxStepsForEffort → run.ts), so clamping here bounds the
+  // whole swarm. A parent at `low` (30) can no longer spawn children with
+  // a flat 100-step allowance.
+  const stepsRemaining = Math.min(
+    MAX_AGENT_STEPS_DEFAULT,
+    parentAgentState.stepsRemaining ?? MAX_AGENT_STEPS_DEFAULT,
+  )
+
   return {
     agentId,
     agentType,
@@ -352,7 +361,7 @@ export function createAgentState(
     subagents: [],
     childRunIds: [],
     messageHistory,
-    stepsRemaining: MAX_AGENT_STEPS_DEFAULT,
+    stepsRemaining,
     creditsUsed: 0,
     directCreditsUsed: 0,
     output: undefined,
