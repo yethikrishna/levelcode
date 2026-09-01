@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **`levelcode sessions <id-or-prefix>`** — inspect one saved session's message history with per-message indices and a ready-to-copy fork command, so picking a `--at-message` fork point no longer requires reading run-state.json.
+- **`sessions --json`** — machine-readable listing and detail (following `doctor --json`): `{sessions:[...]}` with fork lineage, and `{chatId, historyLength, messages}` for scripts that pick fork points programmatically.
 - **`--fork <id> --at-message <n>`** — truncate the cloned history to its first N messages; non-negative-integer validation at flag parse, out-of-range rejected with exit 2 before any model call.
 - **Subagent step budgets bounded by the parent** — a spawned agent now gets `min(default, parent's remaining steps)` instead of a flat 100. The effort dial caps the parent, so it now bounds the whole swarm: at `low` (30) children can no longer get a fresh 100-step allowance, and a nearly-depleted parent cannot spawn runaway children.
 
