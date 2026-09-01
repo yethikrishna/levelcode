@@ -4,7 +4,7 @@ import * as os from 'os'
 import * as path from 'path'
 
 import { runHeadless } from '../run-headless'
-import { loadHeadlessRunState, saveHeadlessRunState } from '../session-store'
+import { loadHeadlessRunState, saveHeadlessRunState, forkSavedSession, listSavedSessions } from '../session-store'
 import { setProjectRoot } from '../../project-files'
 
 import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
@@ -266,6 +266,67 @@ describe('runHeadless session resume', () => {
 
     expect(result.is_error).toBe(true)
     expect(result.session_id).toBeUndefined()
+  })
+})
+
+describe('runHeadless fork', () => {
+  let tmpDir: string
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-fork-'))
+    setProjectRoot(tmpDir)
+  })
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('errors with exit code 2 when the fork id is unknown', async () => {
+    const { exitCode, result } = await runHeadless({
+      prompt: 'branch',
+      outputFormat: 'json',
+      agentOverride: null,
+      forkId: 'no-such-session',
+      client: fakeClient([]),
+      sink: makeSink().capture,
+    })
+    expect(exitCode).toBe(2)
+    expect(result.is_error).toBe(true)
+    expect(String(result.message)).toContain('No forkable session')
+  })
+
+  it('forks with lineage and reports forked_from', async () => {
+    const state = { sessionState: { mainAgentState: { messageHistory: [{ role: 'user', content: 'origin' }] } } } as unknown as RunState
+    const originalId = saveHeadlessRunState(state)
+    expect(originalId).toBeTruthy()
+
+    let sawPreviousRun: unknown
+    const client = {
+      run: async (opts: any) => {
+        sawPreviousRun = opts.previousRun
+        await opts.handleEvent?.({ type: 'text', text: 'branched' })
+        return state
+      },
+    } as unknown as LevelCodeClient
+
+    const { exitCode, result } = await runHeadless({
+      prompt: 'branch',
+      outputFormat: 'json',
+      agentOverride: null,
+      forkId: originalId!,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(0)
+    expect(result.forked_from).toBe(originalId)
+    expect(result.session_id).toBeTruthy()
+    expect(sawPreviousRun).toEqual(state)
+
+    // Clone + lineage exist on disk; original has no marker
+    const sessions = listSavedSessions()
+    const forkEntry = sessions.find((s) => s.chatId === result.session_id)
+    expect(forkEntry?.forkedFrom ?? undefined).toBe(originalId ?? undefined)
+    const originalEntry = sessions.find((s) => s.chatId === originalId)
+    expect(originalEntry?.forkedFrom ?? undefined).toBeUndefined()
   })
 })
 
