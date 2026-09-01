@@ -9,6 +9,19 @@
 
 import type { TeamConfig, TeamMember, TeamTask } from '@levelcode/common/types/team-config'
 
+export type ComplianceTailEntry = {
+  eventType: string
+  agentId?: string
+  timestamp: number
+}
+
+export type ComplianceSummary = {
+  entries: ComplianceTailEntry[]
+  totalEvents: number
+  toolCalls: number
+  fileChanges: number
+}
+
 export type AgentsConsoleData = {
   teams: Array<{
     name: string
@@ -67,6 +80,27 @@ const MEMBER_COLOR: Record<TeamMember['status'], keyof ConsoleTheme> = {
   blocked: 'yellow',
   completed: 'green',
   failed: 'red',
+}
+
+/**
+ * Summarize a team's compliance log from raw events (last `tailCount` entries,
+ * plus aggregate counts). Pure — the disk reader is injected by the caller.
+ */
+export function summarizeCompliance(
+  events: Array<{ eventType?: string; type?: string; agentId?: string; timestamp: number }>,
+  tailCount = 5,
+): ComplianceSummary {
+  const normalized = events.map((e) => ({
+    eventType: e.eventType ?? e.type ?? 'unknown',
+    agentId: e.agentId,
+    timestamp: e.timestamp,
+  }))
+  return {
+    entries: normalized.slice(-tailCount),
+    totalEvents: normalized.length,
+    toolCalls: normalized.filter((e) => e.eventType === 'tool-call' || e.eventType === 'tool_use').length,
+    fileChanges: normalized.filter((e) => e.eventType === 'file_change').length,
+  }
 }
 
 function pad(s: string, width: number): string {
@@ -167,6 +201,7 @@ export function formatTeamDetail(
   tasks: TeamTask[],
   isLastActive: boolean,
   theme: ConsoleTheme,
+  complianceSummary?: ComplianceSummary,
 ): string {
   const lines: string[] = []
   lines.push('')
@@ -209,6 +244,21 @@ export function formatTeamDetail(
     const blockedBy =
       task.blockedBy.length > 0 ? theme.red(`  ⛔ blocked by ${task.blockedBy.join(', ')}`) : ''
     lines.push(`    #${pad(task.id, 5)} ${status} ${task.subject}${owner}${blockedBy}`)
+  }
+
+  if (complianceSummary && complianceSummary.totalEvents > 0) {
+    lines.push('')
+    lines.push(`  ${theme.bold('Compliance')}`)
+    lines.push(
+      `    ${theme.dim(
+        `${complianceSummary.totalEvents} signed events · ${complianceSummary.toolCalls} tool calls · ${complianceSummary.fileChanges} file changes`,
+      )}`,
+    )
+    for (const entry of complianceSummary.entries) {
+      const when = new Date(entry.timestamp).toLocaleTimeString()
+      const agent = entry.agentId ? theme.dim(` @${entry.agentId}`) : ''
+      lines.push(`    ${theme.dim(when)}  ${entry.eventType}${agent}`)
+    }
   }
 
   lines.push('')

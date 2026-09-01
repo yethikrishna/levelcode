@@ -6,10 +6,11 @@
 
 import { listAllTeams, getLastActiveTeam } from '@levelcode/common/utils/team-discovery'
 import { loadTeamConfig, listTasks } from '@levelcode/common/utils/team-fs'
+import { getComplianceEvents } from '@levelcode/common/utils/compliance-logger'
 
 import type { TeamTask } from '@levelcode/common/types/team-config'
-import type { AgentsConsoleData, ConsoleTheme } from './agents-console'
-import { formatAgentsOverview, formatTeamDetail, ansiTheme } from './agents-console'
+import type { AgentsConsoleData, ConsoleTheme, ComplianceSummary } from './agents-console'
+import { formatAgentsOverview, formatTeamDetail, ansiTheme, summarizeCompliance } from './agents-console'
 
 export function collectAgentsData(): AgentsConsoleData {
   const lastActive = getLastActiveTeam()
@@ -72,7 +73,19 @@ export async function runWatchLoop(
   }
 }
 
-export function renderAgentsCommand(teamName?: string): { output: string; exitCode: number } {
+/** Load a team's compliance summary; failures degrade to undefined. */
+export function loadComplianceSummary(teamName: string): ComplianceSummary | undefined {
+  try {
+    return summarizeCompliance(getComplianceEvents(teamName))
+  } catch {
+    return undefined
+  }
+}
+
+export function renderAgentsCommand(
+  teamName?: string,
+  compliance: (name: string) => ComplianceSummary | undefined = loadComplianceSummary,
+): { output: string; exitCode: number } {
   const theme = themeFor()
   const data = collectAgentsData()
 
@@ -87,7 +100,14 @@ export function renderAgentsCommand(teamName?: string): { output: string; exitCo
       }
     }
     return {
-      output: formatTeamDetail(team.name, team.config, team.tasks, team.isLastActive, theme),
+      output: formatTeamDetail(
+        team.name,
+        team.config,
+        team.tasks,
+        team.isLastActive,
+        theme,
+        compliance(team.name),
+      ),
       exitCode: 0,
     }
   }
