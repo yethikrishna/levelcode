@@ -16,6 +16,7 @@ import { findTeamContext } from './team-context'
 import { checkIdleAfterTurn } from './team-lifecycle'
 import { additionalSystemPrompts } from './system-prompt/prompts'
 import { generateTeamPromptSection } from './system-prompt/team-prompt'
+import { withTransientStepRetry } from './step-retry'
 import { getAgentTemplate } from './templates/agent-registry'
 import { buildAgentToolSet } from './templates/prompts'
 import { getAgentPrompt } from './templates/strings'
@@ -894,24 +895,40 @@ export async function loopAgentSteps(
 
       const creditsBefore = currentAgentState.directCreditsUsed
       const childrenBefore = currentAgentState.childRunIds.length
+      // Snapshot the pieces of the loop state that runAgentStep reassigns
+      // before the model call; on a transient failure the retry starts from
+      // the untouched pre-step state instead of a half-built history.
+      const historyBefore = currentAgentState.messageHistory
+      const stepsBefore = currentAgentState.stepsRemaining
       const {
         agentState: newAgentState,
         shouldEndTurn: llmShouldEndTurn,
         messageId,
         nResponses: generatedResponses,
-      } = await runAgentStep({
-        ...params,
+      } = await withTransientStepRetry(
+        () =>
+          runAgentStep({
+            ...params,
 
-        agentState: currentAgentState,
-        agentTemplate,
-        n,
-        prompt: currentPrompt,
-        runId,
-        spawnParams: currentParams,
-        system,
-        tools,
-        additionalToolDefinitions: additionalToolDefinitionsWithCache,
-      })
+            agentState: currentAgentState,
+            agentTemplate,
+            n,
+            prompt: currentPrompt,
+            runId,
+            spawnParams: currentParams,
+            system,
+            tools,
+            additionalToolDefinitions: additionalToolDefinitionsWithCache,
+          }),
+        {
+          logger,
+          signal,
+          rollback: () => {
+            currentAgentState.messageHistory = historyBefore
+            currentAgentState.stepsRemaining = stepsBefore
+          },
+        },
+      )
 
       if (newAgentState.runId) {
         await addAgentStep({
