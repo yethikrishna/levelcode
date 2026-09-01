@@ -14,7 +14,7 @@ import {
 
 import path from 'path'
 
-import { getFiles } from '../tools/read-files'
+import { getFiles, INLINE_CONTENT_LIMIT } from '../tools/read-files'
 
 import type { LevelCodeFileSystem } from '@levelcode/common/types/filesystem'
 import type { PathLike } from 'node:fs'
@@ -236,7 +236,10 @@ describe('getFiles', () => {
         fs: mockFs,
       })
 
-      expect(result['exactly1mb.bin']).toBe(oneMBContent)
+      // With the inline cap, a 1MB read returns bounded head+tail, not the raw file
+      const exact = result['exactly1mb.bin'] as string
+      expect(exact.length).toBeLessThan(oneMBContent.length)
+      expect(exact).toContain('truncated')
     })
   })
 
@@ -504,5 +507,73 @@ describe('getFiles', () => {
       // Should still report missing files
       expect(result['nonexistent.txt']).toBe(FILE_READ_STATUS.DOES_NOT_EXIST)
     })
+  })
+})
+
+describe('getFiles inline content cap', () => {
+  function makeFs(files: Record<string, string>): LevelCodeFileSystem {
+    const normalized = Object.fromEntries(
+      Object.entries(files).map(([key, value]) => [path.normalize(key), value]),
+    )
+    return {
+      readFile: async (filePath: PathLike) => {
+        const key = path.normalize(String(filePath))
+        if (normalized[key] !== undefined) return normalized[key]
+        throw Object.assign(new Error(`ENOENT: ${filePath}`), { code: 'ENOENT' })
+      },
+      stat: async (filePath: PathLike) => {
+        const key = path.normalize(String(filePath))
+        if (normalized[key] !== undefined) {
+          return {
+            size: normalized[key]!.length,
+            isDirectory: () => false,
+            isFile: () => true,
+            atimeMs: Date.now(),
+            mtimeMs: Date.now(),
+          }
+        }
+        throw Object.assign(new Error(`ENOENT: ${filePath}`), { code: 'ENOENT' })
+      },
+      readdir: async () => [],
+      mkdir: async () => undefined,
+      writeFile: async () => undefined,
+    } as unknown as LevelCodeFileSystem
+  }
+
+  test('returns small files inline untouched', async () => {
+    const result = await getFiles({
+      filePaths: ['a.ts'],
+      cwd: '/project',
+      fs: makeFs({ '/project/a.ts': 'x'.repeat(1000) }),
+    })
+    expect(result['a.ts']).toHaveLength(1000)
+  })
+
+  test('truncates oversized files with head+tail and a paging notice', async () => {
+    const big = 'A'.repeat(INLINE_CONTENT_LIMIT) + 'M'.repeat(INLINE_CONTENT_LIMIT)
+    const result = await getFiles({
+      filePaths: ['big.ts'],
+      cwd: '/project',
+      fs: makeFs({ '/project/big.ts': big }),
+    })
+
+    const returned = result['big.ts'] as string
+    expect(returned.length).toBeLessThan(big.length)
+    expect(returned).toContain('truncated')
+    // Head and tail preserved
+    expect(returned.startsWith('A')).toBe(true)
+    expect(returned.endsWith('M')).toBe(true)
+  })
+
+  test('keeps truncation bounded even for a 1MB file', async () => {
+    const big = 'x'.repeat(1024 * 1024)
+    const result = await getFiles({
+      filePaths: ['huge.ts'],
+      cwd: '/project',
+      fs: makeFs({ '/project/huge.ts': big }),
+    })
+    const returned = result['huge.ts'] as string
+    // head + tail + notice, well under the raw size
+    expect(returned.length).toBeLessThan(INLINE_CONTENT_LIMIT * 1.1)
   })
 })

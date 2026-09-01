@@ -11,6 +11,14 @@ export type FileFilterResult = {
 
 export type FileFilter = (filePath: string) => FileFilterResult
 
+/**
+ * Max characters of file content returned inline in one tool result
+ * (~16k tokens). Larger files are truncated with a head+tail notice — the
+ * model can page through with offset/limit-capable tools or bash (sed -n)
+ * instead of flooding the context window in one call.
+ */
+export const INLINE_CONTENT_LIMIT = 64_000
+
 export async function getFiles(params: {
   filePaths: string[]
   cwd: string
@@ -86,10 +94,19 @@ export async function getFiles(params: {
           ` [${(stats.size / (1024 * 1024)).toFixed(2)}MB]`
       } else {
         const content = await fs.readFile(fullPath, 'utf8')
+        // Bound inline size: one huge file must not dominate the context
+        // window. Head+tail preserved, with a notice telling the model how
+        // to page through the rest.
+        const bounded =
+          content.length > INLINE_CONTENT_LIMIT
+            ? content.slice(0, INLINE_CONTENT_LIMIT / 2) +
+              `\n\n[... truncated ${(content.length - INLINE_CONTENT_LIMIT).toLocaleString()} characters of ${content.length.toLocaleString()} total; file: ${relativePath} — page through with offset/limit or bash (sed -n) ...]\n\n` +
+              content.slice(-INLINE_CONTENT_LIMIT / 2)
+            : content
         // Prepend TEMPLATE marker for example files
         result[resultKey] = isExampleFile
-          ? FILE_READ_STATUS.TEMPLATE + '\n' + content
-          : content
+          ? FILE_READ_STATUS.TEMPLATE + '\n' + bounded
+          : bounded
       }
     } catch (error) {
       if (
