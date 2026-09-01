@@ -80,6 +80,10 @@ export function createProgram(): Command {
       '--fork <session-id>',
       'With -p: branch from a saved session (original untouched, lineage kept)',
     )
+    .option(
+      '--output-schema <file>',
+      'With -p: path to a JSON schema the structured result must satisfy',
+    )
     .option('--json', 'With `doctor`: machine-readable JSON output')
     .helpOption('-h, --help', 'Show this help message')
     .option(

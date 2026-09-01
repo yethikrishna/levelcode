@@ -23,6 +23,10 @@ import { initializeApp } from '../init/init-app'
 import { getLevelCodeClient } from '../utils/levelcode-client'
 import { isSensitiveFile } from '../utils/create-run-config'
 import { saveHeadlessRunState, loadHeadlessRunState, forkSavedSession } from './session-store'
+import { loadAgentDefinitions } from '../utils/local-agent-registry'
+import Ajv from 'ajv'
+
+import type { AgentDefinition } from '@levelcode/sdk'
 
 import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
 import type { FileFilter, LevelCodeClient } from '@levelcode/sdk'
@@ -44,6 +48,8 @@ export type HeadlessOptions = {
   continueId?: string | null
   /** Branch from the given session id: original untouched, lineage kept. */
   forkId?: string | null
+  /** JSON schema (draft-07) the structured output must satisfy. */
+  outputSchema?: Record<string, unknown>
   /** Test seam: capture output instead of writing to the process streams. */
   sink?: {
     stdout: (chunk: string) => void
@@ -185,9 +191,23 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   }
 
   let finishedRun: unknown
+  // --output-schema: force structured output on the agent definition.
+  let agentArg: string | AgentDefinition = agentOverride ?? 'base2'
+  if (options.outputSchema) {
+    const definitions = loadAgentDefinitions()
+    const base = definitions.find((d) => d.id === (agentOverride ?? 'base2'))
+    if (base) {
+      agentArg = {
+        ...base,
+        outputMode: 'structured_output',
+        outputSchema: options.outputSchema as never,
+      }
+    }
+  }
+
   try {
     finishedRun = await client.run({
-      agent: agentOverride ?? 'base2',
+      agent: agentArg,
       prompt,
       ...(previousRun ? { previousRun: previousRun as never } : {}),
       handleEvent,
@@ -211,6 +231,41 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   // model stream died silently): never report success without output.
   if (!sawError && !sawFinish && finalText.length === 0) {
     sawError = true
+  }
+
+  // --output-schema: validate the structured result. The runtime guarantees
+  // set_output was called when the agent definition carries a schema; this
+  // client-side pass verifies the value against the schema (draft-07).
+  let structuredValue: unknown = undefined
+  let schemaValid: boolean | undefined = undefined
+  let schemaErrors: unknown = undefined
+  if (options.outputSchema) {
+    const output = (finishedRun as { output?: { type?: string; value?: unknown } } | undefined)
+      ?.output
+    if (output?.type === 'structuredOutput') {
+      structuredValue = output.value
+    } else if (finalText.trim().length > 0) {
+      try {
+        structuredValue = JSON.parse(finalText)
+      } catch {
+        structuredValue = undefined
+      }
+    }
+    try {
+      const ajv = new Ajv({ allErrors: true })
+      const validate = ajv.compile(options.outputSchema)
+      schemaValid = validate(structuredValue) as boolean
+      if (!schemaValid) {
+        schemaErrors = validate.errors
+        sawError = true
+      }
+    } catch (schemaError) {
+      schemaValid = false
+      schemaErrors = [
+        { message: schemaError instanceof Error ? schemaError.message : String(schemaError) },
+      ]
+      sawError = true
+    }
   }
 
   // Persist the session for --continue chaining (best-effort).
@@ -237,6 +292,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     project: path.basename(projectRoot),
     ...(sessionId ? { session_id: sessionId } : {}),
     ...(forkedFromId ? { forked_from: forkedFromId } : {}),
+    ...(schemaValid !== undefined
+      ? { schema_valid: schemaValid, ...(schemaErrors ? { schema_errors: schemaErrors } : {}) }
+      : {}),
   }
 
   if (outputFormat === 'stream-json') {

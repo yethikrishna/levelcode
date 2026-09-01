@@ -330,6 +330,101 @@ describe('runHeadless fork', () => {
   })
 })
 
+describe('runHeadless --output-schema', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      answer: { type: 'string' },
+      confidence: { type: 'number' },
+    },
+    required: ['answer', 'confidence'],
+    additionalProperties: false,
+  }
+
+  const structuredClient = (value: unknown) =>
+    ({
+      run: async ({ handleEvent }: any) => {
+        await handleEvent?.({ type: 'finish', totalCost: 0 })
+        return {
+          output: { type: 'structuredOutput', value },
+        } as any
+      },
+    } as unknown as LevelCodeClient)
+
+  it('valid structured output passes with schema_valid: true', async () => {
+    const { exitCode, result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      outputSchema: schema,
+      client: structuredClient({ answer: 'yes', confidence: 0.9 }),
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(0)
+    expect(result.schema_valid).toBe(true)
+  })
+
+  it('invalid structured output fails with schema errors', async () => {
+    const { exitCode, result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      outputSchema: schema,
+      client: structuredClient({ answer: 'yes', wrong: true }),
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(1)
+    expect(result.schema_valid).toBe(false)
+    expect(Array.isArray(result.schema_errors)).toBe(true)
+  })
+
+  it('final text JSON is validated when no structured output was set', async () => {
+    const client = {
+      run: async ({ handleEvent }: any) => {
+        await handleEvent?.({ type: 'text', text: '{"answer":"ok","confidence":0.5}' })
+        await handleEvent?.({ type: 'finish', totalCost: 0 })
+        return { output: { type: 'lastMessage', value: [] } } as any
+      },
+    } as unknown as LevelCodeClient
+
+    const { exitCode, result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      outputSchema: schema,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(0)
+    expect(result.schema_valid).toBe(true)
+  })
+
+  it('non-JSON final text fails schema validation', async () => {
+    const client = {
+      run: async ({ handleEvent }: any) => {
+        await handleEvent?.({ type: 'text', text: 'plain prose, not json' })
+        await handleEvent?.({ type: 'finish', totalCost: 0 })
+        return { output: { type: 'lastMessage', value: [] } } as any
+      },
+    } as unknown as LevelCodeClient
+
+    const { exitCode, result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      outputSchema: schema,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(1)
+    expect(result.schema_valid).toBe(false)
+  })
+})
+
 describe('runHeadless failure contract', () => {
   it('reports failure when the run finishes without any output or finish event', async () => {
     const { sink, capture } = makeSink()

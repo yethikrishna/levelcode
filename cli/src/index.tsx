@@ -24,6 +24,7 @@ const options = program.opts<{
   effort?: string
   continue?: boolean | string
   fork?: string
+  outputSchema?: string
   watch?: boolean | string
 }>()
 
@@ -97,6 +98,19 @@ if (argv1 === 'doctor') {
     process.exit(2)
   }
   void import('./headless/run-headless').then(async (m) => {
+    let outputSchema: Record<string, unknown> | undefined
+    if (options.outputSchema) {
+      try {
+        outputSchema = JSON.parse(
+          (await import('fs')).readFileSync(options.outputSchema, 'utf-8'),
+        ) as Record<string, unknown>
+      } catch (error) {
+        console.error(
+          `error: --output-schema: ${error instanceof Error ? error.message : String(error)}`,
+        )
+        process.exit(2)
+      }
+    }
     if (options.effort) {
       const { setEffortLevel } = await import('./utils/effort')
       setEffortLevel(options.effort as never)
@@ -121,6 +135,7 @@ if (argv1 === 'doctor') {
         typeof options.fork === 'string' && options.fork.trim().length > 0
           ? options.fork.trim()
           : null,
+      outputSchema,
     })
     process.exit(exitCode)
   })
