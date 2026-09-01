@@ -208,6 +208,7 @@ export type {
 
 // Trajectory replay (cross-session resumption)
 export { TrajectoryReplay } from './trajectory/replay'
+export { trajectoryToMessages } from './trajectory/to-agent-messages'
 export type {
   TrajectoryStep,
   TrajectorySessionInfo,

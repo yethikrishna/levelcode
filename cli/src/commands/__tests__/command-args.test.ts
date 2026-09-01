@@ -34,6 +34,7 @@ describe('command factory pattern', () => {
       saveToHistory: mock(() => {}),
       scrollToLatest: mock(() => {}),
       sendMessage: mock(async () => {}),
+      setBranchRunState: mock(() => {}),
       setCanProcessQueue: mock(() => {}),
       setInputFocused: mock(() => {}),
       setInputValue: mock(() => {}),

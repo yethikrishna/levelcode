@@ -123,6 +123,8 @@ export const useSendMessage = ({
     prunedTokens: number
     error?: string
   }
+  /** Seed the next run with a reconstructed RunState (trajectory replay/branch). */
+  setBranchRunState: (runState: RunState) => void
 } => {
   // Pull setters directly from store - these are stable references that don't need
   // to trigger re-renders, so using getState() outside of callbacks is intentional.
@@ -606,5 +608,9 @@ export const useSendMessage = ({
     sendMessage,
     clearMessages,
     compactHistory,
+    setBranchRunState: (runState: RunState) => {
+      previousRunStateRef.current = runState
+      setRunState(runState)
+    },
   }
 }

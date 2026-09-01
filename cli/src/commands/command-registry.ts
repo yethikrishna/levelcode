@@ -29,7 +29,10 @@ import {
   Role,
   Permission,
   generateRepoMap,
+  trajectoryToMessages,
 } from '@levelcode/sdk'
+
+import type { RunState } from '@levelcode/sdk'
 
 import { handleAdsEnable, handleAdsDisable } from './ads'
 import { useThemeStore } from '../hooks/use-theme'
@@ -160,6 +163,8 @@ export type RouterParams = {
   saveToHistory: (message: string) => void
   scrollToLatest: () => void
   sendMessage: SendMessageFn
+  /** Seed the next sendMessage run with a reconstructed RunState (trajectory replay/branch). */
+  setBranchRunState: (runState: RunState) => void
   setCanProcessQueue: (value: React.SetStateAction<boolean>) => void
   setInputFocused: (focused: boolean) => void
   setInputValue: (
@@ -2640,44 +2645,79 @@ Change with /effort <level>. Applies to the next message.`),
     name: 'trajectory:replay',
     handler: async (params, args) => {
       const id = args.trim()
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
       if (!id) {
         params.setMessages((prev) => [
           ...prev,
-          getUserMessage(params.inputValue.trim()),
-          getSystemMessage('Usage: /trajectory:replay <id>'),
+          getSystemMessage('Usage: /trajectory:replay <id> (see /trajectory:list)'),
         ])
-        params.saveToHistory(params.inputValue.trim())
-        clearInput(params)
         return
       }
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-      params.setMessages((prev) => [
-        ...prev,
-        getSystemMessage(`Replaying trajectory ${id.slice(0, 12)}...`),
-      ])
+      try {
+        const trajectory = TrajectoryReplay.loadTrajectory(process.cwd(), id)
+        const lines: string[] = [`Trajectory ${trajectory.sessionId.slice(0, 12)} (${trajectory.steps.length} steps):`]
+        trajectory.steps.forEach((step) => {
+          const detail =
+            step.type === 'tool_call'
+              ? `${step.name ?? 'unknown'} ${JSON.stringify(step.data ?? {}).slice(0, 60)}`
+              : step.type === 'tool_result'
+                ? `${step.name ?? 'unknown'} -> ${JSON.stringify(step.data ?? '').slice(0, 60)}`
+                : (step.content ?? '').replace(/\s+/g, ' ').slice(0, 80)
+          lines.push(`  ${step.index}. [${step.type}] ${detail}`)
+        })
+        lines.push(`Branch from any step: /trajectory:branch ${trajectory.sessionId.slice(0, 12)} <step> <prompt>`)
+        params.setMessages((prev) => [...prev, getSystemMessage(lines.join('\n'))])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Trajectory replay error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
     },
   }),
   defineCommandWithArgs({
     name: 'trajectory:branch',
     handler: async (params, args) => {
       const parts = args.trim().split(/\s+/)
-      if (parts.length < 2) {
-        params.setMessages((prev) => [
-          ...prev,
-          getUserMessage(params.inputValue.trim()),
-          getSystemMessage('Usage: /trajectory:branch <id> <step> <prompt>'),
-        ])
-        params.saveToHistory(params.inputValue.trim())
-        clearInput(params)
-        return
-      }
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
-      params.setMessages((prev) => [
-        ...prev,
-        getSystemMessage(`Branching trajectory ${parts[0].slice(0, 12)} at step ${parts[1]}...`),
-      ])
+      if (parts.length < 3) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage('Usage: /trajectory:branch <id> <step> <prompt> (see /trajectory:list)'),
+        ])
+        return
+      }
+      const [id, stepArg] = parts
+      const prompt = parts.slice(2).join(' ')
+      try {
+        const trajectory = TrajectoryReplay.loadTrajectory(process.cwd(), id)
+        const stepIndex = Number(stepArg)
+        if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= trajectory.steps.length) {
+          throw new RangeError(`step ${stepArg} out of range [0, ${trajectory.steps.length - 1}]`)
+        }
+        // Reconstruct the LevelCode message history up to that step (unanswered
+        // tool calls dropped) and seed the next run with it.
+        const { sessionState, droppedToolCallIds } = trajectoryToMessages(trajectory, stepIndex)
+        params.setBranchRunState({ sessionState } as RunState)
+        const droppedNote = droppedToolCallIds.length
+          ? ` (${droppedToolCallIds.length} unanswered tool call(s) at the cut were dropped)`
+          : ''
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(
+            `Branched from trajectory ${trajectory.sessionId.slice(0, 12)} at step ${stepIndex}: ` +
+              `${sessionState.mainAgentState.messageHistory.length} message(s) of context injected${droppedNote}.`,
+          ),
+        ])
+        await params.sendMessage({ content: prompt, agentMode: params.agentMode })
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(`Trajectory branch error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
     },
   }),
   // ── Vault (stub - uses credentials store) ─────────
