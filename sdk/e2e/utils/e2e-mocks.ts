@@ -1,4 +1,5 @@
 import { models } from '@levelcode/common/old-constants'
+import * as semanticMemoryModule from '@levelcode/common/memory/semantic-memory'
 import { promptSuccess } from '@levelcode/common/util/error'
 import { spyOn } from 'bun:test'
 import z from 'zod/v4'
@@ -6,6 +7,9 @@ import z from 'zod/v4'
 import { LevelCodeClient } from '../../src/client'
 import * as databaseModule from '../../src/impl/database'
 import * as llmModule from '../../src/impl/llm'
+import * as repoMapModule from '../../src/tools/repo-map'
+
+import type { SemanticMemoryStore } from '@levelcode/common/memory/semantic-memory'
 
 import type { AgentTemplate } from '@levelcode/common/types/agent-template'
 import type {
@@ -98,8 +102,20 @@ function extractLatestUserMessage(text: string): string | null {
   return matches[matches.length - 1]?.[1] ?? null
 }
 
+/**
+ * The runtime appends run params (repo map, etc.) to the user message as a
+ * pretty-printed JSON block: `\n\n{\n  "repoMap": ...`. Those quotes would
+ * hijack the quote-echo rule below, so strip everything from the params
+ * block onward — the tests match on what the user actually typed.
+ */
+function stripParamsJsonBlock(text: string): string {
+  const paramsStart = text.search(/\n\n\{\n  "/)
+  return paramsStart === -1 ? text : text.slice(0, paramsStart)
+}
+
 function getPromptText(latestUserText: string, allText: string): string {
-  return extractLatestUserMessage(allText) ?? latestUserText
+  const extracted = extractLatestUserMessage(allText) ?? latestUserText
+  return stripParamsJsonBlock(extracted)
 }
 
 function splitTextIntoChunks(text: string): string[] {
@@ -411,6 +427,40 @@ export function setupE2eMocks(): void {
   spyOn(llmModule, 'promptAiSdkStructured').mockImplementation(
     promptAiSdkStructuredMock as typeof llmModule.promptAiSdkStructured,
   )
+
+  // Hermetic semantic memory: run() persists `Task outcome` facts into
+  // `<cwd>/.levelcode/memory.db` and recalls them into later prompts. Those
+  // JSON blobs break the deterministic prompt-matching below (the quote-echo
+  // rule answers with the first quoted string, e.g. "type") and leak between
+  // test runs. Replace the store with an in-process fake: no disk, no cross-
+  // run pollution, recall stays empty.
+  spyOn(semanticMemoryModule, 'SemanticMemoryStore').mockImplementation(
+    function mockStore(this: unknown, _cwd?: string) {
+      const facts: Array<{ fact: string; metadata: Record<string, unknown> }> =
+        []
+      const store = {
+        remember: (fact: string, metadata: Record<string, unknown> = {}) => {
+          facts.push({ fact, metadata })
+          return {
+            id: `mock-mem-${facts.length}`,
+            fact,
+            metadata,
+            timestamp: Date.now(),
+          }
+        },
+        recall: () => [],
+        forget: () => false,
+        searchByTag: () => [],
+      }
+      return store
+    } as unknown as typeof SemanticMemoryStore,
+  )
+
+  // Hermetic repo map: run() scans the current working directory (the sdk
+  // source tree during tests) and appends the result to every prompt —
+  // slow, environment-dependent, and its quotes also trip the quote-echo
+  // rule. E2e tests get no repo map.
+  spyOn(repoMapModule, 'generateRepoMap').mockImplementation(async () => '')
 
   spyOn(LevelCodeClient.prototype, 'checkConnection').mockResolvedValue(true)
 }

@@ -49,6 +49,7 @@ import type { CustomToolDefinition } from './custom-tool'
 import type { RunState } from './run-state'
 import type { FileFilter } from './tools/read-files'
 import type { ServerAction } from '@levelcode/common/actions'
+import type { AgentOutput } from '@levelcode/common/types/session-state'
 import type { AgentDefinition } from '@levelcode/common/templates/initial-agents-dir/types/agent-definition'
 import type {
   PublishedToolName,
@@ -728,6 +729,47 @@ function requireCwd(cwd: string | undefined, toolName: string): string {
   return cwd
 }
 
+const MAX_OUTCOME_MEMORY_CHARS = 500
+
+/**
+ * Human-readable summary of a run's output for semantic memory. Prefers the
+ * assistant's actual words over raw JSON: remembering
+ * `{"type":"lastMessage","value":[]}`-style dumps pollutes recall with
+ * hundreds of identical, information-free facts that crowd out real ones.
+ */
+function extractOutcomeText(output: AgentOutput): string {
+  if (output.type === 'error') {
+    // Failed runs are not facts worth recalling.
+    return ''
+  }
+  if (output.type === 'lastMessage' || output.type === 'allMessages') {
+    const messages = Array.isArray(output.value) ? output.value : []
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i]
+      if (message?.role !== 'assistant') continue
+      const content = message.content
+      if (typeof content === 'string') {
+        return content.slice(0, MAX_OUTCOME_MEMORY_CHARS)
+      }
+      if (Array.isArray(content)) {
+        const text = content
+          .filter((part) => part?.type === 'text')
+          .map((part) => (part as { text?: string }).text ?? '')
+          .join(' ')
+          .trim()
+        if (text) {
+          return text.slice(0, MAX_OUTCOME_MEMORY_CHARS)
+        }
+      }
+    }
+    // No assistant text at all (e.g. a tool-only last turn) — nothing to keep.
+    return ''
+  }
+  // structuredOutput: the value is the machine-checkable result.
+  const json = JSON.stringify(output.value)
+  return json === undefined ? '' : json.slice(0, MAX_OUTCOME_MEMORY_CHARS)
+}
+
 async function readFiles({
   filePaths,
   override,
@@ -1209,9 +1251,7 @@ async function handlePromptResponse({
     } catch { /* tracing cleanup non-fatal */ }
     try {
       if (middleware?.semanticMemory && output) {
-        const outText = typeof output === 'object' && 'message' in output
-          ? String((output as any).message ?? '').slice(0, 500)
-          : JSON.stringify(output).slice(0, 500)
+        const outText = extractOutcomeText(output)
         if (outText) {
           middleware.semanticMemory.remember(`Task outcome: ${outText}`, {
             tags: ['outcome'],
