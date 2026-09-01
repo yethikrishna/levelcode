@@ -645,6 +645,48 @@ describe('runHeadless --checkpoint', () => {
     expect(listSavedSessions().filter((s) => !before.has(s.chatId))).toHaveLength(1)
   })
 
+  it('resumes a checkpoint-shaped save (error-stub output) without crashing', async () => {
+    // A crashed --checkpoint run leaves {sessionState, output: {type:'error',
+    // message:'Run in progress (checkpoint)'}} on disk. --continue must load
+    // it, pass the partial history as previousRun, and start a fresh run.
+    const checkpointState = {
+      sessionState: {
+        fileContext: { projectPath: '/proj', agentTemplates: [] },
+        mainAgentState: {
+          agentId: 'a1',
+          childRunIds: [],
+          messageHistory: [{ role: 'user', content: 'original task' }],
+        },
+      },
+      output: { type: 'error', message: 'Run in progress (checkpoint)' },
+    } as unknown as RunState
+    const chatId = saveHeadlessRunState(checkpointState)
+    expect(chatId).toBeTruthy()
+
+    let sawPreviousRun: unknown
+    const client = {
+      run: async (opts: any) => {
+        sawPreviousRun = opts.previousRun
+        await opts.handleEvent?.({ type: 'finish', totalCost: 0 })
+        return { sessionState: { mainAgentState: { messageHistory: [] } } } as any
+      },
+    } as unknown as LevelCodeClient
+
+    const { exitCode, result } = await runHeadless({
+      prompt: 'continue where you left off',
+      outputFormat: 'json',
+      agentOverride: null,
+      continueChat: true,
+      continueId: chatId!,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(0)
+    expect(result.is_error).toBe(false)
+    expect(sawPreviousRun).toEqual(checkpointState)
+  })
+
   it('reports the resume handle for a run that throws mid-flight', async () => {
     // Checkpoint fires at steps 2 (checkpointEvery=2); the throw means no
     // final save, so the operator resumes from the step-2 checkpoint.
