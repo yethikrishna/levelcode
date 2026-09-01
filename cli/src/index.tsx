@@ -23,6 +23,7 @@ const options = program.opts<{
   worktree?: string
   effort?: string
   continue?: boolean | string
+  watch?: boolean | string
 }>()
 
 // `doctor` runs from node builtins only — never load the heavy runtime.
@@ -35,8 +36,18 @@ if (argv1 === 'doctor') {
   })
 } else if (argv1 === 'agents') {
   // Swarm console: reads on-disk team state, no agent runtime needed.
-  const teamName = process.argv[3]
-  void import('./agents-console/run-agents').then((m) => {
+  const args = program.args.slice(1)
+  const watchFlag = options.watch === true
+  const watchInterval = typeof options.watch === 'string' ? Number(options.watch) : NaN
+  const teamName = args.find((a) => !a.startsWith('-'))
+  void import('./agents-console/run-agents').then(async (m) => {
+    if (watchFlag || (Number.isFinite(watchInterval) && watchInterval > 0)) {
+      const intervalMs = Number.isFinite(watchInterval) && watchInterval > 0
+        ? watchInterval * 1000
+        : 5000
+      await m.runWatchLoop(intervalMs)
+      return // unreachable; runWatchLoop exits via SIGINT
+    }
     const { output, exitCode } = m.renderAgentsCommand(teamName)
     process.stdout.write(output)
     process.exit(exitCode)

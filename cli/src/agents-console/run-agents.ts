@@ -45,6 +45,33 @@ function themeFor(): ConsoleTheme {
   return ansiTheme(!process.env.NO_COLOR && Boolean(process.stdout.isTTY))
 }
 
+const CLEAR_SCREEN = '[2J[H'
+
+/** One watch tick: clear + fresh render. Extracted for testability. */
+export function renderWatchTick(): string {
+  return CLEAR_SCREEN + formatAgentsOverview(collectAgentsData(), themeFor())
+}
+
+const defaultSleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Watch loop: re-render every intervalMs until interrupted. Ctrl+C kills
+ * the process (the last render stays visible). Accepts an AbortSignal for
+ * tests and embedders.
+ */
+export async function runWatchLoop(
+  intervalMs: number,
+  sleep = defaultSleep,
+  signal?: AbortSignal,
+): Promise<void> {
+  for (;;) {
+    if (signal?.aborted) return
+    process.stdout.write(renderWatchTick())
+    await sleep(intervalMs)
+    if (signal?.aborted) return
+  }
+}
+
 export function renderAgentsCommand(teamName?: string): { output: string; exitCode: number } {
   const theme = themeFor()
   const data = collectAgentsData()

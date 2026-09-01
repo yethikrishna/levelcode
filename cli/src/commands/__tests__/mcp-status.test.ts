@@ -8,7 +8,7 @@ import {
 import type { MCPConfig } from '@levelcode/common/types/mcp'
 import type { McpConnector } from '../mcp-status'
 
-const stdioServer: MCPConfig = { type: 'stdio', command: 'echo', args: [] }
+const stdioServer: MCPConfig = { type: 'stdio', command: 'echo', args: [], env: {} }
 const httpServer: MCPConfig = {
   type: 'http',
   url: 'http://localhost:9999',

@@ -55,6 +55,10 @@ export function createProgram(): Command {
       'Create (or re-enter) an isolated git worktree at .levelcode/worktrees/<name> and run there',
     )
     .option(
+      '--watch [interval]',
+      'With `agents`: refresh the view every N seconds (default 5)',
+    )
+    .option(
       '--effort <level>',
       'How hard the agent works: low (30 steps) | medium (100) | high (200) | max (400)',
       (value: string) => {
