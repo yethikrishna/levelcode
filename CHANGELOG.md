@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - Session Inspection, Fork Points & Swarm Budgets (2026-09-01)
 
 ### Added
+- **`levelcode --print-config`** — one-shot resolved-config introspection: effort/steps, permission profile facts, providers with active model, env credential presence, MCP servers, and the config paths consulted. Secrets are redacted by construction (API keys, OAuth tokens, and MCP env values print as presence booleans, never values). Honors `--effort` and `--json` (doctor-style dual output) without booting the runtime.
 - **`levelcode sessions <id-or-prefix>`** — inspect one saved session's message history with per-message indices and a ready-to-copy fork command, so picking a `--at-message` fork point no longer requires reading run-state.json.
 - **`sessions --json`** — machine-readable listing and detail (following `doctor --json`): `{sessions:[...]}` with fork lineage, and `{chatId, historyLength, messages}` for scripts that pick fork points programmatically.
 - **`--fork <id> --at-message <n>`** — truncate the cloned history to its first N messages; non-negative-integer validation at flag parse, out-of-range rejected with exit 2 before any model call.

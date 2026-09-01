@@ -97,7 +97,11 @@ export function createProgram(): Command {
     )
     .option(
       '--json',
-      'With `doctor` or `sessions`: machine-readable JSON output',
+      'With `doctor`, `sessions`, or `--print-config`: machine-readable JSON output',
+    )
+    .option(
+      '--print-config',
+      'Print the resolved configuration (effort, permissions, providers, MCP) and exit; secrets redacted',
     )
     .helpOption('-h, --help', 'Show this help message')
     .option(

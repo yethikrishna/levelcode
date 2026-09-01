@@ -84,6 +84,7 @@ const packageConfigs: PackageConfig[] = [
       'cli/src/init/init-direnv.ts', // Loads direnv vars into process.env at startup
       'cli/src/cli-flags.ts', // Dependency-light fast path: must not import env helpers
       'cli/src/doctor/doctor.ts', // Health checker: reads env directly by design (fast path)
+      'cli/src/config/print-config.ts', // Config introspection fast path: cannot afford the sdk barrel just for env presence booleans
       'cli/src/components/primitives/spinner.tsx', // Render-hot path: LEVELCODE_NO_MOTION / SPINNER_INTERVAL_MS knobs
       'cli/src/agents-console/run-agents.ts', // Fast-path console: NO_COLOR + isTTY color detection
     ],

@@ -17,6 +17,7 @@ import { createProgram, loadPackageVersion } from './cli-flags'
 const program = createProgram().parse(process.argv)
 const options = program.opts<{
   print?: boolean
+  printConfig?: boolean
   outputFormat?: string
   agent?: string
   cwd?: string
@@ -123,6 +124,24 @@ if (argv1 === 'doctor') {
     }
     lines.push('', 'Resume: levelcode -p --continue <id> · Fork: levelcode -p --fork <id> "prompt"', '')
     process.stdout.write(lines.join('\n'))
+    process.exit(0)
+  })
+} else if (options.printConfig) {
+  // Config introspection: fast path like doctor — no runtime, nothing written.
+  void import('./config/print-config').then(async (m) => {
+    // --effort must be applied here: the bootstrap that normally applies it
+    // never runs on this path.
+    if (options.effort) {
+      const { parseEffortLevel, setEffortLevel } = await import('./utils/effort')
+      const level = parseEffortLevel(options.effort)
+      if (level) setEffortLevel(level)
+    }
+    const snapshot = m.collectConfigSnapshot()
+    if (process.argv.includes('--json')) {
+      process.stdout.write(m.formatConfigJson(snapshot))
+    } else {
+      process.stdout.write(m.formatConfigReport(snapshot))
+    }
     process.exit(0)
   })
 } else if (options.print) {
