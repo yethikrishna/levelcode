@@ -118,6 +118,8 @@ import {
   handleCollabRelay,
   handleCollabRelayStop,
 } from './session'
+import { checkMcpServers, formatMcpStatus } from './mcp-status'
+import { loadMCPConfigSync } from '@levelcode/sdk'
 
 import type { PhaseTransitionHookEvent } from '@levelcode/common/types/team-hook-events'
 import type { DevPhase, TeamConfig, TeamMember } from '@levelcode/common/types/team-config'
@@ -2313,6 +2315,33 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
         params.setMessages((prev) => [
           ...prev,
           getSystemMessage(`Memory store error: ${error instanceof Error ? error.message : String(error)}`),
+        ])
+      }
+    },
+  }),
+  defineCommand({
+    name: 'mcp',
+    aliases: ['mcp:status'],
+    handler: async (params) => {
+      params.saveToHistory(params.inputValue.trim())
+      clearInput(params)
+      params.setMessages((prev) => [
+        ...prev,
+        getSystemMessage('⏳ Checking MCP servers...'),
+      ])
+      try {
+        const { mcpServers } = loadMCPConfigSync({ verbose: false })
+        const health = await checkMcpServers(mcpServers)
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(formatMcpStatus(health)),
+        ])
+      } catch (error) {
+        params.setMessages((prev) => [
+          ...prev,
+          getSystemMessage(
+            `MCP status failed: ${error instanceof Error ? error.message : String(error)}`,
+          ),
         ])
       }
     },
