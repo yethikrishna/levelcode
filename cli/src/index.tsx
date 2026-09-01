@@ -23,6 +23,7 @@ const options = program.opts<{
   worktree?: string
   effort?: string
   continue?: boolean | string
+  fork?: string
   watch?: boolean | string
 }>()
 
@@ -55,6 +56,31 @@ if (argv1 === 'doctor') {
     const { output, exitCode } = m.renderAgentsCommand(teamName)
     process.stdout.write(output)
     process.exit(exitCode)
+  })
+} else if (argv1 === 'sessions') {
+  // Saved-session listing: disk-only, no runtime.
+  void import('./headless/session-store').then(async (m) => {
+    // Fast path never runs initializeApp; set the project root explicitly.
+    const { setProjectRoot } = await import('./project-files')
+    setProjectRoot(process.cwd())
+    const sessions = m.listSavedSessions()
+    if (sessions.length === 0) {
+      process.stdout.write(
+        'No saved sessions in this project.\nRun levelcode -p "..." to create one.\n',
+      )
+      process.exit(0)
+    }
+    const lines: string[] = ['Saved sessions (newest first):', '']
+    for (const session of sessions) {
+      const when = new Date(session.modifiedAt).toISOString().replace('T', ' ').slice(0, 16)
+      const fork = session.forkedFrom ? `  (fork of ${session.forkedFrom.slice(0, 8)})` : ''
+      lines.push(
+        `  ${session.chatId.slice(0, 8)}  ${when}  ${session.messageCount} msgs  ${session.firstPrompt || '(no prompt)'}${fork}`,
+      )
+    }
+    lines.push('', 'Resume: levelcode -p --continue <id> · Fork: levelcode -p --fork <id> "prompt"', '')
+    process.stdout.write(lines.join('\n'))
+    process.exit(0)
   })
 } else if (options.print) {
   // Headless mode is built for pipes and CI: no TTY required, no renderer.
@@ -90,6 +116,10 @@ if (argv1 === 'doctor') {
       continueId:
         typeof options.continue === 'string' && options.continue.trim().length > 0
           ? options.continue.trim()
+          : null,
+      forkId:
+        typeof options.fork === 'string' && options.fork.trim().length > 0
+          ? options.fork.trim()
           : null,
     })
     process.exit(exitCode)

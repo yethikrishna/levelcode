@@ -76,6 +76,10 @@ export function createProgram(): Command {
     .option('--lite', 'Start in FREE mode (deprecated, use --free)')
     .option('--max', 'Start in MAX mode')
     .option('--plan', 'Start in PLAN mode')
+    .option(
+      '--fork <session-id>',
+      'With -p: branch from a saved session (original untouched, lineage kept)',
+    )
     .option('--json', 'With `doctor`: machine-readable JSON output')
     .helpOption('-h, --help', 'Show this help message')
     .option(

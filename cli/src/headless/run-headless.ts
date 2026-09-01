@@ -22,7 +22,7 @@ import { getProjectRoot } from '../project-files'
 import { initializeApp } from '../init/init-app'
 import { getLevelCodeClient } from '../utils/levelcode-client'
 import { isSensitiveFile } from '../utils/create-run-config'
-import { saveHeadlessRunState, loadHeadlessRunState } from './session-store'
+import { saveHeadlessRunState, loadHeadlessRunState, forkSavedSession } from './session-store'
 
 import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
 import type { FileFilter, LevelCodeClient } from '@levelcode/sdk'
@@ -42,6 +42,8 @@ export type HeadlessOptions = {
   /** Resume the most recent conversation (or continueId if provided). */
   continueChat?: boolean
   continueId?: string | null
+  /** Branch from the given session id: original untouched, lineage kept. */
+  forkId?: string | null
   /** Test seam: capture output instead of writing to the process streams. */
   sink?: {
     stdout: (chunk: string) => void
@@ -147,7 +149,25 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   }
 
   let previousRun: unknown
-  if (options.continueChat) {
+  let forkedFromId: string | null = null
+  let forkedChatId: string | null = null
+  if (options.forkId) {
+    const forked = forkSavedSession(options.forkId)
+    if (!forked) {
+      const message = `No forkable session found for "${options.forkId}". Run levelcode sessions to list saved sessions.`
+      if (outputFormat === 'text') {
+        err(`error: ${message}
+`)
+        return { exitCode: 2, result: { type: 'result', subtype: 'error_during_execution' as const, is_error: true, message } }
+      }
+      emit({ type: 'system', subtype: 'init', ok: false })
+      emit({ type: 'result', subtype: 'error_during_execution' as const, is_error: true, message })
+      return { exitCode: 2, result: { type: 'result', subtype: 'error_during_execution' as const, is_error: true, message } }
+    }
+    previousRun = forked.runState
+    forkedFromId = options.forkId
+    forkedChatId = forked.forkedChatId
+  } else if (options.continueChat) {
     const loaded = loadHeadlessRunState(options.continueId ?? undefined)
     if (!loaded) {
       const id = options.continueId ?? '(most recent)'
@@ -197,7 +217,10 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   let sessionId: string | null = null
   if (!sawError && finishedRun) {
     try {
-      sessionId = saveHeadlessRunState(finishedRun as never)
+      sessionId = saveHeadlessRunState(finishedRun as never, {
+        chatId: forkedChatId ?? undefined,
+        forkedFrom: forkedFromId ?? undefined,
+      })
     } catch { /* persistence is best-effort */ }
   }
 
@@ -213,6 +236,7 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     result: finalText,
     project: path.basename(projectRoot),
     ...(sessionId ? { session_id: sessionId } : {}),
+    ...(forkedFromId ? { forked_from: forkedFromId } : {}),
   }
 
   if (outputFormat === 'stream-json') {

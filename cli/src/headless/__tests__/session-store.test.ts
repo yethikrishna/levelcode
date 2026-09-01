@@ -3,7 +3,12 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 
-import { saveHeadlessRunState, loadHeadlessRunState } from '../session-store'
+import {
+  saveHeadlessRunState,
+  loadHeadlessRunState,
+  forkSavedSession,
+  listSavedSessions,
+} from '../session-store'
 import { setProjectRoot, getProjectDataDir } from '../../project-files'
 
 import type { RunState } from '@levelcode/sdk'
@@ -69,6 +74,45 @@ describe('headless session store', () => {
       (loaded as unknown as { sessionState: { mainAgentState: { messageHistory: Array<{ content: string }> } } })
         .sessionState.mainAgentState.messageHistory[0]!.content,
     ).toBe('second')
+  })
+
+  it('forkSavedSession clones into a new id with lineage, original untouched', () => {
+    const originalId = saveHeadlessRunState(makeRunState('original content'))
+    expect(originalId).toBeTruthy()
+
+    const forked = forkSavedSession(originalId!)
+    expect(forked).not.toBeNull()
+    expect(forked!.forkedChatId).not.toBe(originalId)
+    expect(
+      (forked!.runState as unknown as { sessionState: { mainAgentState: { messageHistory: Array<{ content: string }> } } })
+        .sessionState.mainAgentState.messageHistory[0]!.content,
+    ).toBe('original content')
+
+    // The fork carries a lineage marker
+    const sessions = listSavedSessions()
+    const forkEntry = sessions.find((s) => s.chatId === forked!.forkedChatId)
+    expect(forkEntry?.forkedFrom ?? undefined).toBe(originalId ?? undefined)
+    // Original still present and unmarked
+    const originalEntry = sessions.find((s) => s.chatId === originalId)
+    expect(originalEntry?.forkedFrom ?? undefined).toBeUndefined()
+  })
+
+  it('forkSavedSession returns null for an unknown id', () => {
+    expect(forkSavedSession('no-such-session')).toBeNull()
+  })
+
+  it('listSavedSessions enumerates sessions newest first with prompts', () => {
+    saveHeadlessRunState(makeRunState('older prompt'))
+    saveHeadlessRunState(makeRunState('newer prompt'))
+    const sessions = listSavedSessions()
+    expect(sessions.length).toBe(2)
+    // mtime tie is legal; just verify both prompts are present and shape holds
+    const prompts = sessions.map((s) => s.firstPrompt).sort()
+    expect(prompts).toEqual(['newer prompt', 'older prompt'])
+    for (const session of sessions) {
+      expect(session.chatId).toMatch(/^[0-9a-f-]{36}$/)
+      expect(session.messageCount).toBeGreaterThan(0)
+    }
   })
 
   it('returns null when no sessions exist', () => {
