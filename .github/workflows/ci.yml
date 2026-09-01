@@ -151,6 +151,17 @@ jobs:
               fi
             elif [ "${{ matrix.package }}" = "web" ]; then
               bun run test --runInBand
+            elif [ "${{ matrix.package }}" = "sdk" ]; then
+              # Unit tests + the deterministic mocked e2e suite. The e2e dir
+              # is hermetic (in-memory stores, no network) but was never run
+              # in CI before, which let mock drift accumulate for months.
+              UNIT_FILES=$(find src -name '*.test.ts' ! -name '*.integration.test.ts' 2>/dev/null | sort | tr '\n' ' ')
+              E2E_FILES=$(find e2e -name '*.test.ts' 2>/dev/null | sort | tr '\n' ' ')
+              if [ -n "$UNIT_FILES" ] || [ -n "$E2E_FILES" ]; then
+                bun test $UNIT_FILES $E2E_FILES
+              else
+                echo "No tests found in sdk"
+              fi
             else
               # Run all non-integration tests in a single bun test invocation
               # This avoids xargs exit code issues with orphaned child processes
