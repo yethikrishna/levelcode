@@ -81,6 +81,17 @@ export function createProgram(): Command {
       'With -p: branch from a saved session (original untouched, lineage kept)',
     )
     .option(
+      '--at-message <n>',
+      'With --fork: truncate the cloned history to its first N messages',
+      (value: string) => {
+        const n = Number(value)
+        if (!Number.isInteger(n) || n < 0) {
+          throw new InvalidArgumentError('--at-message must be a non-negative integer')
+        }
+        return String(n)
+      },
+    )
+    .option(
       '--output-schema <file>',
       'With -p: path to a JSON schema the structured result must satisfy',
     )

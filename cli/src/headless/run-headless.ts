@@ -48,6 +48,8 @@ export type HeadlessOptions = {
   continueId?: string | null
   /** Branch from the given session id: original untouched, lineage kept. */
   forkId?: string | null
+  /** With forkId: truncate the cloned history to its first N messages. */
+  atMessage?: number | null
   /** JSON schema (draft-07) the structured output must satisfy. */
   outputSchema?: Record<string, unknown>
   /** Test seam: capture output instead of writing to the process streams. */
@@ -158,7 +160,22 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   let forkedFromId: string | null = null
   let forkedChatId: string | null = null
   if (options.forkId) {
-    const forked = forkSavedSession(options.forkId)
+    let forked: ReturnType<typeof forkSavedSession>
+    try {
+      forked = forkSavedSession(options.forkId, {
+        atMessage: options.atMessage ?? undefined,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (outputFormat === 'text') {
+        err(`error: ${message}
+`)
+        return { exitCode: 2, result: { type: 'result', subtype: 'error_during_execution' as const, is_error: true, message } }
+      }
+      emit({ type: 'system', subtype: 'init', ok: false })
+      emit({ type: 'result', subtype: 'error_during_execution' as const, is_error: true, message })
+      return { exitCode: 2, result: { type: 'result', subtype: 'error_during_execution' as const, is_error: true, message } }
+    }
     if (!forked) {
       const message = `No forkable session found for "${options.forkId}". Run levelcode sessions to list saved sessions.`
       if (outputFormat === 'text') {

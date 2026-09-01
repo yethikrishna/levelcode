@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from 'bun:test'
 import { z } from 'zod/v4'
 
-import { initialSessionState } from '../run-state'
+import { applyOverridesToSessionState, initialSessionState } from '../run-state'
 
 import type { MockStatResult } from '@levelcode/common/testing/mock-types'
 import type { Logger } from '@levelcode/common/types/contracts/logger'
@@ -333,5 +333,60 @@ describe('Initial Session State', () => {
     expect(sessionState.mainAgentState.directCreditsUsed).toBe(0)
     expect(sessionState.mainAgentState.output).toBeUndefined()
     expect(sessionState.mainAgentState.parentId).toBeUndefined()
+  })
+
+  describe('applyOverridesToSessionState with legacy run-states', () => {
+    test('backfills missing fileContext so override merges do not crash', async () => {
+      const legacy = {
+        mainAgentState: {
+          messageHistory: [
+            { role: 'user', content: 'Inspect the repo layout' },
+          ],
+        },
+      } as never
+
+      const sessionState = await applyOverridesToSessionState(
+        undefined,
+        legacy,
+        { agentDefinitions: [{ id: 'base2' }] as never },
+      )
+
+      expect(sessionState.fileContext.agentTemplates).toBeDefined()
+      expect(sessionState.fileContext.fileTree).toEqual([])
+      expect(sessionState.fileContext.knowledgeFiles).toEqual({})
+      expect(sessionState.fileContext.gitChanges).toBeDefined()
+      expect(sessionState.fileContext.systemInfo.platform).toBe(
+        process.platform,
+      )
+      // The override still lands on top of the backfilled defaults.
+      expect(Object.keys(sessionState.fileContext.agentTemplates)).toContain(
+        'base2',
+      )
+    })
+
+    test('backfills partial mainAgentState fields the agent loop expects', async () => {
+      const legacy = {
+        fileContext: {
+          agentTemplates: {},
+          customToolDefinitions: {},
+        },
+        mainAgentState: {
+          messageHistory: [{ role: 'user', content: 'hello' }],
+        },
+      } as never
+
+      const sessionState = await applyOverridesToSessionState(
+        undefined,
+        legacy,
+        {},
+      )
+
+      expect(sessionState.mainAgentState.childRunIds).toEqual([])
+      expect(sessionState.mainAgentState.subagents).toEqual([])
+      expect(sessionState.mainAgentState.agentId).toBe('main-agent')
+      expect(sessionState.mainAgentState.stepsRemaining).toBeGreaterThan(0)
+      // Existing history is preserved, not reset.
+      expect(sessionState.mainAgentState.messageHistory).toHaveLength(1)
+    })
   })
 })

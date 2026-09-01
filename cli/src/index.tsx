@@ -24,6 +24,7 @@ const options = program.opts<{
   effort?: string
   continue?: boolean | string
   fork?: string
+  atMessage?: string
   outputSchema?: string
   watch?: boolean | string
 }>()
@@ -58,13 +59,39 @@ if (argv1 === 'doctor') {
     process.stdout.write(output)
     process.exit(exitCode)
   })
-} else if (argv1 === 'sessions') {
+  } else if (argv1 === 'sessions') {
   // Saved-session listing: disk-only, no runtime.
   void import('./headless/session-store').then(async (m) => {
     // Fast path never runs initializeApp; set the project root explicitly.
     const { setProjectRoot } = await import('./project-files')
     setProjectRoot(process.cwd())
+    // `sessions <id>`: inspect one session's message history (fork points).
     const sessions = m.listSavedSessions()
+    const detailId = program.args.slice(1).find((a) => !a.startsWith('-'))
+    if (detailId) {
+      const match =
+        sessions.find((s0) => s0.chatId === detailId) ??
+        sessions.find((s0) => s0.chatId.startsWith(detailId))
+      if (!match) {
+        process.stdout.write(`No session matching "${detailId}".\n`)
+        process.exit(1)
+      }
+      const detail = m.getSessionMessages(match.chatId)
+      if (!detail) {
+        process.stdout.write(`Session "${match.chatId}" is unreadable.\n`)
+        process.exit(1)
+      }
+      const lines: string[] = [
+        `Session ${match.chatId} (${detail.historyLength} messages)`,
+        `Fork: levelcode -p --fork ${match.chatId} --at-message <n> "prompt"`,
+        '',
+      ]
+      for (const message of detail.messages) {
+        lines.push(`  [${String(message.index).padStart(3)}] ${message.role.padEnd(10)} ${message.preview}`)
+      }
+      process.stdout.write(lines.join('\n') + '\n')
+      process.exit(0)
+    }
     if (sessions.length === 0) {
       process.stdout.write(
         'No saved sessions in this project.\nRun levelcode -p "..." to create one.\n',
@@ -135,7 +162,10 @@ if (argv1 === 'doctor') {
         typeof options.fork === 'string' && options.fork.trim().length > 0
           ? options.fork.trim()
           : null,
-      outputSchema,
+      atMessage:
+        options.atMessage !== undefined && options.atMessage.trim().length > 0
+          ? Number(options.atMessage)
+          : null,
     })
     process.exit(exitCode)
   })

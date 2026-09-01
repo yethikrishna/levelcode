@@ -149,13 +149,78 @@ export function listSavedSessions(): SavedSessionSummary[] {
 /**
  * Fork a saved session: clone its RunState into a new session marked with
  * lineage, and return both ids. The original session is untouched.
+ *
+ * opts.atMessage truncates the cloned history to its first N messages —
+ * branch the conversation from an earlier point instead of the end.
  */
 export function forkSavedSession(
   sourceChatId: string,
-): { forkedChatId: string; runState: RunState } | null {
+  opts?: { atMessage?: number },
+): { forkedChatId: string; runState: RunState; historyLength: number } | null {
   const runState = loadHeadlessRunState(sourceChatId)
   if (!runState) return null
+
+  const history = runState.sessionState?.mainAgentState?.messageHistory ?? []
+  const historyLength = history.length
+
+  if (opts?.atMessage !== undefined) {
+    if (!Number.isInteger(opts.atMessage) || opts.atMessage < 0) {
+      throw new RangeError('--at-message must be a non-negative integer')
+    }
+    if (opts.atMessage > historyLength) {
+      throw new RangeError(
+        `--at-message ${opts.atMessage} exceeds history length (${historyLength})`,
+      )
+    }
+    const defined = runState as Required<RunState>
+    const truncated = { ...defined }
+    truncated.sessionState = { ...defined.sessionState }
+    truncated.sessionState.mainAgentState = {
+      ...defined.sessionState.mainAgentState,
+      messageHistory: history.slice(0, opts.atMessage),
+    }
+    const forkedChatId = saveHeadlessRunState(truncated, { forkedFrom: sourceChatId })
+    if (!forkedChatId) return null
+    return { forkedChatId, runState: truncated, historyLength: opts.atMessage }
+  }
+
   const forkedChatId = saveHeadlessRunState(runState, { forkedFrom: sourceChatId })
   if (!forkedChatId) return null
-  return { forkedChatId, runState }
+  return { forkedChatId, runState, historyLength }
+}
+
+export type SessionMessagePreview = {
+  index: number
+  role: string
+  /** First ~100 chars of text content (or a part-type summary). */
+  preview: string
+}
+
+/** Inspect a session's message history (for choosing a fork point). */
+export function getSessionMessages(
+  chatId: string,
+): { messages: SessionMessagePreview[]; historyLength: number } | null {
+  const runState = loadHeadlessRunState(chatId)
+  if (!runState) return null
+  const history =
+    runState.sessionState?.mainAgentState?.messageHistory ?? []
+  const messages: SessionMessagePreview[] = history.map((message, index) => {
+    const content = (message as { content?: unknown }).content
+    let preview: string
+    if (typeof content === 'string') {
+      preview = content
+    } else if (Array.isArray(content)) {
+      const parts = content as Array<{ type?: string; text?: string }>
+      const textPart = parts.find((part) => part.type === 'text')
+      preview = textPart?.text ?? parts.map((part) => part.type ?? '?').join('+')
+    } else {
+      preview = ''
+    }
+    return {
+      index,
+      role: (message as { role?: string }).role ?? 'unknown',
+      preview: preview.replace(/\s+/g, ' ').trim().slice(0, 100),
+    }
+  })
+  return { messages, historyLength: messages.length }
 }

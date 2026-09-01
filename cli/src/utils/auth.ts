@@ -1,9 +1,9 @@
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
 
 import { env } from '@levelcode/common/env'
 import { getCiEnv } from '@levelcode/common/env-ci'
+import { getUserHomeDir } from '@levelcode/common/utils/home-dir'
 import { isStandaloneMode, getOpenRouterApiKeyFromEnv, getAnthropicApiKeyFromEnv } from '@levelcode/sdk'
 import { z } from 'zod'
 
@@ -46,7 +46,7 @@ const credentialsSchema = z
 // Legacy config directory (manicode) for migration
 const getLegacyConfigDir = (): string => {
   return path.join(
-    os.homedir(),
+    getUserHomeDir(),
     '.config',
     'manicode' +
       (env.NEXT_PUBLIC_CB_ENVIRONMENT !== 'prod'
@@ -58,7 +58,7 @@ const getLegacyConfigDir = (): string => {
 // Get the config directory path
 export const getConfigDir = (): string => {
   return path.join(
-    os.homedir(),
+    getUserHomeDir(),
     '.config',
     'levelcode' +
       // on a development stack?

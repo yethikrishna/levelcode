@@ -6,6 +6,7 @@ import {
   clearMockedModules,
   mockModule,
 } from '@levelcode/common/testing/mock-modules'
+import { getUserHomeDir } from '@levelcode/common/utils/home-dir'
 import {
   describe,
   test,
@@ -169,7 +170,7 @@ describe('Credentials Storage Integration', () => {
       // Call real getConfigDir to verify it includes '-test'
       const configDir = authModule.getConfigDir()
       expect(configDir).toEqual(
-        path.join(os.homedir(), '.config', 'levelcode-test'),
+        path.join(getUserHomeDir(), '.config', 'levelcode-test'),
       )
     })
 
@@ -184,7 +185,7 @@ describe('Credentials Storage Integration', () => {
       // Call real getConfigDir to verify it includes '-dev'
       const configDir = authModule.getConfigDir()
       expect(configDir).toEqual(
-        path.join(os.homedir(), '.config', 'levelcode-dev'),
+        path.join(getUserHomeDir(), '.config', 'levelcode-dev'),
       )
     })
 
@@ -199,7 +200,7 @@ describe('Credentials Storage Integration', () => {
 
       // Call real getConfigDir to verify it doesn't include '-dev'
       const configDir = authModule.getConfigDir()
-      expect(configDir).toEqual(path.join(os.homedir(), '.config', 'levelcode'))
+      expect(configDir).toEqual(path.join(getUserHomeDir(), '.config', 'levelcode'))
     })
 
     test('should allow credentials to persist across simulated CLI restarts', () => {

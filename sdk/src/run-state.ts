@@ -15,8 +15,12 @@ import {
   getProjectFileTree,
   getAllFilePaths,
 } from '@levelcode/common/project-file-tree'
-import { getInitialSessionState } from '@levelcode/common/types/session-state'
+import {
+  getInitialAgentState,
+  getInitialSessionState,
+} from '@levelcode/common/types/session-state'
 import { getErrorObject } from '@levelcode/common/util/error'
+import type { ProjectFileContext } from '@levelcode/common/util/file'
 import { cloneDeep } from 'lodash'
 import z from 'zod/v4'
 
@@ -701,6 +705,44 @@ export function withMessageHistory({
 }
 
 /**
+ * Run-states persisted by older versions (or hand-crafted ones) can lack
+ * `fileContext` entirely; backfill defaults so override merges and the
+ * agent loop never read properties off undefined.
+ */
+function withDefaultFileContext(
+  fileContext: ProjectFileContext | undefined,
+): ProjectFileContext {
+  return {
+    projectRoot: '',
+    cwd: '',
+    fileTree: [],
+    fileTokenScores: {},
+    tokenCallers: {},
+    knowledgeFiles: {},
+    userKnowledgeFiles: {},
+    agentTemplates: {},
+    customToolDefinitions: {},
+    gitChanges: {
+      status: '',
+      diff: '',
+      diffCached: '',
+      lastCommitMessages: '',
+    },
+    changesSinceLastChat: {},
+    shellConfigFiles: {},
+    systemInfo: {
+      platform: process.platform,
+      shell: 'bash',
+      nodeVersion: process.version,
+      arch: process.arch,
+      homedir: os.homedir(),
+      cpus: os.cpus().length ?? 1,
+    },
+    ...fileContext,
+  }
+}
+
+/**
  * Applies overrides to an existing session state, allowing specific fields to be updated
  * even when continuing from a previous run.
  */
@@ -719,6 +761,13 @@ export async function applyOverridesToSessionState(
   const sessionState = JSON.parse(
     JSON.stringify(baseSessionState),
   ) as SessionState
+  sessionState.fileContext = withDefaultFileContext(sessionState.fileContext)
+  // Same for the agent state: persisted runs can predate fields the loop
+  // expects (childRunIds, subagents, ...). Defaults first, then real values.
+  sessionState.mainAgentState = {
+    ...getInitialAgentState(),
+    ...sessionState.mainAgentState,
+  }
 
   // Apply maxAgentSteps override
   if (overrides.maxAgentSteps !== undefined) {
