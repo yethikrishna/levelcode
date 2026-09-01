@@ -5,6 +5,17 @@ All notable changes to LevelCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - Session Inspection, Fork Points & Swarm Budgets (2026-09-01)
+
+### Added
+- **`levelcode sessions <id-or-prefix>`** — inspect one saved session's message history with per-message indices and a ready-to-copy fork command, so picking a `--at-message` fork point no longer requires reading run-state.json.
+- **`--fork <id> --at-message <n>`** — truncate the cloned history to its first N messages; non-negative-integer validation at flag parse, out-of-range rejected with exit 2 before any model call.
+- **Subagent step budgets bounded by the parent** — a spawned agent now gets `min(default, parent's remaining steps)` instead of a flat 100. The effort dial caps the parent, so it now bounds the whole swarm: at `low` (30) children can no longer get a fresh 100-step allowance, and a nearly-depleted parent cannot spawn runaway children.
+
+### Fixed
+- CLI session/credential storage ignored `LEVELCODE_HOME` — `getConfigDir` used raw `os.homedir()`, breaking hermetic test/live environments and diverging from the monorepo home-dir convention. Both cli and sdk now resolve through `getUserHomeDir()`.
+- Resuming or forking a run-state persisted without `fileContext` (or with a partial agent state) crashed mid-run at `fileContext.agentTemplates` / `agentState.childRunIds` with an opaque TypeError after the fork clone was already on disk. `applyOverridesToSessionState` backfills defaults, so legacy/hand-crafted saves resume cleanly and the model call fails with a real reason.
+
 ## [Unreleased] - Persistent Teams v1
 
 ### Added
