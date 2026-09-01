@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { homedir } from 'os'
+import { getUserHomeDir } from '../utils/home-dir'
 import { ModelCatalogEntry, UserSettings } from './provider-types'
 
 // ============================================================================
@@ -8,7 +8,7 @@ import { ModelCatalogEntry, UserSettings } from './provider-types'
 // ============================================================================
 
 export function getCatalogCachePath(): string {
-  return path.join(homedir(), '.config', 'levelcode', 'models-cache.json')
+  return path.join(getUserHomeDir(), '.config', 'levelcode', 'models-cache.json')
 }
 
 // ============================================================================

@@ -537,3 +537,146 @@ describe('runHeadless failure contract', () => {
     expect(result.is_error).toBe(true)
   })
 })
+
+describe('runHeadless --checkpoint', () => {
+  let tmpDir: string
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-checkpoint-'))
+    setProjectRoot(tmpDir)
+  })
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  /** Client that fires onStepComplete with the given step numbers, then finishes. */
+  const steppingClient = (steps: number[]) =>
+    ({
+      run: async (opts: any) => {
+        for (const stepNumber of steps) {
+          await opts.onStepComplete?.({
+            stepNumber,
+            fileContext: { projectPath: '/proj' },
+            agentState: { agentId: 'a1', messageHistory: [{ role: 'user', content: `s${stepNumber}` }] },
+          })
+        }
+        await opts.handleEvent?.({ type: 'finish', totalCost: 0 })
+        return { sessionState: { mainAgentState: { messageHistory: [] } } } as any
+      },
+    }) as unknown as LevelCodeClient
+
+  it('overwrites periodic checkpoints with the final state in one chat dir', async () => {
+    const before = new Set(listSavedSessions().map((s) => s.chatId))
+    const { result } = await runHeadless({
+      prompt: 'long task',
+      outputFormat: 'json',
+      agentOverride: null,
+      checkpointEvery: 2,
+      client: steppingClient([2, 3, 4, 6]),
+      sink: makeSink().capture,
+    })
+
+    expect(result.is_error).toBe(false)
+    const sessionId = result.session_id as string
+    expect(sessionId).toMatch(/^[0-9a-f-]{36}$/)
+    // Periodic saves and the final save share one pre-generated chat dir.
+    const newDirs = listSavedSessions().filter((s) => !before.has(s.chatId))
+    expect(newDirs.map((s) => s.chatId)).toEqual([sessionId])
+
+    // The loaded state is the finished run's, not a "Run in progress" stub.
+    const loaded = loadHeadlessRunState(sessionId) as any
+    expect(loaded?.sessionState?.mainAgentState?.messageHistory).toEqual([])
+  })
+
+  it('throttles checkpoint saves to every Nth completed step', async () => {
+    // Throwing at step 8 means no final save — the last checkpoint on disk
+    // reveals exactly which step was last persisted.
+    const client = {
+      run: async (opts: any) => {
+        for (const stepNumber of [1, 2, 3, 4, 5, 6, 7]) {
+          await opts.onStepComplete?.({
+            stepNumber,
+            fileContext: {},
+            agentState: { agentId: 'a1', messageHistory: [{ role: 'user', content: `s${stepNumber}` }] },
+          })
+        }
+        throw new Error('died at step 8')
+      },
+    } as unknown as LevelCodeClient
+
+    const before = new Set(listSavedSessions().map((s) => s.chatId))
+    const { result } = await runHeadless({
+      prompt: 'long task',
+      outputFormat: 'json',
+      agentOverride: null,
+      checkpointEvery: 3,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(result.is_error).toBe(true)
+    expect(result.session_id).toMatch(/^[0-9a-f-]{36}$/)
+    const loaded = loadHeadlessRunState(result.session_id as string) as any
+    // Checkpoint fires at steps 3 and 6; step 7 is below the threshold.
+    expect(loaded?.sessionState?.mainAgentState?.messageHistory?.[0]?.content).toBe('s6')
+    // Still exactly one chat dir despite seven step events.
+    const newDirs = listSavedSessions().filter((s) => !before.has(s.chatId))
+    expect(newDirs).toHaveLength(1)
+  })
+
+  it('does not pass onStepComplete when checkpointEvery is not set', async () => {
+    const before = new Set(listSavedSessions().map((s) => s.chatId))
+    const client = {
+      run: async (opts: any) => {
+        expect(opts.onStepComplete).toBeUndefined()
+        await opts.handleEvent?.({ type: 'finish', totalCost: 0 })
+        return { sessionState: { mainAgentState: { messageHistory: [] } } } as any
+      },
+    } as unknown as LevelCodeClient
+
+    const { result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      client,
+      sink: makeSink().capture,
+    })
+    expect(result.is_error).toBe(false)
+    expect(result.session_id).toBeTruthy()
+    expect(listSavedSessions().filter((s) => !before.has(s.chatId))).toHaveLength(1)
+  })
+
+  it('reports the resume handle for a run that throws mid-flight', async () => {
+    // Checkpoint fires at steps 2 (checkpointEvery=2); the throw means no
+    // final save, so the operator resumes from the step-2 checkpoint.
+    const client = {
+      run: async (opts: any) => {
+        for (const stepNumber of [1, 2, 3]) {
+          await opts.onStepComplete?.({
+            stepNumber,
+            fileContext: { projectPath: '/proj' },
+            agentState: { agentId: 'a1', messageHistory: [{ role: 'user', content: `step ${stepNumber}` }] },
+          })
+        }
+        throw new Error('process killed mid-run')
+      },
+    } as unknown as LevelCodeClient
+
+    const { result } = await runHeadless({
+      prompt: 'long task',
+      outputFormat: 'json',
+      agentOverride: null,
+      checkpointEvery: 2,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(result.is_error).toBe(true)
+    expect(result.session_id).toMatch(/^[0-9a-f-]{36}$/)
+    const loaded = loadHeadlessRunState(result.session_id as string) as any
+    expect(loaded?.sessionState?.mainAgentState?.messageHistory?.[0]?.content).toBe('step 2')
+  })
+})
+/** Helper: the result payload reports success. */
+function exitCodeIsZero(result: Record<string, unknown>): boolean {
+  return result.is_error === false
+}

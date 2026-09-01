@@ -96,6 +96,17 @@ export function createProgram(): Command {
       'With -p: path to a JSON schema the structured result must satisfy',
     )
     .option(
+      '--checkpoint [steps]',
+      'With -p: save a resumable checkpoint every N completed steps (default 5) so crashed runs can --continue',
+      (value: string) => {
+        const n = Number(value)
+        if (!Number.isInteger(n) || n < 1) {
+          throw new InvalidArgumentError('--checkpoint must be a positive integer')
+        }
+        return String(n)
+      },
+    )
+    .option(
       '--json',
       'With `doctor`, `sessions`, or `--print-config`: machine-readable JSON output',
     )

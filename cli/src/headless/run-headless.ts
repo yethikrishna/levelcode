@@ -16,6 +16,7 @@
  * citizen.
  */
 
+import crypto from 'crypto'
 import path from 'path'
 
 import { getProjectRoot } from '../project-files'
@@ -52,6 +53,13 @@ export type HeadlessOptions = {
   atMessage?: number | null
   /** JSON schema (draft-07) the structured output must satisfy. */
   outputSchema?: Record<string, unknown>
+  /**
+   * Save a crash-resumable checkpoint every N completed agent steps
+   * (default 5 when true). Checkpoints land under a pre-generated session
+   * id that the final save overwrites, so `--continue <id>` always resumes
+   * the newest state — even after a hard crash or a failed run.
+   */
+  checkpointEvery?: number | string | boolean
   /** Test seam: capture output instead of writing to the process streams. */
   sink?: {
     stdout: (chunk: string) => void
@@ -222,12 +230,56 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     }
   }
 
+  // Checkpointing: one pre-generated session id for the whole run. Periodic
+  // saves and the final save land in the same chat dir, so --continue <id>
+  // always resumes the newest state and a crash never orphans the work.
+  const checkpointRaw = options.checkpointEvery
+  const checkpointEnabled =
+    checkpointRaw === true ||
+    checkpointRaw === 'true' ||
+    (typeof checkpointRaw === 'string' && checkpointRaw.trim() !== '' && checkpointRaw !== 'false') ||
+    (typeof checkpointRaw === 'number' && checkpointRaw > 0)
+  const checkpointEvery = Math.max(
+    1,
+    typeof checkpointRaw === 'number'
+      ? Math.floor(checkpointRaw)
+      : Number.parseInt(String(checkpointRaw ?? ''), 10) || 5,
+  )
+  const checkpointChatId = checkpointEnabled ? crypto.randomUUID() : null
+  let lastCheckpointStep = 0
+  let checkpointSaved = false
+
   try {
     finishedRun = await client.run({
       agent: agentArg,
       prompt,
       ...(previousRun ? { previousRun: previousRun as never } : {}),
       handleEvent,
+      ...(checkpointChatId
+        ? {
+            onStepComplete: async (info: {
+              stepNumber: number
+              fileContext: unknown
+              agentState: unknown
+            }) => {
+              if (info.stepNumber - lastCheckpointStep < checkpointEvery) return
+              lastCheckpointStep = info.stepNumber
+              try {
+                saveHeadlessRunState(
+                  {
+                    sessionState: {
+                      fileContext: info.fileContext,
+                      mainAgentState: info.agentState,
+                    },
+                    output: { type: 'error', message: 'Run in progress (checkpoint)' },
+                  } as never,
+                  { chatId: checkpointChatId },
+                )
+              } catch { /* checkpoint persistence is best-effort */ }
+              checkpointSaved = true
+            },
+          }
+        : {}),
       maxAgentSteps: 100,
       fileFilter: ((filePath: string) => {
         if (isSensitiveFile(filePath)) return { status: 'blocked' }
@@ -293,16 +345,23 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   const contextTokenCount = finishedSession?.sessionState?.mainAgentState?.contextTokenCount
   const historyLength = finishedSession?.sessionState?.mainAgentState?.messageHistory?.length
 
-  // Persist the session for --continue chaining (best-effort).
+  // Persist the session for --continue chaining (best-effort). Failed runs
+  // save too when checkpointing produced partial progress: the newest state
+  // is resumable even though this run errored.
   let sessionId: string | null = null
-  if (!sawError && finishedRun) {
+  if (finishedRun && (!sawError || checkpointChatId)) {
     try {
       sessionId = saveHeadlessRunState(finishedRun as never, {
-        chatId: forkedChatId ?? undefined,
+        chatId: checkpointChatId ?? forkedChatId ?? undefined,
         forkedFrom: forkedFromId ?? undefined,
       })
     } catch { /* persistence is best-effort */ }
   }
+  // A run that threw before finishing saved no final state, but if at least
+  // one periodic checkpoint landed, it is already on disk under the
+  // pre-generated id — report it so the operator has a resume handle.
+  const reportedSessionId =
+    sessionId ?? (checkpointChatId && sawError && checkpointSaved ? checkpointChatId : null)
 
   const result: Record<string, unknown> = {
     type: 'result',
@@ -315,7 +374,7 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     num_tool_calls: numToolCalls,
     result: finalText,
     project: path.basename(projectRoot),
-    ...(sessionId ? { session_id: sessionId } : {}),
+    ...(reportedSessionId ? { session_id: reportedSessionId } : {}),
     ...(forkedFromId ? { forked_from: forkedFromId } : {}),
     ...(schemaValid !== undefined
       ? { schema_valid: schemaValid, ...(schemaErrors ? { schema_errors: schemaErrors } : {}) }

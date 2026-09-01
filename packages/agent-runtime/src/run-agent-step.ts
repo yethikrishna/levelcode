@@ -488,6 +488,17 @@ export async function loopAgentSteps(
     userId: string | undefined
     userInputId: string
     agentTemplate?: AgentTemplate
+    /**
+     * Fires after each completed main-loop step with the (self-consistent)
+     * parent state — every tool call in history has its result. Hosts use it
+     * to persist crash-resumable checkpoints; a throwing callback is
+     * logged, never fatal. Subagent loops do not inherit it.
+     */
+    onStepComplete?: (info: {
+      stepNumber: number
+      fileContext: ProjectFileContext
+      agentState: AgentState
+    }) => void | Promise<void>
   } & ParamsExcluding<typeof additionalToolDefinitions, 'agentTemplate'> &
     ParamsExcluding<
       typeof runProgrammaticStep,
@@ -951,6 +962,21 @@ export async function loopAgentSteps(
 
       currentPrompt = undefined
       currentParams = undefined
+
+      if (params.onStepComplete) {
+        try {
+          await params.onStepComplete({
+            stepNumber: totalSteps,
+            fileContext,
+            agentState: currentAgentState,
+          })
+        } catch (checkpointError) {
+          logger.debug(
+            { error: checkpointError },
+            'onStepComplete checkpoint callback failed (non-fatal)',
+          )
+        }
+      }
     }
 
     // --- GAP 4: Notify team lead that this agent is idle after its turn ---

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { homedir } from 'os'
+import { getUserHomeDir } from '../utils/home-dir'
 import {
   ProvidersConfig,
   ProvidersConfigSchema,
@@ -10,7 +10,7 @@ import {
 } from './provider-types'
 
 export function getProviderConfigPath(): string {
-  return path.join(homedir(), '.config', 'levelcode', 'providers.json')
+  return path.join(getUserHomeDir(), '.config', 'levelcode', 'providers.json')
 }
 
 export async function loadProviderConfig(): Promise<ProvidersConfig> {

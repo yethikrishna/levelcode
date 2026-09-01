@@ -49,7 +49,8 @@ import type { CustomToolDefinition } from './custom-tool'
 import type { RunState } from './run-state'
 import type { FileFilter } from './tools/read-files'
 import type { ServerAction } from '@levelcode/common/actions'
-import type { AgentOutput } from '@levelcode/common/types/session-state'
+import type { AgentOutput, AgentState } from '@levelcode/common/types/session-state'
+import type { ProjectFileContext } from '@levelcode/common/util/file'
 import type { AgentDefinition } from '@levelcode/common/templates/initial-agents-dir/types/agent-definition'
 import type {
   PublishedToolName,
@@ -163,6 +164,18 @@ export type RunOptions = {
   extraToolResults?: ToolMessage[]
   signal?: AbortSignal
   costMode?: string
+  /**
+   * Fires after each completed agent-loop step. Hosts persisting
+   * crash-resumable checkpoints should snapshot
+   * `{ fileContext, mainAgentState: agentState }` here (plus `output`);
+   * a later run resumes it via `previousRun`. Throwing is logged, never
+   * fatal. Main-loop steps only — subagent steps do not fire it.
+   */
+  onStepComplete?: (info: {
+    stepNumber: number
+    fileContext: ProjectFileContext
+    agentState: AgentState
+  }) => void | Promise<void>
 }
 
 const createAbortError = (signal?: AbortSignal) => {
@@ -243,6 +256,7 @@ async function runOnce({
   extraToolResults,
   signal,
   costMode,
+  onStepComplete,
 }: RunExecutionOptions): Promise<RunState> {
   const fsSourceValue = typeof fsSource === 'function' ? fsSource() : fsSource
   const fs = await fsSourceValue
@@ -564,6 +578,7 @@ async function runOnce({
           pendingAgentResponse,
           middleware: middlewareCtx,
           llmSpan,
+          onStepComplete,
         })
         return
       }
@@ -577,6 +592,7 @@ async function runOnce({
           pendingAgentResponse,
           middleware: middlewareCtx,
           llmSpan,
+          onStepComplete,
         })
         return
       }
@@ -674,6 +690,7 @@ async function runOnce({
   callMainPrompt({
     ...agentRuntimeImpl,
     promptId,
+    ...(onStepComplete && { onStepComplete }),
     action: {
       type: 'prompt',
       promptId,
@@ -1182,6 +1199,7 @@ async function handlePromptResponse({
   pendingAgentResponse,
   middleware,
   llmSpan,
+  onStepComplete,
 }: {
   action: ServerAction<'prompt-response'> | ServerAction<'prompt-error'>
   resolve: (value: RunReturnType) => any
@@ -1191,6 +1209,7 @@ async function handlePromptResponse({
   pendingAgentResponse: string
   middleware?: MiddlewareContext
   llmSpan?: any
+  onStepComplete?: RunOptions['onStepComplete']
 }) {
   if (action.type === 'prompt-error') {
     onError({ message: action.message })

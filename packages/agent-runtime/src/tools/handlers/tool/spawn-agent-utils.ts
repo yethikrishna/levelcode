@@ -456,6 +456,10 @@ export async function executeSubagent(
     // If subagents need to see images, they get them through includeMessageHistory,
     // not by creating new image-containing messages for their prompts.
     content: undefined,
+    // Checkpointing is a main-loop concern: subagent steps are short-lived and
+    // firing the parent's onStepComplete from inside a subagent would corrupt
+    // step numbering.
+    onStepComplete: undefined,
     ancestorRunIds: [...ancestorRunIds, parentAgentState.runId ?? ''],
     agentType: agentTemplate.id,
   })
