@@ -425,6 +425,57 @@ describe('runHeadless --output-schema', () => {
   })
 })
 
+describe('runHeadless context metrics', () => {
+  it('reports context_tokens and history_messages from the finished run', async () => {
+    const state = {
+      sessionState: {
+        mainAgentState: {
+          contextTokenCount: 4521,
+          messageHistory: [{ role: 'user' }, { role: 'assistant' }, { role: 'tool' }],
+        },
+      },
+    } as unknown as RunState
+    const client = {
+      run: async ({ handleEvent }: any) => {
+        await handleEvent?.({ type: 'text', text: 'done' })
+        return state
+      },
+    } as unknown as LevelCodeClient
+
+    const { exitCode, result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(0)
+    expect(result.context_tokens).toBe(4521)
+    expect(result.history_messages).toBe(3)
+  })
+
+  it('omits metrics when the run exposes none', async () => {
+    const client = {
+      run: async ({ handleEvent }: any) => {
+        await handleEvent?.({ type: 'text', text: 'done' })
+        return { sessionState: {} } as any
+      },
+    } as unknown as LevelCodeClient
+
+    const { result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(result.context_tokens).toBeUndefined()
+    expect(result.history_messages).toBeUndefined()
+  })
+})
+
 describe('runHeadless failure contract', () => {
   it('reports failure when the run finishes without any output or finish event', async () => {
     const { sink, capture } = makeSink()

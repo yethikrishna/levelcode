@@ -268,6 +268,14 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     }
   }
 
+  // Context metrics: the runtime tracks the last known context size per
+  // step (contextTokenCount). Surfacing it lets CI alert on runaway growth.
+  const finishedSession = finishedRun as
+    | { sessionState?: { mainAgentState?: { contextTokenCount?: number; messageHistory?: unknown[] } } }
+    | undefined
+  const contextTokenCount = finishedSession?.sessionState?.mainAgentState?.contextTokenCount
+  const historyLength = finishedSession?.sessionState?.mainAgentState?.messageHistory?.length
+
   // Persist the session for --continue chaining (best-effort).
   let sessionId: string | null = null
   if (!sawError && finishedRun) {
@@ -295,6 +303,8 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     ...(schemaValid !== undefined
       ? { schema_valid: schemaValid, ...(schemaErrors ? { schema_errors: schemaErrors } : {}) }
       : {}),
+    ...(typeof contextTokenCount === 'number' ? { context_tokens: contextTokenCount } : {}),
+    ...(typeof historyLength === 'number' ? { history_messages: historyLength } : {}),
   }
 
   if (outputFormat === 'stream-json') {
