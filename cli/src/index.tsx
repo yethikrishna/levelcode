@@ -27,6 +27,7 @@ const options = program.opts<{
   fork?: string
   atMessage?: string
   checkpoint?: boolean | string
+  captureTrajectory?: boolean | string
   outputSchema?: string
   watch?: boolean | string
 }>()
@@ -202,6 +203,7 @@ if (argv1 === 'doctor') {
           ? Number(options.atMessage)
           : null,
       checkpointEvery: options.checkpoint,
+      captureTrajectory: options.captureTrajectory,
     })
     process.exit(exitCode)
   })

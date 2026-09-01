@@ -425,6 +425,91 @@ describe('runHeadless --output-schema', () => {
   })
 })
 
+describe('runHeadless --capture-trajectory', () => {
+  let tmpDir: string
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-traj-'))
+    setProjectRoot(tmpDir)
+  })
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  const roundTripClient = () =>
+    ({
+      run: async ({ handleEvent }: any) => {
+        await handleEvent?.({ type: 'text', text: 'thinking ' })
+        await handleEvent?.({ type: 'text', text: 'hard' })
+        await handleEvent?.({ type: 'tool_call', toolCallId: 'tc1', toolName: 'read_file', input: { path: 'a.ts' } })
+        await handleEvent?.({ type: 'tool_result', toolCallId: 'tc1', toolName: 'read_file', output: [{ type: 'text', text: 'contents' }] })
+        // Subagent events must be excluded from the trajectory.
+        await handleEvent?.({ type: 'tool_call', toolCallId: 'tc2', toolName: 'spawn_agents', input: {}, agentId: 'child-1', parentAgentId: 'main-1' } as any)
+        await handleEvent?.({ type: 'tool_result', toolCallId: 'tc2', toolName: 'spawn_agents', output: [], parentAgentId: 'main-1' } as any)
+        await handleEvent?.({ type: 'text', text: 'subagent text', agentId: 'child-1' } as any)
+        await handleEvent?.({ type: 'text', text: ' done' })
+        await handleEvent?.({ type: 'finish', totalCost: 0.1 })
+        return { sessionState: { mainAgentState: { messageHistory: [] } } } as any
+      },
+    }) as unknown as LevelCodeClient
+
+  it('writes a replayable trajectory: user_message, coalesced text, tool call/result', async () => {
+    const { exitCode, result } = await runHeadless({
+      prompt: 'do the thing',
+      outputFormat: 'json',
+      agentOverride: null,
+      captureTrajectory: true,
+      client: roundTripClient(),
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(0)
+    expect(result.trajectory_id).toMatch(/^traj-\d+-[0-9a-f]{8}$/)
+    expect(result.trajectory_steps).toBe(5)
+
+    const { TrajectoryReplay } = (await import('@levelcode/sdk')) as any
+    const traj = TrajectoryReplay.loadTrajectory(tmpDir, result.trajectory_id)
+    expect(traj.steps.map((s: any) => s.type)).toEqual([
+      'user_message', 'assistant_message', 'tool_call', 'tool_result', 'assistant_message',
+    ])
+    expect(traj.steps[0].content).toBe('do the thing')
+    // The two text chunks around the tool call coalesce into model turns.
+    expect(traj.steps[1].content).toBe('thinking hard')
+    expect(traj.steps[2].name).toBe('read_file')
+    expect(traj.steps[4].content).toBe(' done')
+
+    // Replay reconstructs a message history from the captured steps.
+    const replay = TrajectoryReplay.replayFromStep(traj, traj.steps.length - 1)
+    expect(replay.messages.length).toBeGreaterThan(0)
+  })
+
+  it('carries the label into the trajectory file', async () => {
+    const { result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      captureTrajectory: 'experiment-a',
+      client: roundTripClient(),
+      sink: makeSink().capture,
+    })
+    const { TrajectoryReplay } = (await import('@levelcode/sdk')) as any
+    const traj = TrajectoryReplay.loadTrajectory(tmpDir, result.trajectory_id)
+    expect(traj.label).toBe('experiment-a')
+  })
+
+  it('writes no trajectory when the flag is absent', async () => {
+    const { result } = await runHeadless({
+      prompt: 'q',
+      outputFormat: 'json',
+      agentOverride: null,
+      client: roundTripClient(),
+      sink: makeSink().capture,
+    })
+    expect(result.trajectory_id).toBeUndefined()
+    const dir = path.join(tmpDir, '.levelcode', 'trajectories')
+    expect(fs.existsSync(dir)).toBe(false)
+  })
+})
+
 describe('runHeadless context metrics', () => {
   it('reports context_tokens and history_messages from the finished run', async () => {
     const state = {

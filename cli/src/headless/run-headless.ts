@@ -31,6 +31,8 @@ import type { AgentDefinition } from '@levelcode/sdk'
 
 import type { PrintModeEvent } from '@levelcode/common/types/print-mode'
 import type { FileFilter, LevelCodeClient } from '@levelcode/sdk'
+import { TrajectoryReplay } from '@levelcode/sdk'
+import type { TrajectoryStep } from '@levelcode/sdk'
 
 export type HeadlessOptions = {
   prompt: string
@@ -53,6 +55,12 @@ export type HeadlessOptions = {
   atMessage?: number | null
   /** JSON schema (draft-07) the structured output must satisfy. */
   outputSchema?: Record<string, unknown>
+  /**
+   * With -p: record the run's steps to `.levelcode/trajectories/<session>.json`
+   * (crash-safe incremental writes). Optional value is a label. The captured
+   * trajectory is replayable/branchable via the SDK's TrajectoryReplay.
+   */
+  captureTrajectory?: boolean | string
   /**
    * Save a crash-resumable checkpoint every N completed agent steps
    * (default 5 when true). Checkpoints land under a pre-generated session
@@ -123,6 +131,47 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   let numToolCalls = 0
   let sawFinish = false
 
+  // --capture-trajectory: record every main-agent step (user prompt, text,
+  // tool calls/results) into .levelcode/trajectories/<session>.json. Writes
+  // are incremental (buffer flushed on each tool boundary), so a crashed run
+  // still leaves a replayable/branchable trajectory — this is the capture
+  // path the SDK's TrajectoryReplay was built against but never had.
+  const captureRaw = options.captureTrajectory
+  const captureEnabled =
+    captureRaw === true ||
+    (typeof captureRaw === 'string' && captureRaw.trim() !== '' && captureRaw !== 'false')
+  const captureLabel =
+    typeof captureRaw === 'string' && captureRaw.trim() !== '' ? captureRaw.trim() : undefined
+  const captureSessionId = `traj-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
+  const trajectorySteps: TrajectoryStep[] = []
+  let captureFlushedCount = 0
+  // Text deltas coalesce into one assistant_message so trajectories hold
+  // model turns, not streaming fragments.
+  let openText = ''
+  let openTextTs = 0
+
+  const flushTrajectory = () => {
+    if (!captureEnabled || trajectorySteps.length === captureFlushedCount) return
+    try {
+      // appendSteps overwrites the file with the full accumulated step list;
+      // pass only the newly captured slice so the file grows monotonically.
+      TrajectoryReplay.appendSteps(
+        projectRoot,
+        captureSessionId,
+        trajectorySteps.slice(captureFlushedCount),
+        captureLabel,
+      )
+      captureFlushedCount = trajectorySteps.length
+    } catch {
+      // Trajectory capture is best-effort; never break the run over it.
+    }
+  }
+
+  const pushStep = (step: TrajectoryStep) => {
+    if (!captureEnabled) return
+    trajectorySteps.push({ ...step, session: captureSessionId })
+  }
+
   // The SDK's streaming internals can surface failures as unhandled
   // rejections instead of rejecting the awaited run() promise (e.g. a
   // provider connection dying mid-stream). Headless is a short-lived
@@ -147,19 +196,69 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
       case 'text':
         finalText += event.text
         if (outputFormat === 'text') out(event.text)
+        if (captureEnabled && !event.agentId) {
+          if (!openText) openTextTs = Date.now()
+          openText += event.text
+        }
         break
       case 'error':
         sawError = true
         if (outputFormat === 'text') {
           err(`error: ${event.message}\n`)
         }
+        if (captureEnabled) {
+          if (openText) {
+            pushStep({ index: 0, type: 'assistant_message', ts: openTextTs, content: openText })
+            openText = ''
+          }
+          flushTrajectory()
+        }
         break
       case 'tool_call':
         numToolCalls += 1
+        // Subagent tool calls arrive re-emitted with parentAgentId (spawn-agents);
+        // main-loop calls carry neither parentAgentId nor (reliably) agentId.
+        if (captureEnabled && !event.parentAgentId) {
+          // Close any open text run before the tool boundary, then record
+          // the call and flush — this is the crash-resume boundary.
+          if (openText) {
+            pushStep({ index: 0, type: 'assistant_message', ts: openTextTs, content: openText })
+            openText = ''
+          }
+          pushStep({
+            index: 0,
+            type: 'tool_call',
+            ts: Date.now(),
+            id: event.toolCallId,
+            name: event.toolName,
+            data: event.input,
+          })
+          flushTrajectory()
+        }
+        break
+      case 'tool_result':
+        if (captureEnabled && !event.parentAgentId) {
+          pushStep({
+            index: 0,
+            type: 'tool_result',
+            ts: Date.now(),
+            id: event.toolCallId,
+            name: event.toolName,
+            data: event.output,
+          })
+          flushTrajectory()
+        }
         break
       case 'finish':
         sawFinish = true
         totalCost = event.totalCost
+        if (captureEnabled) {
+          if (openText) {
+            pushStep({ index: 0, type: 'assistant_message', ts: openTextTs, content: openText })
+            openText = ''
+          }
+          flushTrajectory()
+        }
         break
     }
   }
@@ -248,6 +347,13 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   const checkpointChatId = checkpointEnabled ? crypto.randomUUID() : null
   let lastCheckpointStep = 0
   let checkpointSaved = false
+
+  // The trajectory begins with the prompt as a user_message step — replay
+  // reconstructs history from it, so it must be the first captured step.
+  if (captureEnabled) {
+    pushStep({ index: 0, type: 'user_message', ts: Date.now(), content: prompt })
+    flushTrajectory()
+  }
 
   try {
     finishedRun = await client.run({
@@ -376,6 +482,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     project: path.basename(projectRoot),
     ...(reportedSessionId ? { session_id: reportedSessionId } : {}),
     ...(forkedFromId ? { forked_from: forkedFromId } : {}),
+    ...(captureEnabled && trajectorySteps.length > 0
+      ? { trajectory_id: captureSessionId, trajectory_steps: trajectorySteps.length }
+      : {}),
     ...(schemaValid !== undefined
       ? { schema_valid: schemaValid, ...(schemaErrors ? { schema_errors: schemaErrors } : {}) }
       : {}),

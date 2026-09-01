@@ -107,6 +107,10 @@ export function createProgram(): Command {
       },
     )
     .option(
+      '--capture-trajectory [label]',
+      'With -p: record run steps to .levelcode/trajectories/<session>.json (crash-safe; replayable via the SDK)',
+    )
+    .option(
       '--json',
       'With `doctor`, `sessions`, or `--print-config`: machine-readable JSON output',
     )
