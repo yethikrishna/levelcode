@@ -1,7 +1,13 @@
 
 import path from 'path'
 
+import { setDefaultTimeout } from 'bun:test'
+
 import * as mainPromptModule from '@levelcode/agent-runtime/main-prompt'
+
+// Full client.run flows through the LLM mocks; under load a single test can
+// exceed bun's 5s default.
+setDefaultTimeout(30_000)
 import { FILE_READ_STATUS } from '@levelcode/common/old-constants'
 import * as projectFileTree from '@levelcode/common/project-file-tree'
 import { getInitialSessionState } from '@levelcode/common/types/session-state'
