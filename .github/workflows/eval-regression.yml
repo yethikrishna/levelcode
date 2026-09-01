@@ -14,7 +14,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Gate: model evals cost real money and an hour of wall time — only run
+  # them when the PR actually touches the agent loop, prompts, tools, or
+  # eval machinery. Docs/UI/web-only PRs skip straight past.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.filter.outputs.should-run }}
+    steps:
+      - name: Check changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            should-run:
+              - 'packages/agent-runtime/**'
+              - 'common/src/util/**'
+              - 'common/src/prompts/**'
+              - 'common/src/agents/**'
+              - 'common/src/tools/**'
+              - 'common/src/context/**'
+              - 'evals/**'
+              - 'sdk/src/run.ts'
+              - 'sdk/src/tools/**'
+              - 'agents/**'
+
   eval-regression:
+    needs: changes
+    if: ${{ needs.changes.outputs.should-run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
