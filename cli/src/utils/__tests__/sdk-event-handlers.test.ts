@@ -252,3 +252,38 @@ describe('sdk-event-handlers', () => {
     expect(getStreamingAgents().size).toBe(0)
   })
 })
+
+
+describe('createEventHandler trajectory capture wiring', () => {
+  test('main-agent tool events drive the recorder; subagent events do not', async () => {
+    const os = await import('os')
+    const fs = await import('fs')
+    const path = await import('path')
+    const { setProjectRoot } = await import('../../project-files')
+    const { createTrajectoryRecorder, setActiveTrajectoryRecorder } = await import('../trajectory-recorder')
+    const { TrajectoryReplay } = await import('@levelcode/sdk')
+
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'traj-handler-'))
+    setProjectRoot(tmpDir)
+    const recorder = createTrajectoryRecorder()!
+    setActiveTrajectoryRecorder(recorder)
+
+    try {
+      const { ctx } = createTestContext()
+      const handleEvent = createEventHandler(ctx)
+
+      handleEvent({ type: 'tool_call', toolCallId: 'main-1', toolName: 'read_file', input: {} } as never)
+      handleEvent({ type: 'tool_result', toolCallId: 'main-1', toolName: 'read_file', output: [{ type: 'json', value: 1 }] } as never)
+      // Subagent events (parentAgentId) must be excluded.
+      handleEvent({ type: 'tool_call', toolCallId: 'sub-1', toolName: 'edit_file', input: {}, agentId: 'child', parentAgentId: 'main' } as never)
+      handleEvent({ type: 'finish', totalCost: 0 } as never)
+
+      const traj = TrajectoryReplay.loadTrajectory(tmpDir, recorder.sessionId)
+      expect(traj.steps.map((s) => s.type)).toEqual(['tool_call', 'tool_result'])
+      expect(traj.steps.every((s) => s.id !== 'sub-1')).toBe(true)
+    } finally {
+      setActiveTrajectoryRecorder(null)
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+})

@@ -223,4 +223,13 @@ if (argv1 === 'doctor') {
 
   // Reaching this line means we have a TTY and are booting the full app.
   void import('./cli-main').then((m) => m.runCli())
+  void import('./utils/trajectory-recorder').then((m) => {
+    if (options.captureTrajectory === true || typeof options.captureTrajectory === 'string') {
+      const label = typeof options.captureTrajectory === 'string' && options.captureTrajectory.trim() !== ''
+        ? options.captureTrajectory.trim()
+        : undefined
+      const recorder = m.createTrajectoryRecorder(label)
+      if (recorder) m.setActiveTrajectoryRecorder(recorder)
+    }
+  })
 }

@@ -10,6 +10,7 @@ import { useChatStore } from '../state/chat-store'
 import { getLevelCodeClient } from '../utils/levelcode-client'
 import { AGENT_MODE_TO_ID, AGENT_MODE_TO_COST_MODE } from '../utils/constants'
 import { createEventHandlerState } from '../utils/create-event-handler-state'
+import { getActiveTrajectoryRecorder } from '../utils/trajectory-recorder'
 import { createRunConfig } from '../utils/create-run-config'
 import { loadAgentDefinitions } from '../utils/local-agent-registry'
 import { logger } from '../utils/logger'
@@ -485,6 +486,10 @@ export const useSendMessage = ({
           promptWithBashContext,
           messageContent,
         )
+
+        // Interactive trajectory capture: the boot flag (--capture-trajectory)
+        // installed a recorder; the prompt is the trajectory's first step.
+        getActiveTrajectoryRecorder()?.recordUserMessage(effectivePrompt)
 
         const eventHandlerState = createEventHandlerState({
           streamRefs,

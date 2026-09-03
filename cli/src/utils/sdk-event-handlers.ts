@@ -453,6 +453,12 @@ const handleFinish = (state: EventHandlerState, event: PrintModeFinish) => {
 export const createStreamChunkHandler =
   (state: EventHandlerState) => (event: StreamChunkEvent) => {
     const destination = destinationFromChunkEvent(event)
+    // Root-level text deltas feed the trajectory's coalesced assistant turns.
+    const recorder = getActiveTrajectoryRecorder()
+    if (recorder && destination?.type === 'root' && destination.textType === 'text') {
+      const text = typeof event === 'string' ? event : event.chunk
+      if (text) recorder.recordTextDelta(text)
+    }
     let text: string | undefined
     if (typeof event === 'string') {
       text = event
@@ -485,8 +491,23 @@ export const createStreamChunkHandler =
     )
   }
 
+import { getActiveTrajectoryRecorder } from './trajectory-recorder'
+
 export const createEventHandler =
   (state: EventHandlerState) => (event: SDKEvent) => {
+    // Trajectory capture: main-agent events only (subagent tool events carry
+    // parentAgentId; subagent text carries agentId), same discrimination as
+    // the headless capture path.
+    const recorder = getActiveTrajectoryRecorder()
+    if (recorder) {
+      if (event.type === 'tool_call' && !event.parentAgentId) {
+        recorder.recordToolCall(event.toolCallId, event.toolName, event.input)
+      } else if (event.type === 'tool_result' && !event.parentAgentId) {
+        recorder.recordToolResult(event.toolCallId, event.toolName, event.output)
+      } else if (event.type === 'finish') {
+        recorder.flush()
+      }
+    }
     return match(event)
       .with({ type: 'subagent_start' }, (e) => handleSubagentStart(state, e))
       .with({ type: 'subagent_finish' }, (e) => handleSubagentFinish(state, e))
