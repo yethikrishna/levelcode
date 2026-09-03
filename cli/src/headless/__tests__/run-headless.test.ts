@@ -425,6 +425,66 @@ describe('runHeadless --output-schema', () => {
   })
 })
 
+describe('runHeadless --checkpoint + --capture-trajectory compose', () => {
+  let tmpDir: string
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hl-compose-'))
+    setProjectRoot(tmpDir)
+  })
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('a crashed run persists both a resumable session and a replayable trajectory', async () => {
+    const client = {
+      run: async (opts: any) => {
+        for (const stepNumber of [1, 2]) {
+          await opts.onStepComplete?.({
+            stepNumber,
+            fileContext: { projectPath: '/proj' },
+            agentState: { agentId: 'a1', messageHistory: [{ role: 'user', content: `s${stepNumber}` }] },
+          })
+        }
+        await opts.handleEvent?.({ type: 'tool_call', toolCallId: 'tc1', toolName: 'edit_file', input: { path: 'a.ts' } })
+        await opts.handleEvent?.({ type: 'tool_result', toolCallId: 'tc1', toolName: 'edit_file', output: [{ type: 'json', value: 'ok' }] })
+        throw new Error('killed mid-run')
+      },
+    } as unknown as LevelCodeClient
+
+    const { exitCode, result } = await runHeadless({
+      prompt: 'long task',
+      outputFormat: 'json',
+      agentOverride: null,
+      checkpointEvery: 1,
+      captureTrajectory: 'compose-test',
+      client,
+      sink: makeSink().capture,
+    })
+
+    expect(exitCode).toBe(1)
+    expect(result.is_error).toBe(true)
+
+    // 1) The checkpoint: a resumable session with the step-2 state.
+    const sessionId = result.session_id as string
+    expect(sessionId).toMatch(/^[0-9a-f-]{36}$/)
+    const loaded = loadHeadlessRunState(sessionId) as any
+    expect(loaded?.sessionState?.mainAgentState?.messageHistory?.[0]?.content).toBe('s2')
+
+    // 2) The trajectory: prompt + tool call + tool result, replayable.
+    const { TrajectoryReplay } = (await import('@levelcode/sdk')) as any
+    const trajectoryId = result.trajectory_id as string
+    expect(trajectoryId).toMatch(/^traj-\d+-[0-9a-f]{8}$/)
+    const traj = TrajectoryReplay.loadTrajectory(tmpDir, trajectoryId)
+    expect(traj.label).toBe('compose-test')
+    expect(traj.steps.map((s: any) => s.type)).toEqual(['user_message', 'tool_call', 'tool_result'])
+
+    // 3) The trajectory converts back into a resumable state.
+    const { trajectoryToMessages } = (await import('@levelcode/sdk')) as any
+    const { sessionState } = trajectoryToMessages(traj, traj.steps.length - 1)
+    expect(sessionState.mainAgentState.messageHistory).toHaveLength(3) // user + assistant(tool-call part) + tool
+  })
+})
+
 describe('runHeadless --capture-trajectory', () => {
   let tmpDir: string
   beforeEach(() => {

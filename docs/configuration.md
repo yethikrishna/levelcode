@@ -78,25 +78,49 @@ export default defineConfig({
 
 ## CLI Arguments
 
-```bash
-# Specify model
-levelcode --model anthropic/claude-3-opus
+Run `levelcode --help` for the authoritative list. The most useful:
 
+```bash
 # Set working directory
 levelcode --cwd /path/to/project
 
-# Enable debug mode
-levelcode --debug
+# Isolated git worktree (.levelcode/worktrees/<name>, branch worktree/<name>)
+levelcode --worktree experiment-1
 
-# Non-interactive mode
-levelcode "Your prompt here" --no-interactive
+# How hard the agent works: low (30 steps) | medium (100) | high (200) | max (400)
+levelcode --effort high
 
-# Output to file
-levelcode "Review code" --output review.md
+# Continue a previous conversation (optionally by id)
+levelcode --continue
+levelcode --continue <conversation-id>
 
-# Specify config file
-levelcode --config ./my-config.ts
+# Headless mode (-p): machine-readable output for CI and scripts
+levelcode -p --output-format json "fix the failing test"
+
+# Headless extras: structured output, crash checkpoints, trajectory capture
+levelcode -p --output-schema schema.json "summarize failures"
+levelcode -p --checkpoint 10 "long migration"
+levelcode -p --capture-trajectory "experiment-a" "try approach B"
+
+# Inspect resolved configuration without booting the runtime (secrets redacted)
+levelcode --print-config
+levelcode --print-config --json
+
+# Saved sessions: list, inspect history, fork
+levelcode sessions
+levelcode sessions <id-or-prefix>
+levelcode -p --fork <session-id> --at-message 4 "alternative approach"
+
+# Swarm console (add --watch [interval] to auto-refresh)
+levelcode agents
+levelcode agents <team-name>
+
+# Machine-readable health check
+levelcode doctor --json
 ```
+
+Note: model selection is managed through providers.json (via `/provider:add`
+in the TUI or `--print-config` to inspect), not a `--model` flag.
 
 ## Model Selection
 

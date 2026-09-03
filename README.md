@@ -275,7 +275,28 @@ levelcode -p --output-format json "fix the failing test in src/auth.test.ts"
 
 # Full NDJSON event stream (start / tool_call / tool_result / text / finish / result)
 levelcode -p --output-format stream-json "refactor the config module" | jq -c 'select(.type=="tool_call")'
+
+# Crash-resumable long runs: checkpoint every N steps (default 5). A killed
+# run still reports session_id in its result event — resume with --continue.
+levelcode -p --checkpoint 10 --output-format json "migrate the whole test suite"
+
+# Record the run's steps for replay/branching (crash-safe incremental writes)
+levelcode -p --capture-trajectory "experiment-a" "try approach B on the parser"
+
+# Continue from a saved session; fork one to try a different path
+levelcode -p --continue <session-id> "keep going"
+levelcode -p --fork <session-id> --at-message 4 "alternative approach"
+levelcode sessions            # list saved sessions (add <id> for history detail)
+levelcode --print-config       # resolved config: effort, permissions, providers, MCP (secrets redacted)
+
+# Structured output validated against a JSON schema (exit 1 on violation)
+levelcode -p --output-schema schema.json "summarize the failing tests"
 ```
+
+In the TUI, `/trajectory:replay <id>` shows a captured trajectory step by
+step and `/trajectory:branch <id> <step> <prompt>` continues a new run from
+any recorded step. The SDK exposes the same machinery:
+`TrajectoryReplay` (list/replay/branch) and `trajectoryToMessages`.
 
 ### Health Check
 

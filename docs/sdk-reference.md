@@ -67,6 +67,7 @@ const result = await client.run({
 | `agent` | `string` | Yes | Agent ID to run |
 | `prompt` | `string` | Yes | The task prompt |
 | `handleEvent` | `(event: Event) => void` | No | Event callback for streaming |
+| `onStepComplete` | `(info: { stepNumber, fileContext, agentState }) => void \| Promise<void>` | No | Fires after each completed main-agent step — checkpointing, progress telemetry, mid-run snapshots. Subagent steps do not fire it. |
 | `agentDefinitions` | `AgentDefinition[]` | No | Custom agent definitions |
 | `customToolDefinitions` | `ToolDefinition[]` | No | Custom tool definitions |
 | `context` | `Record<string, any>` | No | Additional context |
@@ -274,6 +275,36 @@ try {
 | `TIMEOUT` | Request timed out |
 | `FILE_ERROR` | File operation failed |
 | `TOOL_ERROR` | Tool execution failed |
+
+## Trajectory Replay
+
+Headless runs with `--capture-trajectory` record their steps to
+`.levelcode/trajectories/<session>.json`. The SDK reads, replays, and
+branches those recordings:
+
+```typescript
+import { TrajectoryReplay, trajectoryToMessages } from '@levelcode/sdk';
+
+// List / inspect recorded runs
+const sessions = TrajectoryReplay.listSessions(process.cwd());
+
+// Reconstruct the message history up to a step (unanswered tool calls at
+// the cut are dropped) as a resumable SessionState
+const { sessionState, droppedToolCallIds } = trajectoryToMessages(
+  TrajectoryReplay.loadTrajectory(process.cwd(), sessionId),
+  stepIndex,
+  'now try a different approach',
+);
+
+// Run the continuation
+const result = await client.run({
+  agent: 'base2',
+  prompt: 'now try a different approach',
+  previousRun: { sessionState } as never,
+});
+```
+
+Alternatively, `/trajectory:replay <id>` and `/trajectory:branch <id> <step> <prompt>` do the same interactively in the TUI.
 
 ## TypeScript Types
 
