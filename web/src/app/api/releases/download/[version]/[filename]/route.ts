@@ -18,7 +18,12 @@ export async function GET(
   }
 
   // Current download location - can be changed in the future without affecting old clients
-  const downloadUrl = `https://github.com/yethikrishna/levelcode-community/releases/download/v${version}/${filename}`
+  // Env-overridable so forks/self-hosted deploys can repoint without code edits.
+  // Defaults to this repository's GitHub releases.
+  const releasesBase =
+    process.env.LEVELCODE_RELEASES_BASE_URL ||
+    'https://github.com/yethikrishna/levelcode/releases/download'
+  const downloadUrl = `${releasesBase}/v${version}/${filename}`
 
   return NextResponse.redirect(downloadUrl, 302)
 }
