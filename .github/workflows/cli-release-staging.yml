@@ -196,8 +196,7 @@ jobs:
             After downloading, extract the tarball, add the binary to your PATH, and run `levelcode-staging --help` for usage.
           files: |
             binaries/*/levelcode-staging-*
-          repository: LevelCodeAI/levelcode-community
-          token: ${{ secrets.LEVELCODE_GITHUB_TOKEN }}
+
 
   publish-staging-npm:
     needs:

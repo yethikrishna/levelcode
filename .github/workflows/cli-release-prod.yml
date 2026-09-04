@@ -126,8 +126,6 @@ jobs:
             - `levelcode-win32-x64.tar.gz` - Windows x64
           files: |
             binaries/*/levelcode-*
-          repository: LevelCodeAI/levelcode-community
-          token: ${{ secrets.LEVELCODE_GITHUB_TOKEN }}
 
   # Publish npm package
   publish-prod-npm:
