@@ -43,8 +43,9 @@
     }
   },
   "scripts": {
-    "dev": "bun run prebuild:agents && bun run src/index.tsx --cwd ..",
+    "dev": "bun run prebuild:agents && bun run prebuild:ts-worker && bun run src/index.tsx --cwd ..",
     "prebuild:agents": "bun run scripts/prebuild-agents.ts",
+    "prebuild:ts-worker": "bun run scripts/prebuild-tree-sitter-worker.ts",
     "build:binary": "bun ./scripts/build-binary.ts levelcode $npm_package_version",
     "release": "bun run scripts/release.ts",
     "test": "NODE_ENV=production bun test",

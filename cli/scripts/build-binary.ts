@@ -134,6 +134,14 @@ async function main() {
     env: process.env,
   })
 
+  // Generate the OpenTUI tree-sitter worker blob bundle (workers cannot
+  // load from the compiled binary's virtual filesystem)
+  log('Generating tree-sitter worker bundle...')
+  runCommand('bun', ['run', 'scripts/prebuild-tree-sitter-worker.ts'], {
+    cwd: cliRoot,
+    env: process.env,
+  })
+
   // Ensure SDK assets exist before compiling the CLI
   log('Building SDK dependencies...')
   runCommand('bun', ['run', '--cwd', '../sdk', 'build'], {

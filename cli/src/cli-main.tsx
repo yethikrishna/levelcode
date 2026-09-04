@@ -12,6 +12,7 @@ import path from 'path'
 import { AnalyticsEvent } from '@levelcode/common/constants/analytics-events'
 import { getProjectFileTree } from '@levelcode/common/project-file-tree'
 import { createCliRenderer } from '@opentui/core'
+import { registerTreeSitterWorker } from './generated/tree-sitter-worker'
 import { createRoot } from '@opentui/react'
 import {
   QueryClient,
@@ -122,6 +123,11 @@ function parseArgs(): ParsedArgs {
 }
 
 async function runCli(): Promise<void> {
+  // Compiled-binary workers: OpenTUI's tree-sitter worker cannot be spawned
+  // from the exe's virtual filesystem; register a blob-URL worker path
+  // before the renderer (and its tree-sitter client) is created.
+  registerTreeSitterWorker()
+
   // Run OSC theme detection BEFORE anything else.
   // This MUST happen before OpenTUI starts because OSC responses come through stdin,
   // and OpenTUI also listens to stdin. Running detection here ensures stdin is clean.
