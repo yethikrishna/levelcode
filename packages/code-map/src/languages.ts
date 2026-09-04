@@ -7,6 +7,7 @@ import './types'
 import { Language, Parser, Query } from 'web-tree-sitter'
 
 import { initTreeSitterForNode } from './init-node'
+import { TREE_SITTER_WASM_PATHS } from './assets/tree-sitter-wasm'
 import { DEBUG_PARSING } from './parse'
 
 /* ------------------------------------------------------------------ */
@@ -140,6 +141,12 @@ export function getWasmDir(): string | undefined {
  * Works for both ESM and CJS builds of the SDK.
  */
 function resolveWasmPath(wasmFileName: string): string {
+  // Compiled binaries: wasm files are embedded assets (see init-node).
+  const embedded = TREE_SITTER_WASM_PATHS[wasmFileName]
+  if (embedded) {
+    return embedded
+  }
+
   const customWasmDirPath = getWasmDir()
   if (customWasmDirPath) {
     return path.join(customWasmDirPath, wasmFileName)
@@ -212,6 +219,10 @@ class UnifiedLanguageLoader implements RuntimeLanguageLoader {
 
   constructor() {
     this.parserReady = initTreeSitterForNode()
+    // The singleton is constructed at module scope: without this guard an
+    // init failure would surface as an unhandledRejection at import time
+    // (crashing the compiled binary) instead of when first awaited.
+    this.parserReady.catch(() => {})
   }
 
   async initParser(): Promise<void> {
