@@ -27,6 +27,7 @@ import {
   hasProcessingImages,
   validateAndAddImage,
 } from '../utils/pending-attachments'
+import { ICON } from '../utils/icons'
 
 /**
  * Run a bash command with automatic ghost/direct mode selection.
@@ -324,7 +325,7 @@ export async function routeUserPrompt(
       setMessages((prev) => [
         ...prev,
         getUserMessage(trimmed),
-        getSystemMessage(`❌ ${result.error}`),
+        getSystemMessage(`✗ ${result.error}`),
       ])
     }
 

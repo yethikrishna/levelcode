@@ -4,6 +4,7 @@ import path from 'node:path'
 import { processImageFile, resolveFilePath, isImageFile } from './image-handler'
 import { useChatStore } from '../state/chat-store'
 import type { PendingAttachment } from '../types/store'
+import { ICON } from './icons'
 
 /**
  * Exit image input mode if currently active.
@@ -192,7 +193,7 @@ export async function validateAndAddImage(
   // Check if file exists
   if (!existsSync(resolvedPath)) {
     const error = 'file not found'
-    addPendingImageWithError(resolvedPath, `❌ ${error}`)
+    addPendingImageWithError(resolvedPath, `✗ ${error}`)
     return { success: false, error }
   }
   
@@ -200,7 +201,7 @@ export async function validateAndAddImage(
   if (!isImageFile(resolvedPath)) {
     const ext = path.extname(imagePath).toLowerCase()
     const error = ext ? `unsupported format ${ext}` : 'unsupported format'
-    addPendingImageWithError(resolvedPath, `❌ ${error}`)
+    addPendingImageWithError(resolvedPath, `✗ ${error}`)
     return { success: false, error }
   }
   

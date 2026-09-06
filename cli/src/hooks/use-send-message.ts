@@ -43,6 +43,7 @@ import type { SendMessageFn } from '../types/contracts/send-message'
 import type { AgentMode } from '../utils/constants'
 import type { SendMessageTimerEvent } from '../utils/send-message-timer'
 import type { AgentDefinition, MessageContent, RunState } from '@levelcode/sdk'
+import { ICON } from '../utils/icons'
 
 interface UseSendMessageOptions {
   inputRef: React.MutableRefObject<any>
@@ -336,7 +337,7 @@ export const useSendMessage = ({
         setMessages((prev) => [
           ...prev,
           createErrorChatMessage(
-            '⚠️ Failed to prepare message. Please try again.',
+            '⚠︎️ Failed to prepare message. Please try again.',
           ),
         ])
         resetEarlyReturnState({
@@ -397,7 +398,7 @@ export const useSendMessage = ({
         setMessages((prev) => [
           ...prev,
           createErrorChatMessage(
-            '⚠️ Agent validation failed unexpectedly. Please try again.',
+            '⚠︎️ Agent validation failed unexpectedly. Please try again.',
           ),
         ])
         await yieldToEventLoop()
@@ -429,7 +430,7 @@ export const useSendMessage = ({
         setMessages((prev) => [
           ...prev,
           createErrorChatMessage(
-            '⚠️ Unable to connect to LevelCode. Please check your authentication and try again.',
+            '⚠︎️ Unable to connect to LevelCode. Please check your authentication and try again.',
           ),
         ])
         await yieldToEventLoop()

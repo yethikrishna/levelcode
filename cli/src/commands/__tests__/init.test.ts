@@ -68,7 +68,7 @@ describe('handleInitializationFlowLocally', () => {
       // Check message indicates creation
       const messages = postUserMessage([])
       expect(messages.length).toBeGreaterThan(0)
-      expect(getMessageText(messages)).toContain('✅ Created `knowledge.md`')
+      expect(getMessageText(messages)).toContain('✓ Created `knowledge.md`')
     })
 
     test('skips knowledge.md creation when it already exists', () => {
@@ -86,7 +86,7 @@ describe('handleInitializationFlowLocally', () => {
 
       // Check message indicates file already exists
       const messages = postUserMessage([])
-      expect(getMessageText(messages)).toContain('📋 `knowledge.md` already exists')
+      expect(getMessageText(messages)).toContain('✓ `knowledge.md` already exists')
     })
   })
 
@@ -102,7 +102,7 @@ describe('handleInitializationFlowLocally', () => {
       )
 
       const messages = postUserMessage([])
-      expect(getMessageText(messages)).toContain('✅ Created `.agents/`')
+      expect(getMessageText(messages)).toContain('✓ Created `.agents/`')
     })
 
     test('skips .agents directory creation when it already exists', () => {
@@ -119,7 +119,7 @@ describe('handleInitializationFlowLocally', () => {
       expect(agentsDirCalls.length).toBe(0)
 
       const messages = postUserMessage([])
-      expect(getMessageText(messages)).toContain('📋 `.agents/` already exists')
+      expect(getMessageText(messages)).toContain('✓ `.agents/` already exists')
     })
   })
 
@@ -135,7 +135,7 @@ describe('handleInitializationFlowLocally', () => {
       )
 
       const messages = postUserMessage([])
-      expect(getMessageText(messages)).toContain('✅ Created `.agents/types/`')
+      expect(getMessageText(messages)).toContain('✓ Created `.agents/types/`')
     })
 
     test('skips .agents/types directory creation when it already exists', () => {
@@ -156,7 +156,7 @@ describe('handleInitializationFlowLocally', () => {
       expect(typesDirCalls.length).toBe(0)
 
       const messages = postUserMessage([])
-      expect(getMessageText(messages)).toContain('📋 `.agents/types/` already exists')
+      expect(getMessageText(messages)).toContain('✓ `.agents/types/` already exists')
     })
   })
 
@@ -212,7 +212,7 @@ describe('handleInitializationFlowLocally', () => {
 
       const messages = postUserMessage([])
       expect(getMessageText(messages)).toContain(
-        '📋 `.agents/types/agent-definition.ts` already exists',
+        '✓ `.agents/types/agent-definition.ts` already exists',
       )
     })
   })
@@ -272,7 +272,7 @@ describe('handleInitializationFlowLocally', () => {
       const messageContent = getMessageText(messages)
 
       // Should have error message for tools.ts
-      expect(messageContent).toContain('⚠️ Failed to copy `.agents/types/tools.ts`')
+      expect(messageContent).toContain('⚠︎ Failed to copy `.agents/types/tools.ts`')
       expect(messageContent).toContain('Permission denied')
     })
 
@@ -333,12 +333,12 @@ describe('handleInitializationFlowLocally', () => {
       const messageContent = getMessageText(messages)
 
       // Should have error for agent-definition.ts
-      expect(messageContent).toContain('⚠️ Failed to copy `.agents/types/agent-definition.ts`')
+      expect(messageContent).toContain('⚠︎ Failed to copy `.agents/types/agent-definition.ts`')
       expect(messageContent).toContain('File locked')
 
       // But should still succeed for tools.ts and util-types.ts
-      expect(messageContent).toContain('✅ Copied `.agents/types/tools.ts`')
-      expect(messageContent).toContain('✅ Copied `.agents/types/util-types.ts`')
+      expect(messageContent).toContain('✓ Copied `.agents/types/tools.ts`')
+      expect(messageContent).toContain('✓ Copied `.agents/types/util-types.ts`')
     })
 
     test('handles non-Error exceptions in type file copying', () => {
@@ -355,7 +355,7 @@ describe('handleInitializationFlowLocally', () => {
       const messageContent = getMessageText(messages)
 
       // Should handle non-Error exceptions gracefully
-      expect(messageContent).toContain('⚠️ Failed to copy `.agents/types/util-types.ts`')
+      expect(messageContent).toContain('⚠︎ Failed to copy `.agents/types/util-types.ts`')
       expect(messageContent).toContain('string error')
     })
 
@@ -373,7 +373,7 @@ describe('handleInitializationFlowLocally', () => {
       const messageContent = getMessageText(messages)
 
       // Should handle null exceptions with 'Unknown' fallback
-      expect(messageContent).toContain('⚠️ Failed to copy `.agents/types/tools.ts`')
+      expect(messageContent).toContain('⚠︎ Failed to copy `.agents/types/tools.ts`')
       expect(messageContent).toContain('Unknown')
     })
   })
@@ -420,9 +420,9 @@ describe('handleInitializationFlowLocally', () => {
       const messages = postUserMessage([])
       const messageContent = getMessageText(messages)
 
-      expect(messageContent).toContain('📋 `knowledge.md` already exists')
-      expect(messageContent).toContain('📋 `.agents/` already exists')
-      expect(messageContent).toContain('✅ Created `.agents/types/`')
+      expect(messageContent).toContain('✓ `knowledge.md` already exists')
+      expect(messageContent).toContain('✓ `.agents/` already exists')
+      expect(messageContent).toContain('✓ Created `.agents/types/`')
     })
 
     test('handles fully initialized project correctly', () => {
@@ -439,17 +439,17 @@ describe('handleInitializationFlowLocally', () => {
       const messageContent = getMessageText(messages)
 
       // All messages should indicate existing files
-      expect(messageContent).toContain('📋 `knowledge.md` already exists')
-      expect(messageContent).toContain('📋 `.agents/` already exists')
-      expect(messageContent).toContain('📋 `.agents/types/` already exists')
+      expect(messageContent).toContain('✓ `knowledge.md` already exists')
+      expect(messageContent).toContain('✓ `.agents/` already exists')
+      expect(messageContent).toContain('✓ `.agents/types/` already exists')
       expect(messageContent).toContain(
-        '📋 `.agents/types/agent-definition.ts` already exists',
+        '✓ `.agents/types/agent-definition.ts` already exists',
       )
       expect(messageContent).toContain(
-        '📋 `.agents/types/tools.ts` already exists',
+        '✓ `.agents/types/tools.ts` already exists',
       )
       expect(messageContent).toContain(
-        '📋 `.agents/types/util-types.ts` already exists',
+        '✓ `.agents/types/util-types.ts` already exists',
       )
     })
   })

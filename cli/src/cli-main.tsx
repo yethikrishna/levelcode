@@ -46,6 +46,7 @@ import { setOscDetectedTheme } from './utils/theme-system'
 import type { AgentMode } from './utils/constants'
 import type { FileTreeNode } from '@levelcode/common/util/file'
 import type { ParsedArgs } from './types/cli-args'
+import { ICON } from './utils/icons'
 
 // Configure TanStack Query's focusManager for terminal environments
 // This is required because there's no browser visibility API in terminal apps
@@ -204,7 +205,7 @@ async function runCli(): Promise<void> {
     const result = await handlePublish(agentIds)
 
     if (result.success && result.publisherId && result.agents) {
-      logger.info(green('✅ Successfully published:'))
+      logger.info(green('✓ Successfully published:'))
       for (const agent of result.agents) {
         logger.info(
           cyan(
@@ -214,7 +215,7 @@ async function runCli(): Promise<void> {
       }
       process.exit(0)
     } else {
-      logger.error(red('❌ Publish failed'))
+      logger.error(red('✗ Publish failed'))
       if (result.error) logger.error(red(`Error: ${result.error}`))
       if (result.details) logger.error(red(result.details))
       if (result.hint) logger.warn(yellow(`Hint: ${result.hint}`))

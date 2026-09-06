@@ -18,6 +18,7 @@ import { loadRecentProjects } from '../utils/recent-projects'
 import { getLogoBlockColor, getLogoAccentColor } from '../utils/theme-system'
 
 import type { SelectableListItem } from './selectable-list'
+import { ICON } from '../utils/icons'
 
 // Layout constants for responsive breakpoints
 const LAYOUT = {
@@ -78,7 +79,7 @@ export const ProjectPickerScreen: React.FC<ProjectPickerScreenProps> = ({
       directories.map((entry) => ({
         id: entry.path,
         label: entry.name,
-        icon: entry.isParent ? '📂' : '📁',
+        icon: entry.isParent ? '▤' : '▤',
         accent: entry.isGitRepo,
       })),
     [directories],

@@ -7,6 +7,7 @@ import type {
   LoginCodeResponse,
 } from '../utils/levelcode-api'
 import type { Logger } from '@levelcode/common/types/contracts/logger'
+import { ICON } from '../utils/icons'
 
 // Re-export for backwards compatibility
 export type LoginUrlResponse = LoginCodeResponse
@@ -51,7 +52,7 @@ export async function generateLoginUrl(
         status: response.status,
         error: response.error,
       },
-      '❌ Failed to request login URL',
+      '✗ Failed to request login URL',
     )
     throw new Error('Failed to get login URL')
   }
@@ -59,7 +60,7 @@ export async function generateLoginUrl(
   if (!response.data) {
     logger.error(
       { status: response.status },
-      '❌ Empty response from login URL',
+      '✗ Empty response from login URL',
     )
     throw new Error('Failed to get login URL')
   }
@@ -121,12 +122,12 @@ export async function pollLoginStatus(
 
   while (true) {
     if (shouldContinue && !shouldContinue()) {
-      logger.warn('🛑 Polling aborted by caller')
+      logger.warn('■ Polling aborted by caller')
       return { status: 'aborted' }
     }
 
     if (now() - startTime >= timeoutMs) {
-      logger.warn('⌛️ Login polling timed out')
+      logger.warn('◌️ Login polling timed out')
       return { status: 'timeout' }
     }
 
@@ -147,7 +148,7 @@ export async function pollLoginStatus(
               status: response.status,
               error: response.error,
             },
-            '⚠️ Unexpected status while polling',
+            '⚠︎ Unexpected status while polling',
           )
         }
         await sleep(intervalMs)
@@ -169,7 +170,7 @@ export async function pollLoginStatus(
           attempts,
           error: error instanceof Error ? error.message : String(error),
         },
-        '💥 Network error during login status polling',
+        '✗ Network error during login status polling',
       )
       await sleep(intervalMs)
       continue

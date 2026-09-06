@@ -11,6 +11,7 @@ import {
 } from '@levelcode/common/utils/team-fs'
 import { resolveActiveTeam } from '../commands/command-registry'
 import { listAllTeams } from '@levelcode/common/utils/team-discovery'
+import { ICON } from '../utils/icons'
 
 /**
  * Per-agent performance record.
@@ -307,7 +308,7 @@ export const TeamMetricsPanel: React.FC<TeamMetricsProps> = ({ visible, onClose 
       >
         <text style={{ fg: theme.primary }} attributes={TextAttributes.BOLD}>
           {' '}
-          📊 Team Performance Metrics
+          ▦ Team Performance Metrics
         </text>
         <Button onClick={onClose}>
           <text style={{ fg: theme.muted }}> [x] close </text>

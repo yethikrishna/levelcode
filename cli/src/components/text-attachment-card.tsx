@@ -2,6 +2,7 @@ import { AttachmentCard } from './attachment-card'
 import { useTheme } from '../hooks/use-theme'
 
 import type { PendingTextAttachment } from '../types/store'
+import { ICON } from '../utils/icons'
 
 const TEXT_CARD_WIDTH = 24
 const MAX_PREVIEW_LINES = 2
@@ -62,7 +63,7 @@ export const TextAttachmentCard = ({
           gap: 1,
         }}
       >
-        <text style={{ fg: theme.info }}>📄</text>
+        <text style={{ fg: theme.info }}>≡</text>
         <text
           style={{
             fg: theme.muted,

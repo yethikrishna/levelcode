@@ -5,6 +5,16 @@ All notable changes to LevelCode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TUI Overhaul Phases 1-2 (2026-09-05)
+
+### Added
+- **Icon system (Phase 1)** — central `ICON` registry (`cli/src/utils/icons.ts`) replaces ~160 scattered emoji with a coherent single-width Unicode glyph set (text-presentation-safe), themed via tokens. Activity bar, welcome screen, status marks, toasts, attachment/image cards, session/marketplace/init/pr-swarm/login output, dialogs all swept. Fixed the literal `·` rendering as raw text on the welcome footer (and dropped its stale hardcoded theme name).
+- **Custom OpenAI-compatible endpoints (Phase 2)** — the provider wizard now offers Custom > Custom OpenAI-Compatible. Full flow: base URL (LM Studio, llama.cpp, vLLM, LiteLLM, Ollama /v1, any gateway) -> optional display name -> API key (optional for auth-less local servers) -> manual model IDs (comma-separated, for endpoints without /models) -> connection test against YOUR endpoint (not the static definition URL) -> saved with a unique per-endpoint id and the baseUrl persisted. `updateProvider` action added to the provider store. Full audit + phased plan: docs/ui-overhaul-plan.md.
+
+### Fixed
+- **Model catalog produced junk entries** — `parseModelCatalog` iterated provider-level keys instead of the nested `provider.models` map (models.dev shape), yielding entries like id "models" per provider; the picker offered garbage and selecting it bricked all runs. Now parses the nested map (7,560 real entries verified live, zero junk) and never treats the container as a model.
+- **Placeholder API keys routed requests to doomed providers** — env auto-detection can seed keys like "test"; model routing now requires a usable key and falls through to the next-priority provider instead of producing an opaque upstream 401.
+
 ## [Unreleased] - Session Inspection, Fork Points & Swarm Budgets (2026-09-01)
 
 ### Added

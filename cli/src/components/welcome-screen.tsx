@@ -3,6 +3,7 @@ import React, { memo, useMemo } from 'react'
 
 import { Clickable } from './clickable'
 import { useTheme } from '../hooks/use-theme'
+import { ICON } from '../utils/icons'
 
 interface WelcomeScreenProps {
   onSuggestionClick?: (text: string) => void
@@ -16,12 +17,12 @@ interface SuggestionChip {
 }
 
 const SUGGESTIONS: SuggestionChip[] = [
-  { icon: '\u{1F50D}', label: 'Explain this codebase', prompt: 'Explain this codebase and give me an overview of the architecture' },
-  { icon: '\u{1F41B}', label: 'Fix bugs', prompt: 'Find and fix bugs in the codebase' },
-  { icon: '\u{1F9EA}', label: 'Add tests', prompt: 'Add comprehensive tests for the codebase' },
-  { icon: '\u267B\uFE0F', label: 'Refactor', prompt: 'Refactor the code to improve quality and maintainability' },
-  { icon: '\u{1F512}', label: 'Security audit', prompt: 'Perform a security audit and identify vulnerabilities' },
-  { icon: '\u{1F4DD}', label: 'Add docs', prompt: 'Add documentation to the codebase' },
+  { icon: ICON.nav.search, label: 'Explain this codebase', prompt: 'Explain this codebase and give me an overview of the architecture' },
+  { icon: ICON.status.error, label: 'Fix bugs', prompt: 'Find and fix bugs in the codebase' },
+  { icon: ICON.kind.taskDone, label: 'Add tests', prompt: 'Add comprehensive tests for the codebase' },
+  { icon: ICON.arrow.next, label: 'Refactor', prompt: 'Refactor the code to improve quality and maintainability' },
+  { icon: ICON.status.warning, label: 'Security audit', prompt: 'Perform a security audit and identify vulnerabilities' },
+  { icon: ICON.kind.file, label: 'Add docs', prompt: 'Add documentation to the codebase' },
 ]
 
 export const WelcomeScreen = memo(function WelcomeScreen({
@@ -113,7 +114,7 @@ export const WelcomeScreen = memo(function WelcomeScreen({
       <box style={{ flexGrow: 1 }} />
 
       <text style={{ fg: theme.foregroundSubtle ?? theme.muted, attributes: TextAttributes.DIM }}>
-        v{version}  \u00B7  Midnight theme  \u00B7  Type{' '}
+        v{version}  {'·'}  Type{' '}
         <span fg={theme.primary}>/help</span> for commands
       </text>
     </box>

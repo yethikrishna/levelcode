@@ -21,6 +21,7 @@ import { logger } from '../utils/logger'
 import { getLogoBlockColor, getLogoAccentColor } from '../utils/theme-system'
 
 import type { User } from '../utils/auth'
+import { ICON } from '../utils/icons'
 
 interface LoginModalProps {
   onLoginSuccess: (user: User) => void
@@ -147,7 +148,7 @@ export const LoginModal = ({
           {
             error: error instanceof Error ? error.message : String(error),
           },
-          '❌ Login validation failed, proceeding with raw user',
+          '✗ Login validation failed, proceeding with raw user',
         )
         onLoginSuccessRef.current(user)
       },
@@ -260,8 +261,8 @@ export const LoginModal = ({
           <text style={{ wrapMode: 'word' }}>
             <span fg={theme.secondary}>
               {isNarrow
-                ? "⚠ Found API key but it's invalid. Please log in again."
-                : '⚠ We found an API key but it appears to be invalid. Please log in again to continue.'}
+                ? "⚠︎ Found API key but it's invalid. Please log in again."
+                : '⚠︎ We found an API key but it appears to be invalid. Please log in again to continue.'}
             </span>
           </text>
         </box>

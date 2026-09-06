@@ -1,4 +1,5 @@
 import { sanitizeErrorMessage, getErrorStatusCode } from '@levelcode/sdk'
+import { ICON } from './icons'
 
 /**
  * Formats an unknown error into a user-facing markdown string.
@@ -47,7 +48,7 @@ export function formatErrorForDisplay(error: unknown, fallbackTitle: string): st
  * Formats a retry banner message for offline / retry scenarios.
  *
  * Example output:
- *   "⚠️ Network error: Server error. Please try again later. • 3 messages will retry when connection is restored"
+ *   "⚠︎️ Network error: Server error. Please try again later. • 3 messages will retry when connection is restored"
  */
 export function formatRetryBannerMessage(error: unknown, pendingCount: number): string {
   const baseTitle = 'Network error'
@@ -58,5 +59,5 @@ export function formatRetryBannerMessage(error: unknown, pendingCount: number): 
       ? ` • ${pendingCount} message${pendingCount === 1 ? '' : 's'} will retry when connection is restored`
       : ''
 
-  return `⚠️ ${formatted}${suffix}`
+  return `⚠︎️ ${formatted}${suffix}`
 }

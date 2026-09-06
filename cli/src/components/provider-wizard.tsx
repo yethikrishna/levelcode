@@ -28,13 +28,13 @@ import type {
   ProviderTestResult,
 } from '@levelcode/common/providers/provider-types'
 
-type WizardStep = 'category' | 'provider' | 'apikey' | 'test' | 'done'
+type WizardStep = 'category' | 'provider' | 'baseurl' | 'apikey' | 'models' | 'test' | 'done'
 
 /** Breadcrumb steps shown at the top of every wizard panel */
 const WIZARD_STEPS: BreadcrumbStep[] = [
   { key: 'category', label: 'Category' },
   { key: 'provider', label: 'Provider' },
-  { key: 'apikey', label: 'API Key' },
+  { key: 'apikey', label: 'Configure' },
   { key: 'test', label: 'Test' },
   { key: 'done', label: 'Done' },
 ]
@@ -43,7 +43,9 @@ const WIZARD_STEPS: BreadcrumbStep[] = [
 const STEP_TITLES: Record<WizardStep, string> = {
   category: 'Step 1/5 \u2014 Select Category',
   provider: 'Step 2/5 \u2014 Select Provider',
+  baseurl: 'Step 3/5 \u2014 Base URL',
   apikey: 'Step 3/5 \u2014 Configure',
+  models: 'Step 3/5 \u2014 Model IDs',
   test: 'Step 4/5 \u2014 Test Connection',
   done: 'Step 5/5 \u2014 Complete',
 }
@@ -65,9 +67,9 @@ interface ProviderWizardProps {
   onClose: () => void
 }
 
-const CATEGORIES = Object.keys(PROVIDER_CATEGORY_LABELS).filter(
-  (c) => c !== 'custom',
-) as ProviderCategory[]
+const CATEGORIES = Object.keys(PROVIDER_CATEGORY_LABELS) as ProviderCategory[]
+
+const CUSTOM_PROVIDER_ID = 'custom-openai'
 
 export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
   const theme = useTheme()
@@ -76,8 +78,13 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
   const [selectedCategory, setSelectedCategory] = useState<ProviderCategory>('major-paid')
   const [selectedProvider, setSelectedProvider] = useState<ProviderDefinition | null>(null)
   const [apiKey, setApiKey] = useState('')
+  const [customBaseUrl, setCustomBaseUrl] = useState('')
+  const [customDisplayName, setCustomDisplayName] = useState('')
+  const [customModelIds, setCustomModelIds] = useState('')
   const [testResult, setTestResult] = useState<ProviderTestResult | null>(null)
   const [isTesting, setIsTesting] = useState(false)
+
+  const isCustomProvider = selectedProvider?.id === CUSTOM_PROVIDER_ID
 
   const categoryProviders = getProvidersByCategory()[selectedCategory] ?? []
 
@@ -87,14 +94,18 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
   const goBack = useCallback(() => {
     if (step === 'provider') {
       setStep('category')
-    } else if (step === 'apikey') {
+    } else if (step === 'baseurl') {
       setStep('provider')
-    } else if (step === 'test') {
+    } else if (step === 'apikey') {
+      setStep(isCustomProvider ? 'baseurl' : 'provider')
+    } else if (step === 'models') {
       setStep('apikey')
+    } else if (step === 'test') {
+      setStep(isCustomProvider ? 'models' : 'apikey')
       setTestResult(null)
       setIsTesting(false)
     }
-  }, [step])
+  }, [step, isCustomProvider])
 
   // ---------------------------------------------------------------------------
   // Auto-test when entering test step
@@ -103,7 +114,8 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
     if (step !== 'test' || !selectedProvider || isTesting || testResult) return
 
     setIsTesting(true)
-    testProvider(selectedProvider.id, apiKey || undefined, selectedProvider.baseUrl || undefined)
+    const effectiveBaseUrl = selectedProvider.id === CUSTOM_PROVIDER_ID ? customBaseUrl : selectedProvider.baseUrl
+    testProvider(selectedProvider.id, apiKey || undefined, effectiveBaseUrl || undefined)
       .then((result) => {
         setTestResult(result)
         setIsTesting(false)
@@ -117,27 +129,50 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
         })
         setIsTesting(false)
       })
-  }, [step, selectedProvider, apiKey, isTesting, testResult])
+  }, [step, selectedProvider, apiKey, customBaseUrl, isTesting, testResult])
 
   // ---------------------------------------------------------------------------
   // Save provider configuration
   // ---------------------------------------------------------------------------
   const handleSave = useCallback(async () => {
     if (!selectedProvider) return
+    const isCustom = selectedProvider.id === CUSTOM_PROVIDER_ID
     const models = testResult?.models ?? []
-    await useProviderStore.getState().addProvider(selectedProvider.id, {
+    const manualModels = customModelIds
+      .split(',')
+      .map((m) => m.trim())
+      .filter(Boolean)
+
+    let providerId = selectedProvider.id
+    let displayName = selectedProvider.name
+    if (isCustom) {
+      // Multiple custom endpoints are supported: derive a unique, stable id
+      // from the user-provided display name.
+      const slug =
+        customDisplayName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'endpoint'
+      providerId = `custom-${slug}`
+      displayName = customDisplayName.trim() || selectedProvider.name
+    }
+
+    const entryModels = models.length > 0 ? models : manualModels
+    await useProviderStore.getState().addProvider(providerId, {
       enabled: true,
       apiKey: apiKey || undefined,
-      models,
-      customModelIds: [],
+      baseUrl: isCustom ? customBaseUrl.trim() : undefined,
+      displayName: isCustom && customDisplayName.trim() ? customDisplayName.trim() : undefined,
+      models: entryModels,
+      customModelIds: isCustom ? manualModels : [],
     })
     // Auto-set first model as active if no active model is set
     const { activeModel, activeProvider: currentActive } = useProviderStore.getState().config
-    if (!activeModel && !currentActive && models.length > 0) {
-      await useProviderStore.getState().setActiveModel(selectedProvider.id, models[0]!)
+    if (!activeModel && !currentActive && entryModels.length > 0) {
+      await useProviderStore.getState().setActiveModel(providerId, entryModels[0]!)
     }
     setStep('done')
-  }, [selectedProvider, apiKey, testResult])
+  }, [selectedProvider, apiKey, customBaseUrl, customDisplayName, customModelIds, testResult])
 
   // ---------------------------------------------------------------------------
   // List items
@@ -170,11 +205,19 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
       const provider = categoryProviders.find((p) => p.id === item.key)
       if (provider) {
         setSelectedProvider(provider)
-        setStep(provider.authType === 'none' ? 'test' : 'apikey')
+        setStep(provider.authType === 'none' ? 'test' : provider.id === CUSTOM_PROVIDER_ID ? 'baseurl' : 'apikey')
       }
     },
     [categoryProviders],
   )
+
+  const handleBaseUrlSubmit = useCallback(() => {
+    setStep('apikey')
+  }, [])
+
+  const handleModelsSubmit = useCallback(() => {
+    setStep('test')
+  }, [])
 
   // ---------------------------------------------------------------------------
   // API key input callbacks (used by TextInput primitive)
@@ -236,6 +279,12 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
   // Dynamic step title (appends provider name where relevant)
   // ---------------------------------------------------------------------------
   const getPanelTitle = (): string => {
+    if (step === 'baseurl' && selectedProvider) {
+      return `Step 3/5 \u2014 Base URL`
+    }
+    if (step === 'models' && selectedProvider) {
+      return `Step 3/5 \u2014 Model IDs`
+    }
     if (step === 'apikey' && selectedProvider) {
       return `Step 3/5 \u2014 Configure ${selectedProvider.name}`
     }
@@ -263,7 +312,17 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
           { key: 'Backspace', label: 'Back' },
           { key: 'Esc', label: 'Cancel' },
         ]
+      case 'baseurl':
+        return [
+          { key: 'Enter', label: 'Next' },
+          { key: 'Esc', label: 'Back' },
+        ]
       case 'apikey':
+        return [
+          { key: 'Enter', label: isCustomProvider ? 'Next' : 'Test' },
+          { key: 'Esc', label: 'Back' },
+        ]
+      case 'models':
         return [
           { key: 'Enter', label: 'Test' },
           { key: 'Esc', label: 'Back' },
@@ -318,6 +377,33 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
         />
       )}
 
+      {/* ── Step 3a: Custom Base URL ───────────────────────────────── */}
+      {step === 'baseurl' && (
+        <box style={{ flexDirection: 'column', gap: 0 }}>
+          <TextInput
+            value={customBaseUrl}
+            onChange={setCustomBaseUrl}
+            onSubmit={handleBaseUrlSubmit}
+            onCancel={goBack}
+            label="Base URL"
+            placeholder="http://localhost:1234/v1"
+          />
+          <box style={{ paddingTop: 1 }}>
+            <text style={{ fg: theme.muted, attributes: TextAttributes.DIM }}>
+              {'Any OpenAI-compatible endpoint: LM Studio, llama.cpp, vLLM, LiteLLM, Ollama /v1...'}
+            </text>
+          </box>
+          <TextInput
+            value={customDisplayName}
+            onChange={setCustomDisplayName}
+            onSubmit={handleBaseUrlSubmit}
+            onCancel={goBack}
+            label="Display name (optional)"
+            placeholder="My local server"
+          />
+        </box>
+      )}
+
       {/* ── Step 3: API Key Entry ──────────────────────────────────── */}
       {step === 'apikey' && (
         <box style={{ flexDirection: 'column', gap: 0 }}>
@@ -344,6 +430,32 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
               </text>
             </box>
           )}
+          {isCustomProvider && (
+            <box style={{ paddingTop: 1 }}>
+              <text style={{ fg: theme.info }}>
+                {'Local servers without auth: leave this empty and press Enter.'}
+              </text>
+            </box>
+          )}
+        </box>
+      )}
+
+      {/* ── Step 3b: Custom Model IDs ──────────────────────────────── */}
+      {step === 'models' && (
+        <box style={{ flexDirection: 'column', gap: 0 }}>
+          <TextInput
+            value={customModelIds}
+            onChange={setCustomModelIds}
+            onSubmit={handleModelsSubmit}
+            onCancel={goBack}
+            label="Model IDs (comma-separated)"
+            placeholder="e.g. llama-3.3-70b-instruct, qwen2.5-coder-32b"
+          />
+          <box style={{ paddingTop: 1 }}>
+            <text style={{ fg: theme.muted, attributes: TextAttributes.DIM }}>
+              {'Used when the endpoint does not expose /models. Comma-separate each id.'}
+            </text>
+          </box>
         </box>
       )}
 
@@ -394,6 +506,11 @@ export const ProviderWizard: React.FC<ProviderWizardProps> = ({ onClose }) => {
             <text style={{ fg: theme.foreground }}>
               {'Category: '}{PROVIDER_CATEGORY_LABELS[selectedCategory]}
             </text>
+            {selectedProvider?.id === CUSTOM_PROVIDER_ID && customBaseUrl && (
+              <text style={{ fg: theme.foreground }}>
+                {'Base URL: '}{customBaseUrl}
+              </text>
+            )}
             {testResult?.models && (
               <text style={{ fg: theme.foreground }}>
                 {'Models:   '}{testResult.models.length}{' available'}

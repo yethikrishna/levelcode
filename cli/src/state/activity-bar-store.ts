@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
+import { ICON } from '../utils/icons'
+
 export type ActivityView =
   | 'chat'
   | 'teams'
@@ -32,13 +34,13 @@ interface ActivityBarActions {
 type ActivityBarStore = ActivityBarState & ActivityBarActions
 
 export const ACTIVITY_ITEMS: ActivityItem[] = [
-  { id: 'chat', icon: '\u{1F4AC}', label: 'Chat', shortcut: '1' },
-  { id: 'teams', icon: '\u{1F465}', label: 'Teams', shortcut: '2' },
-  { id: 'files', icon: '\u{1F4C1}', label: 'Files', shortcut: '3' },
-  { id: 'search', icon: '\u{1F50E}', label: 'Search', shortcut: '4' },
-  { id: 'metrics', icon: '\u{1F4CA}', label: 'Metrics', shortcut: '5' },
-  { id: 'marketplace', icon: '\u{1F9E9}', label: 'Marketplace', shortcut: '6' },
-  { id: 'settings', icon: '\u2699\uFE0F', label: 'Settings', shortcut: '7' },
+  { id: 'chat', icon: ICON.nav.chat, label: 'Chat', shortcut: '1' },
+  { id: 'teams', icon: ICON.nav.teams, label: 'Teams', shortcut: '2' },
+  { id: 'files', icon: ICON.nav.files, label: 'Files', shortcut: '3' },
+  { id: 'search', icon: ICON.nav.search, label: 'Search', shortcut: '4' },
+  { id: 'metrics', icon: ICON.nav.metrics, label: 'Metrics', shortcut: '5' },
+  { id: 'marketplace', icon: ICON.nav.marketplace, label: 'Marketplace', shortcut: '6' },
+  { id: 'settings', icon: ICON.nav.settings, label: 'Settings', shortcut: '7' },
 ]
 
 const initialState: ActivityBarState = {

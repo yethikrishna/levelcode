@@ -10,6 +10,7 @@ import {
 } from '../../utils/terminal-images'
 
 import type { ImageContentBlock } from '../../types/chat'
+import { ICON } from '../../utils/icons'
 
 interface ImageBlockProps {
   block: ImageContentBlock
@@ -65,7 +66,7 @@ export const ImageBlock = memo(({ block, availableWidth }: ImageBlockProps) => {
       <box style={{ flexDirection: 'column', gap: 0, marginTop: 1, marginBottom: 1 }}>
         {/* Image caption/metadata */}
         <text style={{ wrapMode: 'none', fg: theme.muted }}>
-          <span attributes={TextAttributes.DIM}>📷 </span>
+          <span attributes={TextAttributes.DIM}>▣ </span>
           <span>{filename || 'Image'}</span>
           {formattedSize && (
             <span attributes={TextAttributes.DIM}> ({formattedSize})</span>
@@ -93,7 +94,7 @@ export const ImageBlock = memo(({ block, availableWidth }: ImageBlockProps) => {
     >
       {/* Header */}
       <text style={{ wrapMode: 'none', fg: theme.foreground }}>
-        <span attributes={TextAttributes.BOLD}>📷 Image Attachment</span>
+        <span attributes={TextAttributes.BOLD}>▣ Image Attachment</span>
       </text>
 
       {/* Filename */}

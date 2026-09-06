@@ -61,8 +61,22 @@ function parseModelCatalog(data: Record<string, unknown>): ModelCatalogEntry[] {
 
     const providerData = providerValue as Record<string, unknown>
 
-    for (const [modelKey, modelValue] of Object.entries(providerData)) {
+    // models.dev nests the actual models under `provider.models`; iterating
+    // provider-level keys instead produced junk catalog entries (e.g. an
+    // entry with id "models" per provider), which leaked into the model
+    // picker as selectable garbage.
+    const modelsRecord =
+      providerData.models && typeof providerData.models === 'object' && !Array.isArray(providerData.models)
+        ? (providerData.models as Record<string, unknown>)
+        : null
+
+    for (const [modelKey, modelValue] of Object.entries(modelsRecord ?? providerData)) {
       if (typeof modelValue !== 'object' || modelValue === null || Array.isArray(modelValue)) {
+        continue
+      }
+      if (modelsRecord === null && modelKey === 'models') {
+        // Legacy provider-level key that collides with the real models
+        // container; never treat the container itself as a model.
         continue
       }
 

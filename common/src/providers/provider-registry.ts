@@ -375,6 +375,17 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
     authType: 'bearer',
     category: 'coding-tools',
   },
+  'custom-openai': {
+    id: 'custom-openai',
+    name: 'Custom OpenAI-Compatible',
+    baseUrl: '', // User MUST provide — any OpenAI-compatible endpoint
+    envVars: [],
+    apiFormat: 'openai-compatible',
+    authType: 'bearer',
+    category: 'custom',
+    description:
+      'Any OpenAI-compatible endpoint (LM Studio, llama.cpp server, vLLM, LiteLLM, Ollama with /v1, gateways). You provide the base URL, API key, and model ids.',
+  },
 } satisfies Record<string, ProviderDefinition>
 
 // ============================================================================

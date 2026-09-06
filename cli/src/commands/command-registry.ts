@@ -141,6 +141,7 @@ import type { SendMessageFn } from '../types/contracts/send-message'
 import type { User } from '../utils/auth'
 import type { AgentMode } from '../utils/constants'
 import type { UseMutationResult } from '@tanstack/react-query'
+import { ICON } from '../utils/icons'
 
 export type RouterParams = {
   abortControllerRef: React.MutableRefObject<AbortController | null>
@@ -1676,7 +1677,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       params.setMessages((prev) => [
         ...prev,
         getUserMessage(params.inputValue.trim()),
-        getSystemMessage('⏳ Attaching swarm to PR...'),
+        getSystemMessage('◌ Attaching swarm to PR...'),
       ])
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
@@ -1688,7 +1689,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           return [...withoutPending, getSystemMessage(result)]
         })
       } catch (error) {
-        const msg = `❌ PR attach failed: ${error instanceof Error ? error.message : String(error)}`
+        const msg = `✗ PR attach failed: ${error instanceof Error ? error.message : String(error)}`
         params.setMessages((prev) => {
           const withoutPending = prev.slice(0, -1)
           return [...withoutPending, getSystemMessage(msg)]
@@ -1781,7 +1782,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       params.setMessages((prev) => [
         ...prev,
         getUserMessage(params.inputValue.trim()),
-        getSystemMessage('⏳ Starting relay server...'),
+        getSystemMessage('◌ Starting relay server...'),
       ])
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
@@ -1792,7 +1793,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           return [...withoutPending, getSystemMessage(result)]
         })
       } catch (error) {
-        const msg = `❌ ${error instanceof Error ? error.message : String(error)}`
+        const msg = `✗ ${error instanceof Error ? error.message : String(error)}`
         params.setMessages((prev) => {
           const withoutPending = prev.slice(0, -1)
           return [...withoutPending, getSystemMessage(msg)]
@@ -2339,7 +2340,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       clearInput(params)
       params.setMessages((prev) => [
         ...prev,
-        getSystemMessage('⏳ Checking MCP servers...'),
+        getSystemMessage('◌ Checking MCP servers...'),
       ])
       try {
         const { mcpServers } = loadMCPConfigSync({ verbose: false })
@@ -2518,7 +2519,7 @@ Change with /effort <level>. Applies to the next message.`),
       params.setMessages((prev) => [
         ...prev,
         getUserMessage(params.inputValue.trim()),
-        getSystemMessage('⏳ Building code map...'),
+        getSystemMessage('◌ Building code map...'),
       ])
       clearInput(params)
       try {

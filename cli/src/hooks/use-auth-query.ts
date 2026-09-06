@@ -24,6 +24,7 @@ import { logger as defaultLogger, loggerContext } from '../utils/logger'
 
 import type { GetUserInfoFromApiKeyFn } from '@levelcode/common/types/contracts/database'
 import type { Logger } from '@levelcode/common/types/contracts/logger'
+import { ICON } from '../utils/icons'
 
 const getApiKeyHash = (apiKey: string): string => {
   return createHash('sha256').update(apiKey).digest('hex')
@@ -77,7 +78,7 @@ export async function validateApiKey({
     })
 
     if (!authResult) {
-      logger.error('❌ API key validation failed - invalid credentials')
+      logger.error('✗ API key validation failed - invalid credentials')
       throw createAuthError('Invalid API key')
     }
 
@@ -86,7 +87,7 @@ export async function validateApiKey({
     const statusCode = getErrorStatusCode(error)
 
     if (isAuthenticationError(error)) {
-      logger.error('❌ API key validation failed - authentication error')
+      logger.error('✗ API key validation failed - authentication error')
       // Rethrow the original error to preserve statusCode for higher layers
       throw error
     }
@@ -97,7 +98,7 @@ export async function validateApiKey({
           error: error instanceof Error ? error.message : String(error),
           statusCode,
         },
-        '❌ API key validation failed - network error',
+        '✗ API key validation failed - network error',
       )
       // Rethrow the original error to preserve statusCode for higher layers
       throw error
@@ -108,7 +109,7 @@ export async function validateApiKey({
       {
         error: error instanceof Error ? error.message : String(error),
       },
-      '❌ API key validation failed - unknown error',
+      '✗ API key validation failed - unknown error',
     )
     throw createServerError('Authentication failed')
   }
@@ -213,7 +214,7 @@ export function useLoginMutation(deps: UseLoginMutationDeps = {}) {
           error: error instanceof Error ? error.message : String(error),
           errorStack: error instanceof Error ? error.stack : undefined,
         },
-        '❌ Login mutation failed',
+        '✗ Login mutation failed',
       )
     },
   })

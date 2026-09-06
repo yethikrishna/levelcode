@@ -5,6 +5,7 @@ import { pollLoginStatus } from '../login/login-flow'
 import { logger } from '../utils/logger'
 
 import type { User } from '../utils/auth'
+import { ICON } from '../utils/icons'
 
 interface UseLoginPollingParams {
   loginUrl: string | null
@@ -94,7 +95,7 @@ export function useLoginPolling({
           {
             error: error instanceof Error ? error.message : String(error),
           },
-          '💥 Unexpected error while polling login status',
+          '✗ Unexpected error while polling login status',
         )
         onErrorRef.current(
           error instanceof Error ? error.message : 'Failed to complete login',

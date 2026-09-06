@@ -1,3 +1,4 @@
+import { ICON } from './icons'
 // Input mode types and configurations
 // To add a new mode:
 // 1. Add it to the InputMode type
@@ -75,7 +76,7 @@ export const INPUT_MODE_CONFIGS: Record<InputMode, InputModeConfig> = {
     disableSlashSuggestions: false,
   },
   image: {
-    icon: '📎',
+    icon: '◇',
     color: 'imageCardBorder',
     placeholder: 'enter image path or Ctrl+V to paste',
     widthAdjustment: 3, // emoji width + padding
@@ -91,7 +92,7 @@ export const INPUT_MODE_CONFIGS: Record<InputMode, InputModeConfig> = {
     disableSlashSuggestions: false,
   },
   'connect:claude': {
-    icon: '🔗',
+    icon: '∞',
     color: 'info',
     placeholder: 'paste authorization code here...',
     widthAdjustment: 3, // emoji width + padding

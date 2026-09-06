@@ -109,6 +109,7 @@ import type { FileTreeNode } from '@levelcode/common/util/file'
 import type { KeyEvent, ScrollBoxRenderable } from '@opentui/core'
 import type { UseMutationResult } from '@tanstack/react-query'
 import type { Dispatch, SetStateAction } from 'react'
+import { ICON } from './utils/icons'
 
 export const Chat = ({
   headerContent,
@@ -1409,7 +1410,7 @@ export const Chat = ({
     if (queuePreviewTitle) {
       segments.push(queuePreviewTitle)
     } else if (pausedQueueText) {
-      segments.push(`⏸ ${pausedQueueText}`)
+      segments.push(`‖ ${pausedQueueText}`)
     }
 
     if (segments.length === 0) {

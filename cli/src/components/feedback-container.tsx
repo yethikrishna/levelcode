@@ -9,6 +9,7 @@ import { showClipboardMessage } from '../utils/clipboard'
 import { logger } from '../utils/logger'
 
 import type { ChatMessage } from '../types/chat'
+import { ICON } from '../utils/icons'
 
 interface FeedbackContainerProps {
   inputRef: React.MutableRefObject<any>
@@ -122,7 +123,7 @@ export const FeedbackContainer: React.FC<FeedbackContainerProps> = ({
 
     resetFeedbackForm()
     closeFeedback()
-    showClipboardMessage('Thanks, your feedback helps! 💖', {
+    showClipboardMessage('Thanks, your feedback helps! ♥', {
       durationMs: 5000,
     })
 

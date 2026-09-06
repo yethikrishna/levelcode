@@ -15,6 +15,7 @@ import { trackEvent } from '../utils/analytics'
 import { getSystemMessage } from '../utils/message-history'
 
 import type { PostUserMessageFn } from '../types/contracts/send-message'
+import { ICON } from '../utils/icons'
 
 const INITIAL_KNOWLEDGE_FILE = `# Project knowledge
 
@@ -58,10 +59,10 @@ export function handleInitializationFlowLocally(): {
   const messages: string[] = []
 
   if (existsSync(knowledgePath)) {
-    messages.push(`📋 \`${PRIMARY_KNOWLEDGE_FILE_NAME}\` already exists.`)
+    messages.push(`✓ \`${PRIMARY_KNOWLEDGE_FILE_NAME}\` already exists.`)
   } else {
     writeFileSync(knowledgePath, INITIAL_KNOWLEDGE_FILE)
-    messages.push(`✅ Created \`${PRIMARY_KNOWLEDGE_FILE_NAME}\``)
+    messages.push(`✓ Created \`${PRIMARY_KNOWLEDGE_FILE_NAME}\``)
 
     // Track knowledge file creation
     trackEvent(AnalyticsEvent.KNOWLEDGE_FILE_UPDATED, {
@@ -75,23 +76,23 @@ export function handleInitializationFlowLocally(): {
   const agentsTypesDir = path.join(agentsDir, 'types')
 
   if (existsSync(agentsDir)) {
-    messages.push('📋 `.agents/` already exists.')
+    messages.push('✓ `.agents/` already exists.')
   } else {
     mkdirSync(agentsDir, { recursive: true })
-    messages.push('✅ Created `.agents/`')
+    messages.push('✓ Created `.agents/`')
   }
 
   if (existsSync(agentsTypesDir)) {
-    messages.push('📋 `.agents/types/` already exists.')
+    messages.push('✓ `.agents/types/` already exists.')
   } else {
     mkdirSync(agentsTypesDir, { recursive: true })
-    messages.push('✅ Created `.agents/types/`')
+    messages.push('✓ Created `.agents/types/`')
   }
 
   for (const { fileName, source } of COMMON_TYPE_FILES) {
     const targetPath = path.join(agentsTypesDir, fileName)
     if (existsSync(targetPath)) {
-      messages.push(`📋 \`.agents/types/${fileName}\` already exists.`)
+      messages.push(`✓ \`.agents/types/${fileName}\` already exists.`)
       continue
     }
 
@@ -100,10 +101,10 @@ export function handleInitializationFlowLocally(): {
         throw new Error('Source content is empty')
       }
       writeFileSync(targetPath, source)
-      messages.push(`✅ Copied \`.agents/types/${fileName}\``)
+      messages.push(`✓ Copied \`.agents/types/${fileName}\``)
     } catch (error) {
       messages.push(
-        `⚠️ Failed to copy \`.agents/types/${fileName}\`: ${
+        `⚠︎ Failed to copy \`.agents/types/${fileName}\`: ${
           error instanceof Error ? error.message : String(error ?? 'Unknown')
         }`,
       )

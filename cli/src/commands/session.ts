@@ -1,5 +1,6 @@
 import { SharedSessionManager, startRelayServer } from '@levelcode/sdk'
 import type { SessionRelayServer } from '@levelcode/sdk'
+import { ICON } from '../utils/icons'
 
 const sessionManager = SharedSessionManager.getInstance()
 let relayServer: SessionRelayServer | null = null
@@ -11,7 +12,7 @@ export function handleSessionCreate(hostId?: string): string {
   const host = hostId ?? `user-${Date.now().toString(36)}`
   const info = sessionManager.createSession(host)
   return [
-    `🔗 Shared session created`,
+    `∞ Shared session created`,
     `  Session ID: ${info.sessionId}`,
     `  Host: ${info.hostId}`,
     `  Created: ${new Date(info.createdAt).toLocaleTimeString()}`,
@@ -36,14 +37,14 @@ export function handleSessionJoin(args: string, participantId?: string): string 
   try {
     const state = sessionManager.joinSession(sessionId, pid, name || undefined)
     return [
-      `✅ Joined session ${sessionId}`,
+      `✓ Joined session ${sessionId}`,
       `  Participants: ${state.participants.length}`,
       `  Host: ${state.hostId}`,
       `  Shared files: ${Object.keys(state.fileStates).length}`,
       `  Active agents: ${state.activeAgents.length}`,
     ].join('\n')
   } catch (error) {
-    return `❌ Failed to join: ${error instanceof Error ? error.message : String(error)}`
+    return `✗ Failed to join: ${error instanceof Error ? error.message : String(error)}`
   }
 }
 
@@ -57,9 +58,9 @@ export function handleSessionLeave(sessionId: string, participantId?: string): s
   const pid = participantId ?? 'user'
   try {
     sessionManager.leaveSession(sessionId, pid)
-    return `👋 Left session ${sessionId}`
+    return ` Left session ${sessionId}`
   } catch (error) {
-    return `❌ ${error instanceof Error ? error.message : String(error)}`
+    return `✗ ${error instanceof Error ? error.message : String(error)}`
   }
 }
 
@@ -90,10 +91,10 @@ export async function handleCollabRelay(args: string): Promise<string> {
   const port = args.trim() ? parseInt(args.trim(), 10) : 9301
   try {
     relayServer = await startRelayServer({ port })
-    return `🔌 Collab relay server started on ws://127.0.0.1:${port}`
+    return `⬢ Collab relay server started on ws://127.0.0.1:${port}`
   } catch (error) {
     relayServer = null
-    return `❌ Failed to start relay: ${error instanceof Error ? error.message : String(error)}`
+    return `✗ Failed to start relay: ${error instanceof Error ? error.message : String(error)}`
   }
 }
 
@@ -106,5 +107,5 @@ export function handleCollabRelayStop(): string {
   }
   relayServer.stop().catch(() => {})
   relayServer = null
-  return '🛑 Relay server stopped.'
+  return '■ Relay server stopped.'
 }

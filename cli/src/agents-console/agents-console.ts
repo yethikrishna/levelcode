@@ -8,6 +8,7 @@
  */
 
 import type { TeamConfig, TeamMember, TeamTask } from '@levelcode/common/types/team-config'
+import { ICON } from '../utils/icons'
 
 export type ComplianceTailEntry = {
   eventType: string
@@ -242,7 +243,7 @@ export function formatTeamDetail(
     const status = theme[statusColor[task.status]](pad(task.status, 12))
     const owner = task.owner ? theme.dim(` @${task.owner}`) : theme.dim(' (unowned)')
     const blockedBy =
-      task.blockedBy.length > 0 ? theme.red(`  ⛔ blocked by ${task.blockedBy.join(', ')}`) : ''
+      task.blockedBy.length > 0 ? theme.red(`  ■ blocked by ${task.blockedBy.join(', ')}`) : ''
     lines.push(`    #${pad(task.id, 5)} ${status} ${task.subject}${owner}${blockedBy}`)
   }
 

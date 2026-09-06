@@ -5,6 +5,7 @@ import {
   loadProviderConfig,
   saveProviderConfig,
   addProvider as addProviderToConfig,
+  updateProvider as updateProviderInConfig,
   removeProvider as removeProviderFromConfig,
   setActiveModel as setActiveModelInConfig,
   updateUserSettings as updateUserSettingsInConfig,
@@ -57,6 +58,7 @@ interface ProviderStoreState {
 interface ProviderStoreActions {
   loadProviders: () => Promise<void>
   addProvider: (id: string, entry: ProviderEntry) => Promise<void>
+  updateProvider: (id: string, patch: Partial<ProviderEntry>) => Promise<void>
   removeProvider: (id: string) => Promise<void>
   setActiveModel: (providerId: string, modelId: string) => Promise<void>
   updateSettings: (patch: Partial<UserSettings>) => Promise<void>
@@ -166,6 +168,18 @@ export const useProviderStore = create<ProviderStore>()(
           state.isLoading = false
         })
       }
+    },
+
+    updateProvider: async (id, patch) => {
+      await updateProviderInConfig(id, patch)
+      set((state) => {
+        const existing = state.config.providers[id]
+        if (existing) {
+          Object.assign(existing, patch)
+        }
+        state.isInitialized = true
+        state.isLoading = false
+      })
     },
 
     addProvider: async (id, entry) => {

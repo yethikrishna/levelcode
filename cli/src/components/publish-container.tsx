@@ -16,6 +16,7 @@ import { useChatStore } from '../state/chat-store'
 import { usePublishStore } from '../state/publish-store'
 import { loadLocalAgents, loadAgentDefinitions } from '../utils/local-agent-registry'
 import { BORDER_CHARS } from '../utils/ui-constants'
+import { ICON } from '../utils/icons'
 
 
 interface PublishContainerProps {
@@ -615,7 +616,7 @@ export const PublishContainer: React.FC<PublishContainerProps> = ({
                 <text style={{ fg: theme.muted }}>{errorResult.details}</text>
               )}
               {errorResult.hint && (
-                <text style={{ fg: theme.warning, marginTop: 1 }}>💡 {errorResult.hint}</text>
+                <text style={{ fg: theme.warning, marginTop: 1 }}>ℹ︎ {errorResult.hint}</text>
               )}
             </box>
           </box>

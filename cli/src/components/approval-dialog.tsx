@@ -10,6 +10,7 @@ import { KeyHint } from './primitives/key-hint'
 
 import type { KeyEvent } from '@opentui/core'
 import type { ApprovalRequest } from '@levelcode/common/approval/diff-gate'
+import { ICON } from '../utils/icons'
 
 interface ApprovalDialogProps {
   request: ApprovalRequest
@@ -134,7 +135,7 @@ export const ApprovalDialog = memo(function ApprovalDialog({
       {/* Title bar */}
       <box style={{ flexDirection: 'column', width: '100%' }}>
         <text style={{ fg: titleColor, attributes: TextAttributes.BOLD }}>
-          {request.isDestructive ? '⚠ Approve Destructive Operation' : 'Approve Change'}
+          {request.isDestructive ? '⚠︎ Approve Destructive Operation' : 'Approve Change'}
         </text>
         <text style={{ fg: theme.border, attributes: TextAttributes.DIM }}>
           {'─'.repeat(50)}

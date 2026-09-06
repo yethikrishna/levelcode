@@ -97,6 +97,16 @@ export function createProviderModel(
  * 2. Otherwise, search all enabled providers in preferred order, then remaining providers,
  *    to find one whose `models` or `customModelIds` includes the modelId.
  */
+/** Placeholder/absent keys cannot authenticate; env auto-detection can seed values like "test". */
+function hasUsableKey(entry: { apiKey?: string; oauthToken?: { accessToken?: string } }): boolean {
+  if (entry.oauthToken?.accessToken) return true
+  const key = entry.apiKey?.trim()
+  if (!key) return false
+  if (key.length < 8) return false
+  const placeholders = new Set(['test', 'placeholder', 'changeme', 'dummy', 'sk-test', 'sk-fake'])
+  return !placeholders.has(key.toLowerCase()) && !key.toLowerCase().startsWith('sk-fake')
+}
+
 export async function resolveModelFromProviders(modelId: string): Promise<ResolvedModel | null> {
   const config = await loadProviderConfig()
 
@@ -108,11 +118,17 @@ export async function resolveModelFromProviders(modelId: string): Promise<Resolv
     const providerEntry = config.providers[providerId]
 
     if (providerEntry && providerEntry.enabled) {
-      return {
-        providerId,
-        modelId: actualModelId,
-        providerEntry,
-        providerDefinition: getProviderDefinition(providerId),
+      // Route only when the provider can actually authenticate: a missing or
+      // placeholder key (env auto-detection seeds e.g. "test") would produce
+      // an opaque upstream 401 on every request. Falling through lets the
+      // next-priority resolution find a usable provider instead.
+      if (hasUsableKey(providerEntry)) {
+        return {
+          providerId,
+          modelId: actualModelId,
+          providerEntry,
+          providerDefinition: getProviderDefinition(providerId),
+        }
       }
     }
   }

@@ -9,6 +9,7 @@ import {
   supportsInlineImages,
   renderInlineImage,
 } from '../utils/terminal-images'
+import { ICON } from '../utils/icons'
 
 // Image card display constants
 const MAX_FILENAME_LENGTH = 16
@@ -128,7 +129,7 @@ export const ImageCard = ({
             image={image}
             width={THUMBNAIL_WIDTH}
             height={THUMBNAIL_HEIGHT}
-            fallback={<text style={{ fg: theme.info }}>🖼️</text>}
+            fallback={<text style={{ fg: theme.info }}>▣️</text>}
           />
         )}
       </box>

@@ -1,4 +1,5 @@
 import { PRSwarmManager, parsePRRef, getGithubTokenFromEnv } from '@levelcode/sdk'
+import { ICON } from '../utils/icons'
 
 const swarmManagers = new Map<string, PRSwarmManager>()
 
@@ -27,7 +28,7 @@ export async function handlePRAttach(args: string): Promise<string> {
 
   const prRef = parsePRRef(refStr)
   if (!prRef) {
-    return `❌ Invalid PR reference "${refStr}". Expected format: owner/repo#number (e.g. facebook/react#12345)`
+    return `✗ Invalid PR reference "${refStr}". Expected format: owner/repo#number (e.g. facebook/react#12345)`
   }
 
   const autoMerge = options.includes('--auto-merge')
@@ -44,11 +45,11 @@ export async function handlePRAttach(args: string): Promise<string> {
 
     const review = result.initialReview
     if (!review) {
-      return `🤖 Swarm ${result.swarmId} attached to ${prRef.owner}/${prRef.repo}#${prRef.number} (no review produced).`
+      return `◆ Swarm ${result.swarmId} attached to ${prRef.owner}/${prRef.repo}#${prRef.number} (no review produced).`
     }
 
     const lines = [
-      `🤖 Swarm attached to ${prRef.owner}/${prRef.repo}#${prRef.number}`,
+      `◆ Swarm attached to ${prRef.owner}/${prRef.repo}#${prRef.number}`,
       `Swarm ID: ${result.swarmId}`,
       ``,
       review.summary,
@@ -66,7 +67,7 @@ export async function handlePRAttach(args: string): Promise<string> {
 
     return lines.join('\n')
   } catch (error) {
-    return `❌ Failed to attach swarm: ${error instanceof Error ? error.message : String(error)}\n\nTip: Set GITHUB_TOKEN env var or ensure the repo is public.`
+    return `✗ Failed to attach swarm: ${error instanceof Error ? error.message : String(error)}\n\nTip: Set GITHUB_TOKEN env var or ensure the repo is public.`
   }
 }
 
@@ -82,9 +83,9 @@ export function handlePRDetach(args: string): string {
   try {
     const manager = getManager()
     manager.detachFromPR(prRef)
-    return `🔌 Detached swarm from ${prRef.owner}/${prRef.repo}#${prRef.number}`
+    return `⬢ Detached swarm from ${prRef.owner}/${prRef.repo}#${prRef.number}`
   } catch (error) {
-    return `❌ ${error instanceof Error ? error.message : String(error)}`
+    return `✗ ${error instanceof Error ? error.message : String(error)}`
   }
 }
 
