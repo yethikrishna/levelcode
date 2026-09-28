@@ -1,12 +1,10 @@
-import { env } from '@levelcode/common/env'
-
 import type { MetadataRoute } from 'next'
 
 import { getCachedAgentsForSitemap } from '@/server/agents-data'
 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const toUrl = (path: string) => `${env.NEXT_PUBLIC_LEVELCODE_APP_URL}${path}`
+  const toUrl = (path: string) => `https://levelcode.myndlabs.tech${path}`
 
   const items: MetadataRoute.Sitemap = [
     {
