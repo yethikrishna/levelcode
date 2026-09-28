@@ -8,7 +8,7 @@ import type { Metadata } from 'next'
 import { siteConfig } from '@/lib/constant'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const canonicalUrl = env.NEXT_PUBLIC_LEVELCODE_APP_URL
+  const canonicalUrl = 'https://levelcode.myndlabs.tech'
 
   const title = 'LevelCode – AI Coding Assistant for Your Terminal'
   const description = siteConfig.description
