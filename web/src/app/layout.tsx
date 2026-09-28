@@ -17,7 +17,7 @@ import SessionProvider from '@/lib/SessionProvider'
 import { cn } from '@/lib/utils'
 
 export const generateMetadata = (): Metadata => ({
-  metadataBase: new URL(siteConfig.url()),
+  metadataBase: new URL('https://levelcode.myndlabs.tech'),
   title: {
     default: siteConfig.title,
     template: `%s | ${siteConfig.title}`,
@@ -34,7 +34,7 @@ export const generateMetadata = (): Metadata => ({
     google: siteConfig.googleSiteVerificationId(),
   },
   openGraph: {
-    url: siteConfig.url(),
+    url: 'https://levelcode.myndlabs.tech',
     title: siteConfig.title,
     description: siteConfig.description,
     siteName: siteConfig.title,
