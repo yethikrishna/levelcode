@@ -1,5 +1,5 @@
-import { env } from '@levelcode/common/env'
 import dynamic from 'next/dynamic'
+import type { Metadata } from 'next'
 import NextLink from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -21,6 +21,22 @@ export function generateStaticParams(): Array<{
       category: doc.category,
       slug: doc.slug,
     }))
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ category: string; slug: string }>
+}): Promise<Metadata> {
+  const { category, slug } = await params
+  const doc = getDocsByCategory(category).find((d: Doc) => d.slug === slug)
+  if (!doc) return {}
+  const canonical = `https://levelcode.myndlabs.tech/docs/${category}/${slug}`
+  return {
+    title: doc.title,
+    alternates: { canonical },
+    openGraph: { url: canonical, title: doc.title },
+  }
 }
 
 // FAQ structured data for SEO - parsed from the FAQ MDX content
@@ -122,19 +138,19 @@ function DocsBreadcrumbJsonLd({
         '@type': 'ListItem',
         position: 1,
         name: 'Documentation',
-        item: `${env.NEXT_PUBLIC_LEVELCODE_APP_URL}/docs`,
+        item: `https://levelcode.myndlabs.tech/docs`,
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: category.charAt(0).toUpperCase() + category.slice(1),
-        item: `${env.NEXT_PUBLIC_LEVELCODE_APP_URL}/docs/${category}`,
+        item: `https://levelcode.myndlabs.tech/docs/${category}`,
       },
       {
         '@type': 'ListItem',
         position: 3,
         name: title,
-        item: `${env.NEXT_PUBLIC_LEVELCODE_APP_URL}/docs/${category}/${slug}`,
+        item: `https://levelcode.myndlabs.tech/docs/${category}/${slug}`,
       },
     ],
   }
