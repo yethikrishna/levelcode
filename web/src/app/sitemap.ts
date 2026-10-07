@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { allDocs } from '.contentlayer/generated'
 
 import { getCachedAgentsForSitemap } from '@/server/agents-data'
 
@@ -24,25 +25,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'hourly',
       priority: 0.9,
     },
-    // Documentation pages
-    {
-      url: toUrl('/docs/help/faq'),
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
+    // Every published documentation route uses the custom-domain canonical.
+    ...allDocs.filter((doc) => !doc.slug.startsWith('_')).map((doc) => ({
+      url: toUrl(`/docs/${doc.category}/${doc.slug}`),
+      changeFrequency: 'weekly' as const,
       priority: 0.8,
-    },
-    {
-      url: toUrl('/docs/help/quick-start'),
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: toUrl('/docs/advanced/troubleshooting'),
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
+    })),
     {
       url: toUrl('/pricing'),
       lastModified: new Date(),
