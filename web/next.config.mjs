@@ -107,6 +107,12 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/docs/:path*',
+        has: [{ type: 'host', value: '(?:www\\.)?levelcode\\.vercel\\.app' }],
+        destination: 'https://levelcode.myndlabs.tech/docs/:path*',
+        permanent: true,
+      },
+      {
         source: '/:path*',
         has: [
           {
